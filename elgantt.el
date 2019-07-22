@@ -156,23 +156,23 @@
 			 ;; if there is no hashtag, then skip the entry bc it will not appear in the calendar
 			 (when header
 			   (elgantt/data/add-properties header `(:category                  ,(elgantt/parse/get-category (point))
-											    :hashtag                   ,(elgantt/parse/get-hashtag (point))
-											    :tag-string                ,(elgantt/parse/get-alltags-as-string (point))
-											    :file                      ,(elgantt/parse/get-file (point))
-											    :timestamp_active          ,(elgantt/parse/get-active-timestamp (point))
-											    :timestamp_inactive        ,(elgantt/parse/get-inactive-timestamp (point))
-											    :timestamp_range_active    ,(elgantt/parse/get-active-time-range)
-											    :timestamp_range_inactive  ,(elgantt/parse/get-inactive-time-range)	
-											    :deadline                  ,(elgantt/parse/get-deadline (point))
-											    :headline_text             ,(elgantt/parse/get-headline-text (point))
-											    :todo                      ,(elgantt/parse/get-todo (point))
-											    :start-or-end-or-range     ,(nth 0 (elgantt/parse/get-start-or-end-or-range (point)))
-											    :calendar-label            ,(nth 1 (elgantt/parse/get-start-or-end-or-range (point)))
-											    :calendar-date             ,(nth 2 (elgantt/parse/get-start-or-end-or-range (point)))
-											    :calendar-point nil        ; done, this fills in later 
-											    :calendar-column nil       ; done, fills below
-											    :calendar-blocks nil       ; to be filled later
-											    :org-point ,(point)))))))
+								 :hashtag                   ,(elgantt/parse/get-hashtag (point))
+								 :tag-string                ,(elgantt/parse/get-alltags-as-string (point))
+								 :file                      ,(elgantt/parse/get-file (point))
+								 :timestamp_active          ,(elgantt/parse/get-active-timestamp (point))
+								 :timestamp_inactive        ,(elgantt/parse/get-inactive-timestamp (point))
+								 :timestamp_range_active    ,(elgantt/parse/get-active-time-range)
+								 :timestamp_range_inactive  ,(elgantt/parse/get-inactive-time-range)	
+								 :deadline                  ,(elgantt/parse/get-deadline (point))
+								 :headline_text             ,(elgantt/parse/get-headline-text (point))
+								 :todo                      ,(elgantt/parse/get-todo (point))
+								 :start-or-end-or-range     ,(nth 0 (elgantt/parse/get-start-or-end-or-range (point)))
+								 :calendar-label            ,(nth 1 (elgantt/parse/get-start-or-end-or-range (point)))
+								 :calendar-date             ,(nth 2 (elgantt/parse/get-start-or-end-or-range (point)))
+								 :calendar-point nil        ; done, this fills in later 
+								 :calendar-column nil       ; done, fills below
+								 :calendar-blocks nil       ; to be filled later
+								 :org-point ,(point)))))))
 
 		   ;; forget what nil does; 'agenda means all agenda files"; 'archive means to skip archives
 		   ;; the file is changed for testing purposes
