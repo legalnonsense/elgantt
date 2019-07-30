@@ -1,0 +1,109 @@
+#+PROPERTY: header-args :tangle README.el
+
+* README
+** how to use
+
+This system operatese on tags /or/ categories. 
+
+*** Using categories (default)
+
+The default to use categories, which are set in a property drawer. This approach works best if your org file is heirarchical. For example 
+
+#+begin_src org :tangle yes
+* Justin 
+:PROPERTIES:
+:CATEGORY: Justin
+:END:
+** TODO Cut the grass
+<2019-01-10 Thu>
+** TODO mow the lawn
+<2019-02-12 Tue>
+** TODO submit TPS reports
+DEADLINE: <2019-04-02 Tue>
+#+end_src
+
+In this example, all three tasks would be displayed in a row labeled “Justin,” since the CATEGORY property is inherited. 
+
+[[file:screenshots/1.png]]
+
+To add another row, start a new category:
+
+#+begin_src org 
+* Juanita
+:PROPERTIES:
+:CATEGORY: Juanita
+:END:
+** TODO sharpen knives
+<2019-07-25 Thu>
+** TODO submit thesis for intial review
+DEADLINE: <2019-09-08 Sun>
+#+end_src
+
+This will produce the following:
+
+[[file:screenshots/2.png]]
+
+*** Using hashtags instead of Categories
+
+You can also use hashtags. To to this, set ~elgantt/use-hashtag~ to non-nil. A tag that starts with a ~#~ will substitute for the category. 
+
+The benefit of hashtags is that your file need not be  hierarchical. For example, the following will pick up the ~take out the garbage~ task, and put it on the proper line for Justinia. (Note the take that is marked on July 30.)
+
+#+begin_src org
+* Justin :#Justinia:
+** TODO Cut the grass
+<2019-01-10 Thu>
+** TODO mow the lawn
+<2019-02-12 Tue>
+** TODO submit TPS reports
+DEADLINE: <2019-04-02 Tue>
+* Juanita :#Juanitan:
+** TODO sharpen knives
+<2019-07-25 Thu>
+** TODO submit thesis for intial review
+DEADLINE: <2019-09-08 Sun>
+* An unrelated heading
+** TODO take out the garbage :#Justinia:
+<2019-07-30 Tue>
+#+end_src
+
+[[file:screenshots/4.png]]
+
+
+
+To create a highlighted block of time, you can:
+
+NOT SUPPORTED 1. create a time range with an active timestamp (assuming that you’ve enabled elgantt/config/show-active-timestamps)
+
+2. place two tags in headings with deadlines in the form xxx_start and xxx_end
+
+If there is a _start but no _end, then the tag will be ignored but El Gantt will warn you in the echo area
+
+If the latter, then that block on the calendar will be named “xxxx”
+
+To designate a time range as tentative, add the tag #tentative. This will cause the timeblock to be colored in a lighter color than the one you’ve selected 
+
+El Gantt will try to make your calendar look beautiful by using gradients other effects. 
+
+Each tag “xxxx_start” will be assigned a color. You can configure this by customizing the variable elgantt/variables/tag-colors, which will be a plist in the form of (“tag-name” color . . .).
+If that variable is nil, it will arbitrarily select colors and update the tag-colors variable as it selects a new color. 
+
+If there are overlapping time stamps, then there will be a very nice gradient effect showing both. If three things overlap, I do not know what will happen. 
+** 
+
+** Navigation
+From the Gantt Chart, you can quickly:
+navigate immediately to your agenda on a given day (enter)
+navigate to calfw for a given month (c)
+naviate to org file at point in calendar (space)
+
+** navigating the calendar is intuitive
+
+n, p (next line, previous line)
+b, f (next entry, previous entry)
+a, e (begin line, end line)
+B, F (next day, previous day)
+j (jump to date)
+r (reload)
+
+
