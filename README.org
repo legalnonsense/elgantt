@@ -89,7 +89,31 @@ Each tag “xxxx_start” will be assigned a color. You can configure this by cu
 If that variable is nil, it will arbitrarily select colors and update the tag-colors variable as it selects a new color. 
 
 If there are overlapping time stamps, then there will be a very nice gradient effect showing both. If three things overlap, I do not know what will happen. 
-** 
+
+** Displaying blocks of time
+
+There are two ways to display a block of time
+*** Use tags with ~x_start~ and ~x_end~, where ~x~ is an arbitrary string. 
+
+When using this method, the text of the heading of the ~start~ tag is irrelevant. It can also be set with an inactive timestamp, so that it does not appear on your agenda. 
+
+#+begin_src org  
+* Justin 
+:PROPERTIES:
+:CATEGORY: Justin
+:END:
+** TODO Cut the grass
+<2019-01-10 Thu>
+** TODO mow the lawn
+<2019-02-12 Tue>
+** start date for TPS reports :TPS_start:
+[2019-03-11 Mon]
+** TODO submit TPS reports :TPS_end:
+DEADLINE: <2019-04-02 Tue>
+#+end_src 
+
+
+
 
 ** Navigation
 From the Gantt Chart, you can quickly:
