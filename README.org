@@ -1,7 +1,23 @@
 #+PROPERTY: header-args :tangle README.el
 
-* README
-** how to use
+* El Gantt – A Gantt Chart system for Orgmode files
+
+[[file:screenshots/8.png]]
+
+El Gantt creates a Gantt calendar from your orgmode files. Block entries into the calendar are set using tags, and rows are designated by either categories or tags. 
+** DANGER!!
+
+I am not a programmer, nor do I pretend to be one. This is designed to be a PROTOTYPE. It is guaranteed that you will encounter errors and problems trying to use this package. I have written this to the point where it works for me, and I know the quirks that cause problems enough to avoid them. 
+
+The code you will encounter is /awful/. I learned elisp /while/ writing this package. I worked in very short bursts while doing my real job (lawyer). If it seemed to work, I used it. 
+
+I do not have time to work on this! I am hoping this will inspire someone to re-write this from scratch. 
+ 
+This /should/ work with the ~sample.org~ file that is in the TEST directory. To use it, you’ll have change line 180 so that ~org-map-entries~ points to the sample file rather than using your ~agenda~ files. 
+
+When I say I learned elisp while writing this, I mean that literally. I did not know anything, and so this is 100% amateur hackery. 
+
+** How to use
 
 This system operatese on tags /or/ categories. 
 
@@ -95,7 +111,7 @@ If there are overlapping time stamps, then there will be a very nice gradient ef
 There are two ways to display a block of time
 *** Use tags with ~x_start~ and ~x_end~, where ~x~ is an arbitrary string. 
 
-When using this method, the text of the heading of the ~start~ tag is irrelevant. It can also be set with an inactive timestamp, so that it does not appear on your agenda. 
+When using this method, the text of the heading of the ~start~ tag is irrelevant. 
 
 #+begin_src org  
 * Justin 
@@ -106,28 +122,55 @@ When using this method, the text of the heading of the ~start~ tag is irrelevant
 <2019-01-10 Thu>
 ** TODO mow the lawn
 <2019-02-12 Tue>
-** start date for TPS reports :TPS_start:
-[2019-03-11 Mon]
+** start TPS reports :TPS_start:
+<2019-02-19 Tue>
 ** TODO submit TPS reports :TPS_end:
 DEADLINE: <2019-04-02 Tue>
 #+end_src 
 
+[[file:screenshots/5.png]]
+*** Using time ranges and the tag ~x_block~ and using an active time range
 
+You can also designate a block of time by adding a time range and using the ~_block~ tag:
+#+begin_src org 
+* Justin 
+:PROPERTIES:
+:CATEGORY: Justin
+:END:
+** TODO Cut the grass
+<2019-01-10 Thu>
+** TODO mow the lawn
+<2019-02-12 Tue>
+** start TPS reports :TPS_start:
+<2019-02-19 Tue>
+** TODO submit TPS reports :TPS_end:
+DEADLINE: <2019-04-02 Tue>
+* Juanita
+:PROPERTIES:
+:CATEGORY: Juanita
+:END:
+** out of town :vacation_block:
+<2019-03-01 Fri>--<2019-04-30 Tue>
+** TODO sharpen knives
+<2019-07-25 Thu>
+** TODO submit thesis for intial review
+DEADLINE: <2019-09-08 Sun>
+#+end_src 
+[[file:screenshots/6.png]]
 
+** Echo area
+
+The echo area will display the name of the heading, and the headline text at the point. For example, in the above calendar if the point was on Justin and April 2, the echo area shows:
+
+[[file:screenshots/7.png]]
 
 ** Navigation
-From the Gantt Chart, you can quickly:
-navigate immediately to your agenda on a given day (enter)
-navigate to calfw for a given month (c)
-naviate to org file at point in calendar (space)
+Usual emacs keybindings, except:
+| Key    | Command                           |
+|--------+-----------------------------------|
+| space  | Jump to point in org file         |
+| Return | Open agenda for the date at point |
+| b, f   | Jump to next entry on line        |
+** Other features
 
-** navigating the calendar is intuitive
-
-n, p (next line, previous line)
-b, f (next entry, previous entry)
-a, e (begin line, end line)
-B, F (next day, previous day)
-j (jump to date)
-r (reload)
-
-
+I am pretty sure there are other features, but I have forgotten them due to the lag between when I stopped working on this and when I uploaded it. 
