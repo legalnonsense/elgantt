@@ -85,11 +85,11 @@ DEADLINE: <2019-09-08 Sun>
 
 [[file:screenshots/4.png]]
 
-
+*** Highlighting blocks of time
 
 To create a highlighted block of time, you can:
 
-NOT SUPPORTED 1. create a time range with an active timestamp (assuming that you’ve enabled elgantt/config/show-active-timestamps)
+1. create a time range with an active timestamp (assuming that you’ve enabled elgantt/config/show-active-timestamps)
 
 2. place two tags in headings with deadlines in the form xxx_start and xxx_end
 
