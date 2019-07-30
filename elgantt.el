@@ -30,7 +30,10 @@
 					;  (define-key elgantt-mode-map (kbd "n") 'elgantt--next-line)
 
 
-(defvar elgantt/map-data nil)
+(setq elgantt/map-data nil)
+(require 'color)
+(require 'org)
+(require 's)
 
 (defun elgantt/display/highlight-weekends-in-line-number (line-number-string years)
   (let ((months [31 28 31 30 31 30 31 31 30 31 30 31]))
@@ -51,13 +54,10 @@
 			       'font-lock-face `(:background "#ececec") line-number-string))))))
   line-number-string)
 
-
+(setq elgantt/use-hashtag nil)
 (defun elgantt-open ()
   "Display Gantt chart for an Orgmode outline"
   (interactive)
-  (require 'color)
-  (require 'org)
-  (require 's)
 
   (switch-to-buffer "El Gantt Calendar")
   (let ((inhibit-read-only t))
@@ -65,7 +65,7 @@
 
   (setq elgantt/variables/exclusions '("Habits" "Personal" "Business" "taskmaster" "Unsorted" "Computer" "Business"))
   (setq elgantt/map-data nil)
-  (setq elgantt/use-hashtag nil)
+
   (setq elgantt/display/variables/normal-year-number-line   "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
   (setq elgantt/display/variables/leap-year-number-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
   (setq elgantt/display/variables/normal-year-calendar-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
@@ -176,7 +176,7 @@
 
 		   ;; forget what nil does; 'agenda means all agenda files"; 'archive means to skip archives
 		   ;; the file is changed for testing purposes
-;		   nil '("/home/jeff/Dropbox/DropsyncFiles/elgantt/testing.org"))
+;		   nil '("~/.emacs.d/lisp/elgantt/TEST/sample.org"))
   		   nil 'agenda 'archive)
 
   ;;calculate the offset that will be used for the calendar 
