@@ -85,27 +85,6 @@ DEADLINE: <2019-09-08 Sun>
 
 [[file:screenshots/4.png]]
 
-*** Highlighting blocks of time
-
-To create a highlighted block of time, you can:
-
-1. create a time range with an active timestamp (assuming that you’ve enabled elgantt/config/show-active-timestamps)
-
-2. place two tags in headings with deadlines in the form xxx_start and xxx_end
-
-If there is a _start but no _end, then the tag will be ignored but El Gantt will warn you in the echo area
-
-If the latter, then that block on the calendar will be named “xxxx”
-
-To designate a time range as tentative, add the tag #tentative. This will cause the timeblock to be colored in a lighter color than the one you’ve selected 
-
-El Gantt will try to make your calendar look beautiful by using gradients other effects. 
-
-Each tag “xxxx_start” will be assigned a color. You can configure this by customizing the variable elgantt/variables/tag-colors, which will be a plist in the form of (“tag-name” color . . .).
-If that variable is nil, it will arbitrarily select colors and update the tag-colors variable as it selects a new color. 
-
-If there are overlapping time stamps, then there will be a very nice gradient effect showing both. If three things overlap, I do not know what will happen. 
-
 ** Displaying blocks of time
 
 There are two ways to display a block of time
