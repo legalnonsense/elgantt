@@ -1,5 +1,3 @@
-#+PROPERTY: header-args :tangle README.el
-
 * El Gantt – A Gantt Chart system for Orgmode files
 
 [[file:screenshots/8.png]]
@@ -16,6 +14,10 @@ I do not have time to work on this, and am hoping this will inspire someone to p
 This /should/ work with the ~sample.org~ file that is in the TEST directory. To use it, you’ll have change line 180 so that ~org-map-entries~ points to the sample file rather than using your ~agenda~ files. 
 
 When I say I learned elisp while writing this, I mean that literally. I did not know anything, and so this is 100% amateur hackery. 
+
+** Generating the chart
+
+Once the orgmode file is set up (see below), evaluate the elgantt.el buffer and run ~elgantt-open~. The chart should appear in a new buffer.
 
 ** How to use
 
@@ -150,5 +152,5 @@ Usual emacs keybindings, except:
 | Return | Open agenda for the date at point |
 | b, f   | Jump to next entry on line        |
 ** Other features
-
+b
 There are other features, but I have forgotten them due to the lag between when I stopped working on this and when I uploaded it.
