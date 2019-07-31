@@ -54,7 +54,6 @@ To add another row, start a new category:
 ** TODO submit thesis for intial review
 DEADLINE: <2019-09-08 Sun>
 #+end_src
-
 This will produce the following:
 
 [[file:screenshots/2.png]]
@@ -152,4 +151,4 @@ Usual emacs keybindings, except:
 | b, f   | Jump to next entry on line        |
 ** Other features
 
-I am pretty sure there are other features, but I have forgotten them due to the lag between when I stopped working on this and when I uploaded it. 
+There are other features, but I have forgotten them due to the lag between when I stopped working on this and when I uploaded it.
