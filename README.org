@@ -7,11 +7,11 @@
 El Gantt creates a Gantt calendar from your orgmode files. Block entries into the calendar are set using tags, and rows are designated by either categories or tags. 
 ** DANGER!!
 
-I am not a programmer, nor do I pretend to be one. This is designed to be a PROTOTYPE. It is guaranteed that you will encounter errors and problems trying to use this package. I have written this to the point where it works for me, and I know the quirks that cause problems enough to avoid them. 
+I am not a programmer. This is designed to be a PROTOTYPE. You will encounter errors and problems trying to use this package. I have written this to the point where it works for me, and I know the quirks that cause problems enough to avoid them. 
 
-The code you will encounter is /awful/. I learned elisp /while/ writing this package. I worked in very short bursts while doing my real job (lawyer). If it seemed to work, I used it. 
+The code you will encounter is awful. I learned elisp /while/ writing this package. I worked in very short bursts while doing my real job (lawyer). If it seemed to work, I used it and moved on. 
 
-I do not have time to work on this! I am hoping this will inspire someone to re-write this from scratch. 
+I do not have time to work on this, and am hoping this will inspire someone to pick this up. 
  
 This /should/ work with the ~sample.org~ file that is in the TEST directory. To use it, you’ll have change line 180 so that ~org-map-entries~ points to the sample file rather than using your ~agenda~ files. 
 
@@ -25,7 +25,7 @@ This system operatese on tags /or/ categories.
 
 The default to use categories, which are set in a property drawer. This approach works best if your org file is heirarchical. For example 
 
-#+begin_src org :tangle yes
+#+begin_src org 
 * Justin 
 :PROPERTIES:
 :CATEGORY: Justin
