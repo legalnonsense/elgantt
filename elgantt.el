@@ -35,34 +35,87 @@
 (require 's)
 
 ;;;; Custom variables
-(setq elgantt/use-hashtag nil)
-(setq elgantt/display/variables/block-default-start "#696969")
-(setq elgantt/display/variables/block-default-end "#ff4500")
-(setq elgantt/variables/color-alist '((discovery . "#4444ff")
-				      (brief     . "#ff8c00")
-				      (waiting   . "#cdcd00")
-				      (court     . "#00ff7f")))
-(setq elgantt/variables/exclusions '("Habits" "Personal" "Business" "taskmaster" "Unsorted" "Computer" "Business"))
-(setq elgantt/variables/deadline-character "▲")
-(setq elgantt/variables/event-character "●")
-(setq elgantt/dark-mode nil)
-(setq elgantt/adjust-color -15)
-(setq elgantt/files 'agenda)
-(setq elgantt/display/variables/current-selection-bar-color "Orange")
 
-(setq elgantt/display/variables/color-of-current-selectionbar "#880088")
-(setq elgantt/display/variables/current-selection-column nil)
-(setq elgantt/display/variables/tentative-block-lighten-percent 25)
-(setq elgantt/variables/default-background-color (face-attribute 'default :background))
+
+(defgroup gantt-org nil
+  "Options about gantt-org."
+  :tag "Gantt Org"
+  :group 'org
+  :group 'gantt)
+
+(defcustom elgantt/use-hashtag nil
+  "If non-nil, use tags that are prefixed with a hashtag to generate the headings of the calendar. If nil, then use the CATEGORY property to generate the headings."
+  :group 'gantt-org)
+
+(defcustom elgantt/display/variables/block-default-start "#696969"
+  "This is the default color used at the beginning of a time block."
+    :group 'gantt-org)
+
+(defcustom elgantt/display/variables/block-default-end "#ff4500"
+  "This is the default end color used for time blocks."
+  :group 'gantt-org)
+
+(defcustom elgantt/variables/color-alist '((discovery . "#4444ff")
+					   (brief     . "#ff8c00")
+					   (waiting   . "#cdcd00")
+					   (court     . "#00ff7f"))
+  "These are end colors which are used for specific block tags. For example, a block defined by brief_start and brief_end (or by brief_block) will use the color assigned here."
+  :group 'gantt-org)
+
+(defcustom elgantt/variables/exclusions '("Habits" "Personal" "Business" "taskmaster" "Unsorted" "Computer" "Business")
+  "List of any items that should be excluded from the calendar, so that it does not grab categories which are not relevant to scheduling."
+  :group 'gantt-org)
+
+(defcustom elgantt/variables/deadline-character "▲"
+  "The character used for deadlines in the calendar."
+  :group 'gantt-org)
+
+(defcustom elgantt/variables/event-character "●"
+  "The character used to display active timestamps in the calendar"
+  :group 'gantt-org)
+
+(defcustom elgantt/dark-mode nil
+  "If you are using a dark theme, enable this."
+  :group 'gantt-org)
+
+(defcustom elgantt/adjust-color -15
+  "The color of every other line in the calendar is darkened or lightened for readability. This is a percent and can be negative (darken) or positive (lighten)."
+  :group 'gantt-org)
+
+(defcustom elgantt/files 'agenda
+  "Designates which files are used to generate the calendar. Accepts any value used by org-map-entries:
+
+nil     The current buffer, respecting the restriction if any
+tree    The subtree started with the entry at point
+region  The entries within the active region, if any region-start-level
+        The entries within the active region, but only those at
+        the same level than the first one.
+file    The current buffer, without restriction
+file-with-archives
+        The current buffer, and any archives associated with it
+agenda  All agenda files
+agenda-with-archives
+        All agenda files with any archive files associated with them
+(file1 file2 ...)
+        If this is a list, all files in the list will be scanned"
+  :group 'gantt-org)
+
+(defcustom elgantt/display/variables/tentative-block-lighten-percent 25
+  "If a block also have the \"tentative\" tag, then make it appear this percent lighter than normal."
+  :group 'gantt-org)
+    
+(defcustom elgantt/variables/default-background-color (face-attribute 'default :background)
+  "The default background color for the calendar; defaults to the background of the default face."
+  :group 'gantt-org)
 
 ;;;; Constants / internal variables
 (defvar elgantt/map-data nil)
-(setq elgantt/display/variables/normal-year-number-line   "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
-(setq elgantt/display/variables/leap-year-number-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
-(setq elgantt/display/variables/normal-year-calendar-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
-(setq elgantt/display/variables/normal-year-blank-line    "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
-(setq elgantt/display/variables/leap-year-calendar-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
-(setq elgantt/display/variables/leap-year-blank-line      "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
+(defvar elgantt/display/variables/normal-year-number-line   "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
+(defvar elgantt/display/variables/leap-year-number-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
+(defvar elgantt/display/variables/normal-year-calendar-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
+(defvar elgantt/display/variables/normal-year-blank-line    "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
+(defvar elgantt/display/variables/leap-year-calendar-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
+(defvar elgantt/display/variables/leap-year-blank-line      "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
   (define-key elgantt-mode-map (kbd "r") 'elgantt-open)
