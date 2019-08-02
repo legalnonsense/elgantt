@@ -3,15 +3,6 @@
 [[file:screenshots/8.png]]
 
 El Gantt creates a Gantt calendar from your orgmode files. Block entries into the calendar are set using tags, and rows are designated by either categories or tags. 
-** DANGER!!
-
-I am not a programmer. This is designed to be a PROTOTYPE. You will encounter errors and problems trying to use this package. I have written this to the point where it works for me, and I know the quirks that cause problems enough to avoid them. 
-
-The code you will encounter is awful. I learned elisp /while/ writing this package. I worked in very short bursts while doing my real job (lawyer). If it seemed to work, I used it and moved on. 
-
-This /should/ work with the ~sample.org~ file that is in the TEST directory. To use it, you’ll have change line 180 so that ~org-map-entries~ points to the sample file rather than using your ~agenda~ files. 
-
-UPDATE: I am making slow progress on making this usable to people generally. Help is welcomed!
 
 ** Generating the chart
 
@@ -89,7 +80,7 @@ DEADLINE: <2019-09-08 Sun>
 There are two ways to display a block of time
 *** Use tags with ~x_start~ and ~x_end~, where ~x~ is an arbitrary string. 
 
-When using this method, the text of the heading of the ~start~ tag is irrelevant. 
+When using this method, the text of the heading of the ~start~ tag is irrelevant. If you want to keep the start date or end date from appearing in your agenda, you can use inactive timestamps. 
 
 #+begin_src org  
 * Justin 
@@ -152,3 +143,12 @@ Usual emacs keybindings, except:
 ** Other features
 
 There are other features, but I have forgotten them due to the lag between when I stopped working on this and when I uploaded it. 
+** DANGER!!
+
+I am not a programmer. This is designed to be a PROTOTYPE. You will encounter errors and problems trying to use this package. I have written this to the point where it works for me, and I know the quirks that cause problems enough to avoid them. 
+
+The code you will encounter is awful. I learned elisp /while/ writing this package. I worked in very short bursts while doing my real job (lawyer). If it seemed to work, I used it and moved on. 
+
+This /should/ work with the ~sample.org~ file that is in the TEST directory. To use it, you’ll have change line 180 so that ~org-map-entries~ points to the sample file rather than using your ~agenda~ files. 
+
+UPDATE: I am making slow progress on making this usable to people generally. Help is welcomed!
