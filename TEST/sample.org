@@ -1,22 +1,64 @@
-* Justin 
+* Justin :#Justinia:
 :PROPERTIES:
 :CATEGORY: Justin
 :END:
-** TODO Cut the grass
+** active date stamp
 <2019-01-10 Thu>
-** TODO mow the lawn
-<2019-02-12 Tue>
-** start TPS reports :TPS_start:
-<2019-02-19 Tue>
-** TODO submit TPS reports :TPS_end:
-DEADLINE: <2019-04-02 Tue>
+** inactive date stamp
+[2019-02-12 Tue]
+** active time range :active_block:
+<2019-08-01 Thu>--<2019-08-24 Sat>
+[2019-08-01 Thu]--[2019-08-29 Thu]
+** active timestamp
+<2019-08-22 Thu 10:00>
+** inactive timestamp
+[2019-08-15 Thu 15:40]
+** deadline (date)
+DEADLINE: <2019-08-01 Thu>
+** deadline (time)
+DEADLINE: <2019-08-03 Sat 10:00>
+
+** active time range with times 
+<2019-08-09 Fri 10:00>--<2019-08-16 Fri 02:00>
+
 * Juanita
 :PROPERTIES:
 :CATEGORY: Juanita
 :END:
+** out of town :vacation_block:
+<2019-03-01 Fri>--<2019-04-30 Tue>
 ** TODO sharpen knives
 <2019-07-25 Thu>
 ** TODO submit thesis for intial review
 DEADLINE: <2019-09-08 Sun>
-** out :vacation_block:
-<2019-03-01 Fri>--<2019-04-30 Tue>
+* Jeff
+:PROPERTIES:
+:CATEGORY: Jeff
+:END:
+** work on the readme :brief_start:
+<2019-01-06 Sun>
+** finish and upload readme :brief_end:
+DEADLINE: <2019-03-11 Mon>
+** work on something else :brief_start:
+<2019-04-16 Tue>
+** something else is due :brief_end:
+DEADLINE: <2019-07-30 Tue>
+* Janice
+:PROPERTIES:
+:CATEGORY: Janice
+:END:
+** review Juanita’s thesis :thesis_start:
+<2019-09-09 Mon>
+** finish review of Juanita’s thesis :thesis_end:
+DEADLINE: <2019-09-13 Fri>
+* Jorge
+:PROPERTIES:
+:CATEGORY: Jorge
+:END:
+** preparing for oral argument :argument_start:
+<2019-07-02 Tue>
+** oral argument date! :argument_end:
+DEADLINE: <2019-08-01 Thu>
+
+
+

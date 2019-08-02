@@ -1,27 +1,68 @@
+;;; elgantt.el --- Generate text-based Gantt Charts from Orgmode files  -*- lexical-binding: t; -*-
+
+;; Author: Jeff Filipovits <jrfilipovits@gmail.com>
+;; Url: https://github.com/legalnonsense/elgantt
+;; Version: 0.1
+;; Package-Requires: ((emacs "26.1") (org "9.0") (s "1.12.0"))
+;; Keywords: Org, agenda, calendar, outlines, gantt
+
+;;; Commentary:
+;; El Gantt is a text-based Gantt Chart that is generated from Org files.
+;; It uses tags to generate colored blocks of time. See the README for
+;; instructions. It is integrated with orgmode and can jump to the point
+;; of an org file and open an agenda for each day of the chart.
+
+;;; License:
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Code:
+
+;;;; Requirements
+
 (require 'color)
 (require 'org)
 (require 's)
 
-(setq elgantt/map-data nil)
+;;;; Custom variables
 (setq elgantt/use-hashtag nil)
+(setq elgantt/display/variables/block-default-start "#696969")
+(setq elgantt/display/variables/block-default-end "#ff4500")
+(setq elgantt/variables/color-alist '((discovery . "#4444ff")
+				      (brief     . "#ff8c00")
+				      (waiting   . "#cdcd00")
+				      (court     . "#00ff7f")))
 (setq elgantt/variables/exclusions '("Habits" "Personal" "Business" "taskmaster" "Unsorted" "Computer" "Business"))
-(setq elgantt/label-and-color-alist nil) ;;this will be used later for custom colors 
-;(setq elgantt/files 'agenda) ;; this is the value that is used by org-map-entries. See that documentation for possible values. 
-(setq elgantt/files '("~/.emacs.d/lisp/elgantt/TEST/sample.org"))
+(setq elgantt/variables/deadline-character "▲")
+(setq elgantt/variables/event-character "●")
+(setq elgantt/dark-mode nil)
+(setq elgantt/adjust-color -15)
+(setq elgantt/files 'agenda)
+(setq elgantt/display/variables/current-selection-bar-color "Orange")
+
+(setq elgantt/display/variables/color-of-current-selectionbar "#880088")
+(setq elgantt/display/variables/current-selection-column nil)
+(setq elgantt/display/variables/tentative-block-lighten-percent 25)
+(setq elgantt/variables/default-background-color (face-attribute 'default :background))
+
+;;;; Constants / internal variables
+(defvar elgantt/map-data nil)
 (setq elgantt/display/variables/normal-year-number-line   "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
 (setq elgantt/display/variables/leap-year-number-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
 (setq elgantt/display/variables/normal-year-calendar-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (setq elgantt/display/variables/normal-year-blank-line    "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
 (setq elgantt/display/variables/leap-year-calendar-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (setq elgantt/display/variables/leap-year-blank-line      "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
-(setq elgantt/variables/deadline-character "¤")
-(setq elgantt/variables/event-character "●")
-(setq elgantt/variables/color-alist '((discovery . "#4444ff")
-				      (brief     . "#ff8c00")
-				      (waiting   . "#cdcd00")))
-(setq elgantt/dark-mode nil)
-(setq elgantt/adjust-color -25)
-  
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
   (define-key elgantt-mode-map (kbd "r") 'elgantt-open)
@@ -30,8 +71,6 @@
   (define-key elgantt-mode-map (kbd "b")   'elgantt/display/move-selection-bar-backward)
   (define-key elgantt-mode-map (kbd "RET") 'elgantt--open-org-agenda-at-date))
 
-
-;; This function is SLOW. There must be a better way to implement it. Not in use due to dramatic slowdown when using it. 
 (defun elgantt/display/highlight-weekends-in-line-number (line-number-string years)
   (let ((months [31 28 31 30 31 30 31 31 30 31 30 31]))
     (dotimes (y (length years))
@@ -48,11 +87,8 @@
 			       ;; 										   (elgantt/date/normalize-date-string (format "%d-%d-%d" (nth y years) (1+ m) (1+ d))))
 			       ;; 										  'face line-number-string)
 			       ;; 							       :background) -25))))))))
-			       'font-lock-face `(:background "#ececec") line-number-string))))))
+			       'font-lock-face `(:background "#696969") line-number-string))))))
   line-number-string)
-
-
-
 
 (defun elgantt-open ()
   "Display Gantt chart for an Orgmode outline"
@@ -64,18 +100,7 @@
     (setq elgantt/adjust-color 15))
 
   (setq elgantt/map-data nil) ; re-initialize the orgmode data
-  (setq elgantt/display/variables/current-selection-bar-color "Orange")
-  (setq elgantt/display/variables/block-default-start "#696969")
-  (setq elgantt/display/variables/block-default-end "#ff4500")
-  (setq elgantt/display/variables/color-of-current-selectionbar "#880088")
-  (setq elgantt/display/variables/current-selection-column nil)
-  (setq elgantt/display/variables/tentative-block-lighten-percent 25)
-  (setq elgantt/variables/error-log "")
-  (setq elgantt/variables/default-background-color "#bebebe")
   (setq elgantt/display/old-backgrounds '())
-
-  (put-text-property 0 1 'font-lock-face `(:background ,(face-attribute 'default :background)) elgantt/variables/deadline-character)
-  (put-text-property 0 1 'font-lock-face `(:background ,(face-attribute 'default :background)) elgantt/variables/event-character)
 
   (elgantt-draw)
   (elgantt-mode)
@@ -86,7 +111,6 @@
   (forward-char (elgantt/display/convert-date-to-column-number (format-time-string "%Y-%m-%d")))
   (add-hook 'post-command-hook 'elgantt/display/show-echo-message nil t)
   (add-hook 'post-command-hook 'elgantt/display/vertical-highlight nil t)
-  ;;(add-hook 'post-command-hook 'elgantt/display/horizontal-highlight nil t)
   (delete-other-windows))
 
 (defun elgantt-draw ()
@@ -96,6 +120,8 @@
     (insert "Parsing org files...")
     (elgantt/parse-org-files)
     (erase-buffer)
+    ;;calculate the offset that will be used for the calendar 
+    (setq elgantt/variables/header-column-offset (+ (elgantt/data/get-longest-header-length) 1))
     (insert (elgantt/display/draw-month-line))
     (insert "\n")
     (insert (elgantt/display/draw-number-line))
@@ -109,6 +135,7 @@
 
 
 (defun elgantt/show-parsed-data ()
+  "this is for debugging"
   (interactive)
   (with-output-to-temp-buffer "El Gantt Parsed Data"
     (dolist (header elgantt/map-data)
@@ -128,9 +155,7 @@
    if use-hashtag is non-nil, then it will use tags that start with # to create the
    elgantt/map-data. the argument type-of-search parameter allows the specification of a specific file to use by passing a list of files
    and valid values are determined by the SCOPE parameter in org-map-entries"
-
   (interactive)
-
   (setq elgantt/map-data '())
   (org-map-entries (lambda ()
 		     ;; get the header by interning the category
@@ -161,20 +186,11 @@
 								 :calendar-column nil       ; done, fills below
 								 :calendar-blocks nil       ; to be filled later
 								 :org-point ,(point)))))))
-
-		   ;; forget what nil does; 'agenda means all agenda files"; 'archive means to skip archives
-		   ;; the file is changed for testing purposes
   		   nil elgantt/files 'archive)
 
-  ;;calculate the offset that will be used for the calendar 
-  (setq elgantt/variables/header-column-offset (+ (elgantt/data/get-longest-header-length) 1))
-
-  ;; add the data for what column in the calendar corresponds to each date; if not displayed then nil 
   (dolist (property (elgantt/data/get-all-properties))
     (when (stringp (plist-get property :calendar-date))
       (plist-put property :calendar-column (elgantt/display/convert-date-to-column-number (plist-get property :calendar-date)))))
-
-  ;;  return elgantt/map-data, even thoug it is already saved
   elgantt/map-data)
 
       ;;;;;;;;;;;;;;;;;;;;;;;;; HELPER FUNCTIONS
@@ -231,10 +247,6 @@
   (if (eq (alist-get header elgantt/map-data) "")
       nil
     (alist-get header elgantt/map-data)))
-
-(defun elgantt/data/check-for-specific-property (header property)
-  ""
-  nil)
 
 (defun elgantt/data/add-property-list-to-header (header property-list)
   "adds information from an org heading to the appropriate header"
@@ -644,13 +656,11 @@
   (other-window 1))
 
 
-;;;helper to get days per year
 (defun elgantt/display/days-in-year (year)
   (if (elgantt/date/leap-year-p year)
       366
     365))
 
-        ;;;;; helpers for converting dates to columns
 (defun elgantt/display/convert-date-string-to-day-number-in-year (date)
   "accept a date in the format YYYY-MM-DD and return an int of #day of the year"
   (time-to-day-in-year (encode-time 0 0 0 (string-to-number (substring date 8 10))
@@ -852,6 +862,12 @@
 ;;   (elgantt/display/vertical-highlight (+ 1 (current-column)))
 ;;   (forward-char))
 
+;; (defun elgantt/display/move-selection-bar-backward ()
+;;   "need to add a check to make sure not at the end of the screen"
+;;   (interactive)
+;;   (elgantt/display/vertical-highlight (- (current-column) 1))
+;;   (backward-char))
+
 (defun elgantt/display/move-selection-bar-forward ()
   (interactive)
   (when (<= (current-column) elgantt/variables/header-column-offset)
@@ -869,12 +885,8 @@
   (elgantt/display/vertical-highlight (current-column)))    
     
 
-
-;; (defun elgantt/display/move-selection-bar-backward ()
-;;   "need to add a check to make sure not at the end of the screen"
-;;   (interactive)
-;;   (elgantt/display/vertical-highlight (- (current-column) 1))
-;;   (backward-char))
-
+;;;; Footer
 
 (provide 'elgantt)
+
+;;; elgantt.el ends here
