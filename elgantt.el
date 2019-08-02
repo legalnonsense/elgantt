@@ -1,40 +1,37 @@
+(require 'color)
+(require 'org)
+(require 's)
 
-;; May 8 - added support for getting active and inactive time ranges to the parsing functions and map-data
-;; DONE: added functions to parse time ranges, putting active and inactive time ranges into a list '("YYYY-MM
-;; DONE: added support for inserting the calendar point into the map-data
-;; DONE: figure out why the dates are off, see, e.g., Robnsin Nov, 2019 and Dec. 2019
-
-;;May 9 
-;; DONE: figure out how to highlight the current fucking date (the problem is with inserting a character that has a background that can be changed
-;; DONE: add support for drawing date blocks for active time ranges; these should be supported by a "xxx_block" tag format
-
-;;May 10
-;; IN_PROGRESS: add support for moving around the buffer (may require learning to major mode!)
-;; todo: add support for making tentative dates half-color
-;; todo: horizontal highlighting 
-;; todo: support for hiding any with blank lines 
-
-;; June 16
-;; Have not looked at this in awhile and had toe get rid of some recent changes to get rid of an error I could not find 
+(setq elgantt/map-data nil)
+(setq elgantt/use-hashtag nil)
+(setq elgantt/variables/exclusions '("Habits" "Personal" "Business" "taskmaster" "Unsorted" "Computer" "Business"))
+(setq elgantt/label-and-color-alist nil) ;;this will be used later for custom colors 
+;(setq elgantt/files 'agenda) ;; this is the value that is used by org-map-entries. See that documentation for possible values. 
+(setq elgantt/files '("~/.emacs.d/lisp/elgantt/TEST/sample.org"))
+(setq elgantt/display/variables/normal-year-number-line   "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
+(setq elgantt/display/variables/leap-year-number-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
+(setq elgantt/display/variables/normal-year-calendar-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
+(setq elgantt/display/variables/normal-year-blank-line    "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
+(setq elgantt/display/variables/leap-year-calendar-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
+(setq elgantt/display/variables/leap-year-blank-line      "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
+(setq elgantt/variables/deadline-character "¤")
+(setq elgantt/variables/event-character "●")
+(setq elgantt/variables/color-alist '((discovery . "#4444ff")
+				      (brief     . "#ff8c00")
+				      (waiting   . "#cdcd00")))
+(setq elgantt/dark-mode nil)
+(setq elgantt/adjust-color -25)
+  
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
-					;(define-key elgantt-mode-map (kbd "f") 'elgantt/keys/move-forward)
-					;(define-key elgantt-mode-map (kbd "p") 'elgantt/keys/move-up)
-					;(define-key elgantt-mode-map (kbd "n") 'elgantt/keys/move-down)
-  ;;  (define-key elgantt-mode-map (kbd "b") 'backward-word)
   (define-key elgantt-mode-map (kbd "r") 'elgantt-open)
   (define-key elgantt-mode-map (kbd "SPC") 'elgantt/display/open-org-file-at-point)
   (define-key elgantt-mode-map (kbd "f")   'elgantt/display/move-selection-bar-forward)
   (define-key elgantt-mode-map (kbd "b")   'elgantt/display/move-selection-bar-backward)
   (define-key elgantt-mode-map (kbd "RET") 'elgantt--open-org-agenda-at-date))
-					;  (define-key elgantt-mode-map (kbd "n") 'elgantt--next-line)
 
 
-(setq elgantt/map-data nil)
-(require 'color)
-(require 'org)
-(require 's)
-
+;; This function is SLOW. There must be a better way to implement it. Not in use due to dramatic slowdown when using it. 
 (defun elgantt/display/highlight-weekends-in-line-number (line-number-string years)
   (let ((months [31 28 31 30 31 30 31 31 30 31 30 31]))
     (dotimes (y (length years))
@@ -54,43 +51,32 @@
 			       'font-lock-face `(:background "#ececec") line-number-string))))))
   line-number-string)
 
-(setq elgantt/use-hashtag nil)
+
+
+
 (defun elgantt-open ()
   "Display Gantt chart for an Orgmode outline"
   (interactive)
-
   (switch-to-buffer "El Gantt Calendar")
   (let ((inhibit-read-only t))
     (erase-buffer))
+  (when elgantt/dark-mode
+    (setq elgantt/adjust-color 15))
 
-  (setq elgantt/variables/exclusions '("Habits" "Personal" "Business" "taskmaster" "Unsorted" "Computer" "Business"))
-  (setq elgantt/map-data nil)
-
-  (setq elgantt/display/variables/normal-year-number-line   "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
-  (setq elgantt/display/variables/leap-year-number-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
-  (setq elgantt/display/variables/normal-year-calendar-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
-
-  (setq elgantt/display/variables/leap-year-calendar-line "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
-  (setq elgantt/display/variables/normal-year-blank-line  "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
-  (setq elgantt/display/variables/leap-year-blank-line    "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
-    
+  (setq elgantt/map-data nil) ; re-initialize the orgmode data
   (setq elgantt/display/variables/current-selection-bar-color "Orange")
   (setq elgantt/display/variables/block-default-start "#696969")
   (setq elgantt/display/variables/block-default-end "#ff4500")
-
   (setq elgantt/display/variables/color-of-current-selectionbar "#880088")
   (setq elgantt/display/variables/current-selection-column nil)
   (setq elgantt/display/variables/tentative-block-lighten-percent 25)
-  (setq elgantt/variables/color-alist '((discovery . "#4444ff")
-					(brief . "#ff8c00")
-					(waiting . "#cdcd00")))
   (setq elgantt/variables/error-log "")
   (setq elgantt/variables/default-background-color "#bebebe")
-  (setq elgantt/variables/deadline-character "D")
   (setq elgantt/display/old-backgrounds '())
+
   (put-text-property 0 1 'font-lock-face `(:background ,(face-attribute 'default :background)) elgantt/variables/deadline-character)
-  (setq elgantt/variables/event-character "x")
   (put-text-property 0 1 'font-lock-face `(:background ,(face-attribute 'default :background)) elgantt/variables/event-character)
+
   (elgantt-draw)
   (elgantt-mode)
   (toggle-truncate-lines 1)
@@ -100,7 +86,7 @@
   (forward-char (elgantt/display/convert-date-to-column-number (format-time-string "%Y-%m-%d")))
   (add-hook 'post-command-hook 'elgantt/display/show-echo-message nil t)
   (add-hook 'post-command-hook 'elgantt/display/vertical-highlight nil t)
-;  (add-hook 'post-command-hook 'elgantt/display/horizontal-highlight nil t)
+  ;;(add-hook 'post-command-hook 'elgantt/display/horizontal-highlight nil t)
   (delete-other-windows))
 
 (defun elgantt-draw ()
@@ -135,14 +121,16 @@
   (switch-to-buffer-other-window "El Gantt Parsed Data")
   (toggle-truncate-lines 1))
 
+
 (defun elgantt/parse-org-files ()
-  "returns an list of alists. the cdr of each alist is a plist of the properties of the heading
+  "returns a list of alists. the cdr of each alist is a plist of the properties of the heading
    access the elgantt/map-data data structure using the elgantt/data functions
    if use-hashtag is non-nil, then it will use tags that start with # to create the
-   elgantt/map-data"
+   elgantt/map-data. the argument type-of-search parameter allows the specification of a specific file to use by passing a list of files
+   and valid values are determined by the SCOPE parameter in org-map-entries"
+
   (interactive)
-  ;; NOTE: all of these parsing functions assume a global variable elgantt/map-data which is an empty list
-  ;; NOTE: I know this is sloppy, and need to fix it. Not a priority right now. 
+
   (setq elgantt/map-data '())
   (org-map-entries (lambda ()
 		     ;; get the header by interning the category
@@ -158,7 +146,6 @@
 			   (elgantt/data/add-properties header `(:category                  ,(elgantt/parse/get-category (point))
 								 :hashtag                   ,(elgantt/parse/get-hashtag (point))
 								 :tag-string                ,(elgantt/parse/get-alltags-as-string (point))
-								 :file                      ,(elgantt/parse/get-file (point))
 								 :timestamp_active          ,(elgantt/parse/get-active-timestamp (point))
 								 :timestamp_inactive        ,(elgantt/parse/get-inactive-timestamp (point))
 								 :timestamp_range_active    ,(elgantt/parse/get-active-time-range)
@@ -169,6 +156,7 @@
 								 :start-or-end-or-range     ,(nth 0 (elgantt/parse/get-start-or-end-or-range (point)))
 								 :calendar-label            ,(nth 1 (elgantt/parse/get-start-or-end-or-range (point)))
 								 :calendar-date             ,(nth 2 (elgantt/parse/get-start-or-end-or-range (point)))
+								 :file                      ,(elgantt/parse/get-file (point))
 								 :calendar-point nil        ; done, this fills in later 
 								 :calendar-column nil       ; done, fills below
 								 :calendar-blocks nil       ; to be filled later
@@ -176,8 +164,7 @@
 
 		   ;; forget what nil does; 'agenda means all agenda files"; 'archive means to skip archives
 		   ;; the file is changed for testing purposes
-;		   nil '("~/.emacs.d/lisp/elgantt/TEST/sample.org"))
-  		   nil 'agenda 'archive)
+  		   nil elgantt/files 'archive)
 
   ;;calculate the offset that will be used for the calendar 
   (setq elgantt/variables/header-column-offset (+ (elgantt/data/get-longest-header-length) 1))
@@ -189,7 +176,6 @@
 
   ;;  return elgantt/map-data, even thoug it is already saved
   elgantt/map-data)
-
 
       ;;;;;;;;;;;;;;;;;;;;;;;;; HELPER FUNCTIONS
 
@@ -207,7 +193,6 @@
 	(setq spaces (+ spaces 365 12))))
     ;; add the current year
     (+ spaces (elgantt/display/convert-date-to-column-in-current-year date) elgantt/variables/header-column-offset)))
-
 
 (defun elgantt/data/get-longest-header-length ()
   (let ((x 0))
@@ -291,7 +276,6 @@
 	nil
       (elgantt/date/normalize-date-string (cdr (car (org-entry-properties (point) "DEADLINE")))))))
 
-;;newssss
 (defun elgantt/parse/get-active-time-range ()
   (when (cdar (org-entry-properties (point) "TIMESTAMP"))
     (cond ((string= (cdar (org-entry-properties (point) "TIMESTAMP")) (elgantt/parse/get-category (point))) nil)
@@ -299,7 +283,14 @@
 	  (t
 	   (let ((dates (s-split "--" (cdar (org-entry-properties (point) "TIMESTAMP")))))
 	     (list (elgantt/date/normalize-date-string (car dates)) (elgantt/date/normalize-date-string (cadr dates))))))))
-;;new
+
+(defun elgantt/parse/get-active-timestamp (point)
+  (when (cdr (car (org-entry-properties (point) "TIMESTAMP")))
+    (cond ((string= (cdr (car (org-entry-properties (point) "TIMESTAMP"))) (elgantt/parse/get-category (point))) nil)
+	  ((s-match "--" (cdar (org-entry-properties (point) "TIMESTAMP"))) nil)
+	  (t
+	   (elgantt/date/normalize-date-string (cdr (car (org-entry-properties (point) "TIMESTAMP"))))))))                                             
+
 (defun elgantt/parse/get-inactive-time-range ()
   (when (cdar (org-entry-properties (point) "TIMESTAMP_IA"))
     (cond ((string= (cdar (org-entry-properties (point) "TIMESTAMP_IA")) (elgantt/parse/get-category (point))) nil)
@@ -308,23 +299,18 @@
 	   (let ((dates (s-split "--" (cdar (org-entry-properties (point) "TIMESTAMP_IA")))))
 	     (list (elgantt/date/normalize-date-string (car dates)) (elgantt/date/normalize-date-string (cadr dates))))))))
 
-(defun elgantt/parse/get-active-timestamp (point)
-  (when (cdr (car (org-entry-properties (point) "TIMESTAMP")))
-    (if (string= (cdr (car (org-entry-properties (point) "TIMESTAMP"))) (elgantt/parse/get-category (point)))
-	nil
-      (elgantt/date/normalize-date-string (cdr (car (org-entry-properties (point) "TIMESTAMP")))))))
-
 (defun elgantt/parse/get-inactive-timestamp (point)
   (when (cdr (car (org-entry-properties (point) "TIMESTAMP_IA")))
-    (if (string= (cdr (car (org-entry-properties (point) "TIMESTAMP_IA"))) (elgantt/parse/get-category (point)))
-	nil
-      (elgantt/date/normalize-date-string (cdr (car (org-entry-properties (point) "TIMESTAMP_IA")))))))
+    (cond ((string= (cdr (car (org-entry-properties (point) "TIMESTAMP_IA"))) (elgantt/parse/get-category (point))) nil)
+	  ((s-match "--" (cdar (org-entry-properties (point) "TIMESTAMP_IA"))) nil)
+	  (t
+	   (elgantt/date/normalize-date-string (cdr (car (org-entry-properties (point) "TIMESTAMP_IA"))))))))                                             
 
 (defun elgantt/parse/get-headline-text (point)
   (cdr (car (org-entry-properties (point) "ITEM"))))
 
 (defun elgantt/parse/get-start-or-end-or-range (point)
-  "returns a list '(label start-or-end-or-range date) each value is a string"
+  "This function will get dates for the calendar in the following order of precedence: deadlines, active timestamps, inactive timestamps"
   (let ((label nil)
 	(start-or-end-or-range nil)
 	(date nil))
@@ -332,12 +318,13 @@
       (when (or (s-ends-with-p "_start" tag) (s-ends-with-p "_end" tag) (s-ends-with-p "_block" tag))
 	(setq label (car (s-split "_" tag)))
 	(setq start-or-end-or-range (cadr (s-split "_" tag)))
-	(if (string= (cadr (s-split "_" tag)) "block")
-	    (setq date (elgantt/parse/get-active-time-range))
-	  (progn 
-	    (cond ((elgantt/parse/get-deadline (point)) (setq date (elgantt/parse/get-deadline (point))))
-		  ((elgantt/parse/get-active-timestamp (point)) (setq date (elgantt/parse/get-active-timestamp (point)))))))))
-    `(,start-or-end-or-range ,label ,date)))
+	(if (string= start-or-end-or-range "block")
+	    (cond ((elgantt/parse/get-active-time-range) (setq date (elgantt/parse/get-active-time-range)))
+		  ((elgantt/parse/get-inactive-time-range) (setq date (elgantt/parse/get-inactive-time-range))))
+	  (cond ((elgantt/parse/get-deadline (point)) (setq date (elgantt/parse/get-deadline (point))))
+		((elgantt/parse/get-active-timestamp (point)) (setq date (elgantt/parse/get-active-timestamp (point))))
+		((elgantt/parse/get-inactive-timestamp (point)) (setq date (elgantt/parse/get-inactive-timestamp (point))))))))
+        `(,start-or-end-or-range ,label ,date)))
 
 (defun elgantt/data/get-headers ()
   (let ((headers '()))
@@ -392,20 +379,15 @@
   "return the later of two dates, assuming YYYY-MM-DD format"
   (car (sort (list date1 date2) 'string>)))
 
-(defun elgantt/display/draw-string-for-header (header &optional show-labels-in-bars)
+(defun elgantt/display/draw-string-for-header (header)
   "this draws the string that will appear in the calendar for each header and returns it"
   (setq elgantt/variables/line-length (length (elgantt/display/draw-number-line)))
   (setq elgantt/variables/number-of-lines (1+ elgantt/variables/number-of-lines))
   (let ((date-line (elgantt/display/generate-blank-dateline header)))
     ;;put a background that matches the default background so that it is easier to manipulate later 
 
-    (if (= 0 (% elgantt/variables/number-of-lines 2))
-	(put-text-property 0 (length date-line) 'font-lock-face `(:background ,(color-lighten-name (face-attribute 'default :background) -25)) date-line)
-      (put-text-property 0 (length date-line) 'font-lock-face `(:background ,(face-attribute 'default :background)) date-line))
-
     ;(elgantt/display/highlight-weekends-in-line-number date-line (elgantt/date/get-the-range-of-years))
 
-    
     (dolist (properties (elgantt/data/get-property-list-for-header header))
       (when (plist-get properties :deadline)
 	(setq date-line 
@@ -429,6 +411,10 @@
 	 					 (elgantt/display/convert-date-to-column-number (plist-get properties :timestamp_active))
 						 elgantt/variables/number-of-lines 1))))
 
+    (if (= 0 (% elgantt/variables/number-of-lines 2))
+	(put-text-property 0 (length date-line) 'font-lock-face `(:background ,(color-lighten-name (face-attribute 'default :background) elgantt/adjust-color)) date-line)
+      (put-text-property 0 (length date-line) 'font-lock-face `(:background ,(face-attribute 'default :background)) date-line))
+    
     (dolist (bloke (elgantt/data/build-block-list header))
       (let ((color-start elgantt/display/variables/block-default-start)
 	    (color-end "#ff1c1c"))
@@ -454,15 +440,10 @@
 		     `(:background ,(color-lighten-name
 				     (plist-get (get-text-property point 'face) :background) change))))
 
-
-
 (defun elgantt/display/colors/change-brightness-of-string (color change string)
   "returns a string with the background color changed, assuming the background is changed"
   (put-text-property 0 (length string) 'font-lock-face `(:background ,(color-lighten-name color change)) string)
   string)
-
-
-
 
 (defun elgantt/display/colors/change-gradient-of-substring (start-color end-color string &optional start end)
   "START-COLOR and END-COLOR are #xxxxxx
@@ -490,8 +471,6 @@
       (setq start (+ 1 start))))
   string)
 
-
-
 (defun elgantt/display/colors/draw-gradient (start-color end-color steps)
   "accepts hex colors \"#ffffff\" and returns a string of spaces"
   (setq start-color `(,(string-to-number (substring start-color 1 3) 16)
@@ -514,30 +493,12 @@
 	(setq color-string (concat color-string str ))))
     color-string))
 
-
-;;old function 
-;; (defun elgantt/data/build-block-list (header &optional active-time-ranges)
-;;   (setq active-time-ranges t)
-;;   (let ((block-list '()))
-;;     (dolist (properties (elgantt/data/get-property-list-for-header header))
-;;       (when (or (string= (plist-get properties :start-or-end-or-range) "start") (string= (plist-get properties :start-or-end-or-range) "end"))
-;; 	(when (not (alist-get (intern (plist-get properties :calendar-label)) block-list))
-;; 	  (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) '()))
-
-;; 	(if (not (alist-get (intern (plist-get properties :calendar-label)) block-list))
-;; 	    (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) (plist-get properties :calendar-date))
-;; 	  (setf (alist-get (intern (plist-get properties :calendar-label)) block-list)
-;; 		(sort (list (alist-get (intern (plist-get properties :calendar-label)) block-list) (plist-get properties :calendar-date)) 'string<))))
-
-;;       (when active-time-ranges
-;;       	(when (plist-get properties :timestamp_range_active)
-;;       	  (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp_range_active))
-;; 											 ,(cadr (plist-get properties :timestamp_range_active)))))))
-;;     block-list))
-
-;; new function 
 (defun elgantt/data/build-block-list (header &optional active-time-ranges inactive-time-ranges)
-  (setq active-time-ranges t)
+  (when (not active-time-ranges)
+    (setq active-time-ranges t))
+  (when (not inactive-time-ranges)
+    (setq inactive-time-ranges nil))
+
   (let ((block-list '()))
     (dolist (properties (elgantt/data/get-property-list-for-header header))
       (when (or (string= (plist-get properties :start-or-end-or-range) "start") (string= (plist-get properties :start-or-end-or-range) "end"))
@@ -550,18 +511,17 @@
 		(sort (list (alist-get (intern (plist-get properties :calendar-label)) block-list) (plist-get properties :calendar-date)) 'string<))))
 
       (when active-time-ranges
-      	(when (plist-get properties :timestamp_range_active)
-      	  (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp_range_active))
-											 ,(cadr (plist-get properties :timestamp_range_active))))))
+	(when (string= (plist-get properties :start-or-end-or-range) "block")
+	  (when (plist-get properties :timestamp_range_active)
+	    (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp_range_active))
+											   ,(cadr (plist-get properties :timestamp_range_active)))))))
 
       (when inactive-time-ranges
-      	(when (plist-get properties :timestamp_range_inactive)
-      	  (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp_range_inactive))
-											 ,(cadr (plist-get properties :timestamp_range_inactive)))))))
+	(when (string= (plist-get properties :start-or-end-or-range) "block")
+	  (when (plist-get properties :timestamp_range_inactive)
+	    (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp_range_inactive))
+											 ,(cadr (plist-get properties :timestamp_range_inactive))))))))
     block-list))
-
-
-      ;;;;;;;;;;;;;;;HELPER FUNCTIONS
 
 (defun elgantt/display/draw-number-line ()
   (let ((number-line ""))
@@ -569,20 +529,8 @@
       (if (elgantt/date/leap-year-p year)
 	  (setq number-line (concat number-line elgantt/display/variables/leap-year-number-line))
 	(setq number-line (concat number-line elgantt/display/variables/normal-year-number-line))))
-    (elgantt/display/highlight-weekends-in-line-number (concat (make-string elgantt/variables/header-column-offset ? ) number-line) (elgantt/date/get-the-range-of-years))))
+    (concat (make-string elgantt/variables/header-column-offset ? ) number-line)))
 
-;(insert (elgantt/display/highlight-weekends-in-line-number (make-string 2000 ?\ ) '(2019 2020 2021)))
-
-;; ;;old
-;; (defun elgantt/display/draw-month-line ()
-;;   (let ((calendar-line ""))
-;;     (dolist (year (elgantt/date/get-the-range-of-years))
-;;       (if (elgantt/date/leap-year-p year)
-;;           (setq calendar-line (concat calendar-line elgantt/display/variables/leap-year-calendar-line))
-;;         (setq calendar-line (concat calendar-line elgantt/display/variables/normal-year-calendar-line))))
-;;     (concat (make-string elgantt/variables/header-column-offset ? ) calendar-line)))
-
-;;testing
 (defun elgantt/display/draw-month-line ()
   (let ((calendar-line ""))
     (dolist (year (elgantt/date/get-the-range-of-years))
@@ -595,7 +543,6 @@
 							      elgantt/display/variables/normal-year-calendar-line)))))
     (concat (make-string elgantt/variables/header-column-offset ? ) calendar-line)))
 
-;; helper function to create a blank dateline
 (defun elgantt/display/generate-blank-dateline (header)
   "creates a blank dateline of appropriate length (spanning all years and offset by the name column size)"
   (let ((date-line ""))
@@ -604,10 +551,6 @@
 	  (setq date-line (concat date-line elgantt/display/variables/leap-year-blank-line))
 	(setq date-line (concat date-line elgantt/display/variables/normal-year-blank-line))))
     (concat (symbol-name header) (make-string (- elgantt/variables/header-column-offset (length (symbol-name header))) ? ) date-line)))
-
-
-;; (defun elgantt/display/parse-org-data (header)
-;;   (dolist (props (elgantt/data/get-property-list-for-header header))))
 
 (defun elgantt/display/parse/convert-encoded-date-to-YYYY-MM-DD (date)
   (let ((new-date (decode-time date)))
@@ -799,8 +742,6 @@
 	(setq color-string (concat color-string str ))))
     color-string))
 
-
-
 (defun elgantt/display/count-lines ()
   "Return number of lines between START and END.
   This is usually the number of newlines between them,
@@ -859,10 +800,6 @@
 	  ((> (re-search-forward "[[:alpha:]]") (re-search-backward "[[:alpha:]]"))
 	   (elgantt/keys/move-backward)))))
 
-
-
-
-
 (setq elgantt/display/old-horizontal-highlight '())
 
 (defun elgantt/display/horizontal-highlight ()
@@ -883,10 +820,7 @@
       (setq end (current-column))
       (dotimes (x end)
 	(add-to-list 'elgantt/display/old-horizontal-highlight `(,(+ start x) ,(plist-get (get-text-property (+ x start) 'font-lock-face) :background)))
-	(elgantt/display/change-brightness-of-background-color-of-point (+ start x) -25)))))
-
-
- 
+	(elgantt/display/change-brightness-of-background-color-of-point (+ start x) elgantt/adjust-color)))))
     
 (defun elgantt/display/vertical-highlight (&optional column)
   "insert a vertical highlight bar at column, and remove the previous selection bar"
