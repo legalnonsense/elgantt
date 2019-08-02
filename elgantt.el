@@ -116,6 +116,7 @@ agenda-with-archives
 (defvar elgantt/display/variables/normal-year-blank-line    "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
 (defvar elgantt/display/variables/leap-year-calendar-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (defvar elgantt/display/variables/leap-year-blank-line      "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
+(defvar elgantt/variables/header-column-offset nil)
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
   (define-key elgantt-mode-map (kbd "r") 'elgantt-open)
@@ -174,7 +175,7 @@ agenda-with-archives
     (elgantt/parse-org-files)
     (erase-buffer)
     ;;calculate the offset that will be used for the calendar 
-    (setq elgantt/variables/header-column-offset (+ (elgantt/data/get-longest-header-length) 1))
+
     (insert (elgantt/display/draw-month-line))
     (insert "\n")
     (insert (elgantt/display/draw-number-line))
@@ -241,6 +242,8 @@ agenda-with-archives
 								 :org-point ,(point)))))))
   		   nil elgantt/files 'archive)
 
+  (setq elgantt/variables/header-column-offset (+ (elgantt/data/get-longest-header-length) 1))
+  
   (dolist (property (elgantt/data/get-all-properties))
     (when (stringp (plist-get property :calendar-date))
       (plist-put property :calendar-column (elgantt/display/convert-date-to-column-number (plist-get property :calendar-date)))))

@@ -18,8 +18,8 @@ DEADLINE: <2019-08-01 Thu>
 ** deadline (time)
 DEADLINE: <2019-08-03 Sat 10:00>
 
-** active time range with times 
-<2019-08-09 Fri 10:00>--<2019-08-16 Fri 02:00>
+** active time range with times :test_block:
+[2019-08-09 Fri 10:00]--[2019-08-16 Fri 02:00]
 
 * Juanita
 :PROPERTIES:
@@ -35,14 +35,14 @@ DEADLINE: <2019-09-08 Sun>
 :PROPERTIES:
 :CATEGORY: Jeff
 :END:
-** work on the readme :brief_start:
-<2019-01-06 Sun>
-** finish and upload readme :brief_end:
+** work on the readme :readme_start:
+[2019-01-06 Sun]
+** finish and upload readme :readme_end:
 DEADLINE: <2019-03-11 Mon>
 ** work on something else :brief_start:
 <2019-04-16 Tue>
 ** something else is due :brief_end:
-DEADLINE: <2019-07-30 Tue>
+[2019-11-23 Sat]
 * Janice
 :PROPERTIES:
 :CATEGORY: Janice
