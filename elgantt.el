@@ -1,4 +1,4 @@
-;;; elgantt.el --- Generate text-based Gantt Charts from Orgmode files  -*- lexical-binding: t; -*-
+;;; elgantt.el --- Generate integrated text-based Gantt Charts from Orgmode files  -*- lexical-binding: t; -*-
 
 ;; Author: Jeff Filipovits <jrfilipovits@gmail.com>
 ;; Url: https://github.com/legalnonsense/elgantt
@@ -7,10 +7,12 @@
 ;; Keywords: Org, agenda, calendar, outlines, gantt
 
 ;;; Commentary:
-;; El Gantt is a text-based Gantt Chart that is generated from Org files.
-;; It uses tags to generate colored blocks of time. See the README for
-;; instructions. It is integrated with orgmode and can jump to the point
-;; of an org file and open an agenda for each day of the chart.
+;; El Gantt generates a text-based Gantt Chart/Calendar from orgmode files. 
+;; El Gannt relies on the use of tags to designate how to generate the charts.
+;; The goal is to for you to be able to customize your chart without altering the way you use org mode.
+;; In other words, El Gantt allows you to customize your charts while staying out of the way. 
+;; The chart/calendar generated is integrated with orgmode and can jump to the point
+;; of an org file and open an agenda for each day of the chart. See the README. 
 
 ;;; License:
 ;; This program is free software; you can redistribute it and/or modify
@@ -30,6 +32,7 @@
 
 ;;;; Requirements
 
+(require 'cl-lib)
 (require 'color)
 (require 'org)
 (require 's)
@@ -101,7 +104,7 @@ agenda-with-archives
   :group 'gantt-org)
 
 (defcustom elgantt/display/variables/tentative-block-lighten-percent 25
-  "If a block also have the \"tentative\" tag, then make it appear this percent lighter than normal."
+  "If a block also has the :tentative: tag, then make it appear this percent lighter (or darker (with a negative value)) than normal."
   :group 'gantt-org)
     
 (defcustom elgantt/variables/default-background-color (face-attribute 'default :background)
@@ -152,10 +155,8 @@ agenda-with-archives
     (erase-buffer))
   (when elgantt/dark-mode
     (setq elgantt/adjust-color 15))
-
   (setq elgantt/map-data nil) ; re-initialize the orgmode data
   (setq elgantt/display/old-backgrounds '())
-
   (elgantt-draw)
   (elgantt-mode)
   (toggle-truncate-lines 1)
@@ -254,12 +255,12 @@ agenda-with-archives
 (defun elgantt/display/convert-date-to-column-number (date)				    
   "Assumes a YYYY-MM-DD date, returns the column number including the name offset column"
   (let ((spaces 0))
-    (subseq (elgantt/date/get-the-range-of-years)
-	    0 (position (string-to-number (substring date 0 4)) (elgantt/date/get-the-range-of-years)))
+    (cl-subseq (elgantt/date/get-the-range-of-years)
+	    0 (cl-position (string-to-number (substring date 0 4)) (elgantt/date/get-the-range-of-years)))
     ;; add the preceding years
     (dolist (year
-	     (subseq (elgantt/date/get-the-range-of-years)
-		     0 (position (string-to-number (substring date 0 4)) (elgantt/date/get-the-range-of-years))))
+	     (cl-subseq (elgantt/date/get-the-range-of-years)
+		     0 (cl-position (string-to-number (substring date 0 4)) (elgantt/date/get-the-range-of-years))))
       (if (elgantt/date/leap-year-p year)
 	  (setq spaces (+ spaces 366 12))
 	(setq spaces (+ spaces 365 12))))
@@ -628,7 +629,7 @@ agenda-with-archives
 (defun elgantt/display/insert-char-at-index (string index char)
   "insert a character at index (int) of given string)
                                                return the new string"
-  (concat (subseq string 0 index) char (subseq string (+ index 1))))
+  (concat (cl-subseq string 0 index) char (cl-subseq string (+ index 1))))
 
 (defun elgantt/display/insert-string-at-index (source-string index replacement)
   (concat (substring source-string 0 index) replacement (substring source-string (length replacement))))
@@ -638,9 +639,9 @@ agenda-with-archives
 
 (defun elgantt/display/show-echo-message ()
   (interactive)
-  (message "%s -- %s    %s"
-	   (elgantt/display/get-header-at-point)
+  (message "%s -- %s -- %s"
 	   (elgantt/display/get-date-at-point)
+	   (elgantt/display/get-header-at-point)
 	   (elgantt/display/get-task-at-point)))
 
 (defun elgantt/display/get-task-at-point ()
