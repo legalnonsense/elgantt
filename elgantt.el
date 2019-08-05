@@ -43,11 +43,11 @@
 ;; Then put this file in your load-path, and put this in your init
 ;; file:
 
-;; (require 'package-name)
+;; (require 'elgantt)
 
 ;;;; Usage
 
-;; Run one of these commands:
+;; Run this command: 
 
 ;; `elgantt-open': Open a Gantt Calendar from your agenda files
 
