@@ -287,14 +287,15 @@ agenda-with-archives
                      (for now, it appears initializing with "" is necessary to create a blank alist"
   (add-to-list 'elgantt--map-data `(,header . "")))
 
-(defun  (header)
-  "check to see if the new header is a member of the elgantt--map-data
+
+(defun elgantt/data/check-if-header-exists (header)
+  "check to see if the new header is a member of the elgantt/map-data
                      pass a quoted name e.g., 'Jones; return t or nil"
-  (if (assoc header elgantt--map-data)
+  (if (assoc header elgantt/map-data)
       't
     nil))
 
-(defun  (header)
+(defun elgantt/data/check-if-header-has-elements (header)
   "check if a header has elements"
   (if (eq (alist-get header elgantt--map-data) "")
       nil
