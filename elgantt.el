@@ -213,12 +213,12 @@ agenda-with-archives
 			   (elgantt--add-properties header `(:category                  ,(elgantt--get-property-from-org-point (point))
 								 :hashtag                   ,(elgantt--get-hashtag-from-org-point (point))
 								 :tag-string                ,(elgantt--get-all-tags-as-string-from-org-point (point))
-								 :timestamp_active          ,(elgantt--get-active-timestamp-from-org-point (point))
-								 :timestamp_inactive        ,(elgantt--get-inactive-timestamp-from-org-point (point))
-								 :timestamp_range_active    ,(elgantt--get-active-time-range-from-org-point)
-								 :timestamp_range_inactive  ,(elgantt--get-inactive-time-range-from-org-point)	
+								 :timestamp-active          ,(elgantt--get-active-timestamp-from-org-point (point))
+								 :timestamp-inactive        ,(elgantt--get-inactive-timestamp-from-org-point (point))
+								 :timestamp-range-active    ,(elgantt--get-active-time-range-from-org-point)
+								 :timestamp-range-inactive  ,(elgantt--get-inactive-time-range-from-org-point)	
 								 :deadline                  ,(elgantt--get-deadline-from-org-point (point))
-								 :headline_text             ,(elgantt--get-headline-text-from-org-point (point))
+								 :headline-text             ,(elgantt--get-headline-text-from-org-point (point))
 								 :todo                      ,(elgantt--get-todo-from-org-point (point))
 								 :start-or-end-or-range     ,(nth 0 (elgantt--get-calendar-data-from-org-point (point)))
 								 :calendar-label            ,(nth 1 (elgantt--get-calendar-data-from-org-point (point)))
@@ -404,12 +404,12 @@ agenda-with-archives
       (when (plist-get property :deadline)
 	(when (not (memq (string-to-number (substring (plist-get property :deadline) 0 4)) years))
 	  (push (string-to-number (substring (plist-get property :deadline) 0 4)) years)))
-      (when (plist-get property :timestamp_active)
-	(when (not (memq (string-to-number (substring (plist-get property :timestamp_active) 0 4)) years))
-	  (push (string-to-number (substring (plist-get property :timestamp_active) 0 4)) years)))
-      (when (plist-get property :timestamp_range_active)
-	(when (not (memq (string-to-number (substring (cadr (plist-get property :timestamp_range_active)) 0 4)) years))
-	  (push (string-to-number (substring (cadr (plist-get property :timestamp_range_active)) 0 4)) years))))
+      (when (plist-get property :timestamp-active)
+	(when (not (memq (string-to-number (substring (plist-get property :timestamp-active) 0 4)) years))
+	  (push (string-to-number (substring (plist-get property :timestamp-active) 0 4)) years)))
+      (when (plist-get property :timestamp-range-active)
+	(when (not (memq (string-to-number (substring (cadr (plist-get property :timestamp-range-active)) 0 4)) years))
+	  (push (string-to-number (substring (cadr (plist-get property :timestamp-range-active)) 0 4)) years))))
     (sort years '<)))
 
 (defun elgantt--get-oldest-date ()
@@ -418,8 +418,8 @@ agenda-with-archives
     (dolist (property (elgantt--get-all-properties-from-header))
       (when (plist-get property :deadline)
 	(setq last-date (elgantt--return-later-date last-date (plist-get property :deadline))))
-      (when (plist-get property :timestamp_active)
-	(setq last-date (elgantt--return-later-date last-date (plist-get property :timestamp_active)))))
+      (when (plist-get property :timestamp-active)
+	(setq last-date (elgantt--return-later-date last-date (plist-get property :timestamp-active)))))
     last-date))
 
 (defun elgantt--normalize-date-string (date)
@@ -457,15 +457,15 @@ agenda-with-archives
 	 					 (elgantt--convert-date-to-column-number (plist-get properties :deadline))
 						 elgantt/variables/number-of-lines 1)))
       
-      (when (plist-get properties :timestamp_active)
+      (when (plist-get properties :timestamp-active)
 	(setq date-line 
 	      (elgantt--insert-char-at-index date-line
 						    (elgantt--convert-date-to-column-number
-						     (plist-get properties :timestamp_active))
+						     (plist-get properties :timestamp-active))
 						    elgantt-active-timestamp-character))
 
 	(plist-put properties :calendar-point (+ (* elgantt/variables/number-of-lines elgantt/variables/line-length)
-	 					 (elgantt--convert-date-to-column-number (plist-get properties :timestamp_active))
+	 					 (elgantt--convert-date-to-column-number (plist-get properties :timestamp-active))
 						 elgantt/variables/number-of-lines 1))))
 
     (if (= 0 (% elgantt/variables/number-of-lines 2))
@@ -569,15 +569,15 @@ agenda-with-archives
 
       (when active-time-ranges
 	(when (string= (plist-get properties :start-or-end-or-range) "block")
-	  (when (plist-get properties :timestamp_range_active)
-	    (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp_range_active))
-											   ,(cadr (plist-get properties :timestamp_range_active)))))))
+	  (when (plist-get properties :timestamp-range-active)
+	    (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp-range-active))
+											   ,(cadr (plist-get properties :timestamp-range-active)))))))
 
       (when inactive-time-ranges
 	(when (string= (plist-get properties :start-or-end-or-range) "block")
-	  (when (plist-get properties :timestamp_range_inactive)
-	    (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp_range_inactive))
-											 ,(cadr (plist-get properties :timestamp_range_inactive))))))))
+	  (when (plist-get properties :timestamp-range-inactive)
+	    (setf (alist-get (intern (plist-get properties :calendar-label)) block-list) `(,(car  (plist-get properties :timestamp-range-inactive))
+											 ,(cadr (plist-get properties :timestamp-range-inactive))))))))
     block-list))
 
 (defun elgantt--draw-number-line ()
@@ -639,7 +639,7 @@ agenda-with-archives
       (dolist (property (alist-get (intern (elgantt--get-header-at-point)) elgantt--map-data))
 	(when (plist-get property :calendar-point)
 	  (when (= (plist-get property :calendar-point) (point))
-	    (setq task (plist-get property :headline_text))))))
+	    (setq task (plist-get property :headline-text))))))
     task))
 
 (defun elgantt--get-date-at-point (&optional column)
