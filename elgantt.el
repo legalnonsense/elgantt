@@ -1,12 +1,17 @@
 ;;; elgantt.el --- Generate integrated text-based Gantt Charts from Orgmode files  -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2019 Jeff Filipovits
+
 ;; Author: Jeff Filipovits <jrfilipovits@gmail.com>
 ;; Url: https://github.com/legalnonsense/elgantt
 ;; Version: 0.1
 ;; Package-Requires: ((emacs "26.1") (org "9.0") (s "1.12.0"))
 ;; Keywords: Org, agenda, calendar, outlines, gantt
 
+;; This file is not part of GNU Emacs.
+
 ;;; Commentary:
+
 ;; El Gantt generates a text-based Gantt Chart/Calendar from orgmode files. 
 ;; El Gannt relies on the use of tags to designate how to generate the charts.
 ;; The goal is to for you to be able to customize your chart without altering the way you use org mode.
@@ -15,6 +20,7 @@
 ;; of an org file and open an agenda for each day of the chart. See the README. 
 
 ;;; License:
+
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
@@ -28,6 +34,46 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+;;;; Installation
+
+;; Install these required packages:
+
+;; + s
+
+;; Then put this file in your load-path, and put this in your init
+;; file:
+
+;; (require 'package-name)
+
+;;;; Usage
+
+;; Run one of these commands:
+
+;; `elgantt-open': Open a Gantt Calendar from your agenda files
+
+;;;; Tips
+
+;; + You can customize settings in the `elgantt' group.
+
+;;;; Credits
+
+;; This package would not be possible absent the assistance of alphapapa. See <https://github.com/alphapapa/>
+
+;;; License:
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 ;;; Code:
 
 ;;;; Requirements
@@ -37,7 +83,7 @@
 (require 'org)
 (require 's)
 
-;;;; Custom variables
+;;;; Customization
 
 (defgroup gantt-org nil
   "Options about gantt-org."
@@ -46,28 +92,28 @@
   :group 'gantt)
 
 (defcustom elgantt-use-hashtags nil
-  "If non-nil, use tags that are prefixed with a hashtag to generate the headings of the calendar. If nil, then use the CATEGORY property to generate the headings.")
+  "If non-nil, use tags that are prefixed with a hashtag to generate the headings of the calendar. If nil (default), then use the CATEGORY property to generate the headings.")
 
 (defcustom elgantt-default-block-start-color "#696969"
-  "This is the default color used at the beginning of a time block.")
+  "Default color used at the beginning of a time block.")
 
 (defcustom elgantt-default-block-end-color "#ff4500"
-  "This is the default end color used for time blocks.")
+  "Default end color used for time blocks.")
 
 (defcustom elgantt-custom-colors '((discovery . "#4444ff")
 				   (brief     . "#ff8c00")
 				   (waiting   . "#cdcd00")
 				   (court     . "#00ff7f"))
-  "Colors used for specific block tags. For example, a block defined by brief_start and brief_end (or by brief_block) will use the color assigned here.")
+  "Colors used for specific block tags.")
 
 (defcustom elgantt-exclusions '("Habits" "Personal" "Business" "taskmaster" "Unsorted" "Computer" "Business")
-  "List of any items that should be excluded from the calendar, so that it does not grab categories which are not relevant to scheduling.")
+  "Exclude these categories from the calendar.")
 
 (defcustom elgantt-deadline-character "▲"
-  "The character used for deadlines in the calendar.")
+  "Character used for deadlines in the calendar.")
 
 (defcustom elgantt-active-timestamp-character "●"
-  "The character used to display active timestamps in the calendar")
+  "Character used for active timestamps in the calendar")
 
 (defcustom elgantt-dark-mode nil
   "If you are using a dark theme, enable this.")
@@ -76,7 +122,7 @@
   "The color of every other line in the calendar is darkened or lightened for readability. This is a percent and can be negative (darken) or positive (lighten).")
 
 (defcustom elgantt-agenda-files 'agenda
-  "Designates which files are used to generate the calendar. Accepts any value used by org-map-entries:
+  "Files are used to generate the calendar. Accepts any value used by org-map-entries:
 
 nil     The current buffer, respecting the restriction if any
 tree    The subtree started with the entry at point
@@ -96,17 +142,20 @@ agenda-with-archives
   "If a block also has the :tentative: tag, then make it appear this percent lighter (or darker (with a negative value)) than normal.")
     
 (defcustom elgantt-default-background-color (face-attribute 'default :background)
-  "The default background color for the calendar; defaults to the background of the default face.")
+  "Background color for the calendar; defaults to the background of the default face.")
 
-;;;; Constants / internal variables
+;;;; Variables
+
 (defvar elgantt--map-data nil)
-(defvar elgantt--normal-year-date-line   "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
+(defvar elgantt--normal-year-date-line  "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
 (defvar elgantt--normal-year-month-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
-(defvar elgantt--normal-year-blank-line    "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
-(defvar elgantt--leap-year-date-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
+(defvar elgantt--normal-year-blank-line "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
+(defvar elgantt--leap-year-date-line    "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
 (defvar elgantt--leap-year-month-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
-(defvar elgantt--leap-year-blank-line      "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
+(defvar elgantt--leap-year-blank-line   "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
 (defvar elgantt--header-column-offset nil)
+
+;;;;; Keymaps
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
   (define-key elgantt-mode-map (kbd "r") 'elgantt-open)
@@ -127,13 +176,11 @@ agenda-with-archives
 		    (= (org-day-of-week (1+ d) (1+ m) (nth y years)) 6))
 	    (put-text-property (elgantt--convert-date-to-column-number (elgantt--normalize-date-string (format "%d-%d-%d" (nth y years) (1+ m) (1+ d))))
 			       (1+ (elgantt--convert-date-to-column-number (elgantt--normalize-date-string (format "%d-%d-%d" (nth y years) (1+ m) (1+ d)))))
-			       ;; 'font-lock-face `(:background ,(color-lighten-name (plist-get (get-text-property (elgantt--convert-date-to-column-number
-			       ;; 										   (elgantt--normalize-date-string (format "%d-%d-%d" (nth y years) (1+ m) (1+ d))))
-			       ;; 										  'face line-number-string)
-			       ;; 							       :background) -25))))))))
 			       'font-lock-face `(:background "#696969") line-number-string))))))
   line-number-string)
 
+;;;;; Functions
+ 
 (defun elgantt-open ()
   "Display Gantt chart for an Orgmode outline"
   (interactive)
@@ -236,8 +283,6 @@ agenda-with-archives
     (when (stringp (plist-get property :calendar-date))
       (plist-put property :calendar-column (elgantt--convert-date-to-column-number (plist-get property :calendar-date)))))
   elgantt--map-data)
-
-      ;;;;;;;;;;;;;;;;;;;;;;;;; HELPER FUNCTIONS
 
 (defun elgantt--convert-date-to-column-number (date)				    
   "Assumes a YYYY-MM-DD date, returns the column number including the name offset column"
@@ -901,18 +946,6 @@ agenda-with-archives
 	(forward-line)
 	(setq x (1+ x))))))
 
-;; (defun elgantt--move-selection-bar-forward ()
-;;   "need to add a check to make sure not at the end of the screen"
-;;   (interactive)
-;;   (elgantt--vertical-highlight (+ 1 (current-column)))
-;;   (forward-char))
-
-;; (defun elgantt/display/move-selection-bar-backward ()
-;;   "need to add a check to make sure not at the end of the screen"
-;;   (interactive)
-;;   (elgantt--vertical-highlight (- (current-column) 1))
-;;   (backward-char))
-
 (defun elgantt--move-selection-bar-forward ()
   (interactive)
   (when (<= (current-column) elgantt--header-column-offset)
@@ -928,7 +961,6 @@ agenda-with-archives
     (move-beginning-of-line nil)
     (forward-char elgantt--header-column-offset))                               
   (elgantt--vertical-highlight (current-column)))    
-    
 
 ;;;; Footer
 
