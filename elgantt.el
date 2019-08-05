@@ -277,7 +277,7 @@ agenda-with-archives
 (defun elgantt--add-properties (header properties)
   "check to see if header is in list, if not, add it
                    then add properties"
-  (when (not ( header))
+  (when (not (elgantt--check-if-header-exists header))
     (elgantt--add-header-to-list header))
   (elgantt--add-property-list-to-header header properties))
 
@@ -310,7 +310,7 @@ agenda-with-archives
   "adds information from an org heading to the appropriate header"
   (setf (alist-get header elgantt--map-data) (append (alist-get header elgantt--map-data) (list property-list))))
 
-(defun  (tag-string)
+(defun elgantt--get-hashtag-from-tag-string (tag-string)
   "accept a string :x:y:#z and return the tag that begins with a hash, otherwise nil only returns the first hashtag encountered"
   (catch 'hashtag 
     (dolist (tag (s-split ":" tag-string))
