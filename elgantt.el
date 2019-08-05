@@ -39,7 +39,6 @@
 
 ;;;; Custom variables
 
-
 (defgroup gantt-org nil
   "Options about gantt-org."
   :tag "Gantt Org"
@@ -47,43 +46,34 @@
   :group 'gantt)
 
 (defcustom elgantt-use-hashtags nil
-  "If non-nil, use tags that are prefixed with a hashtag to generate the headings of the calendar. If nil, then use the CATEGORY property to generate the headings."
-  :group 'gantt-org)
+  "If non-nil, use tags that are prefixed with a hashtag to generate the headings of the calendar. If nil, then use the CATEGORY property to generate the headings.")
 
 (defcustom elgantt-default-block-start-color "#696969"
-  "This is the default color used at the beginning of a time block."
-    :group 'gantt-org)
+  "This is the default color used at the beginning of a time block.")
 
 (defcustom elgantt-default-block-end-color "#ff4500"
-  "This is the default end color used for time blocks."
-  :group 'gantt-org)
+  "This is the default end color used for time blocks.")
 
 (defcustom elgantt-custom-colors '((discovery . "#4444ff")
-					   (brief     . "#ff8c00")
-					   (waiting   . "#cdcd00")
-					   (court     . "#00ff7f"))
-  "These are end colors which are used for specific block tags. For example, a block defined by brief_start and brief_end (or by brief_block) will use the color assigned here."
-  :group 'gantt-org)
+				   (brief     . "#ff8c00")
+				   (waiting   . "#cdcd00")
+				   (court     . "#00ff7f"))
+  "Colors used for specific block tags. For example, a block defined by brief_start and brief_end (or by brief_block) will use the color assigned here.")
 
 (defcustom elgantt-exclusions '("Habits" "Personal" "Business" "taskmaster" "Unsorted" "Computer" "Business")
-  "List of any items that should be excluded from the calendar, so that it does not grab categories which are not relevant to scheduling."
-  :group 'gantt-org)
+  "List of any items that should be excluded from the calendar, so that it does not grab categories which are not relevant to scheduling.")
 
 (defcustom elgantt-deadline-character "▲"
-  "The character used for deadlines in the calendar."
-  :group 'gantt-org)
+  "The character used for deadlines in the calendar.")
 
 (defcustom elgantt-active-timestamp-character "●"
-  "The character used to display active timestamps in the calendar"
-  :group 'gantt-org)
+  "The character used to display active timestamps in the calendar")
 
 (defcustom elgantt-dark-mode nil
-  "If you are using a dark theme, enable this."
-  :group 'gantt-org)
+  "If you are using a dark theme, enable this.")
 
 (defcustom elgantt-brightness-adjust -15
-  "The color of every other line in the calendar is darkened or lightened for readability. This is a percent and can be negative (darken) or positive (lighten)."
-  :group 'gantt-org)
+  "The color of every other line in the calendar is darkened or lightened for readability. This is a percent and can be negative (darken) or positive (lighten).")
 
 (defcustom elgantt-agenda-files 'agenda
   "Designates which files are used to generate the calendar. Accepts any value used by org-map-entries:
@@ -100,24 +90,21 @@ agenda  All agenda files
 agenda-with-archives
         All agenda files with any archive files associated with them
 (file1 file2 ...)
-        If this is a list, all files in the list will be scanned"
-  :group 'gantt-org)
+        If this is a list, all files in the list will be scanned")
 
 (defcustom elgantt-tentative-block-brightness 25
-  "If a block also has the :tentative: tag, then make it appear this percent lighter (or darker (with a negative value)) than normal."
-  :group 'gantt-org)
+  "If a block also has the :tentative: tag, then make it appear this percent lighter (or darker (with a negative value)) than normal.")
     
 (defcustom elgantt-default-background-color (face-attribute 'default :background)
-  "The default background color for the calendar; defaults to the background of the default face."
-  :group 'gantt-org)
+  "The default background color for the calendar; defaults to the background of the default face.")
 
 ;;;; Constants / internal variables
 (defvar elgantt--map-data nil)
 (defvar elgantt--normal-year-date-line   "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
-(defvar elgantt--leap-year-date-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
 (defvar elgantt--normal-year-month-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (defvar elgantt--normal-year-blank-line    "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
-(defvar elgantt-leap-year-month-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
+(defvar elgantt--leap-year-date-line     "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
+(defvar elgantt--leap-year-month-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (defvar elgantt--leap-year-blank-line      "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
 (defvar elgantt--header-column-offset nil)
 
@@ -288,10 +275,10 @@ agenda-with-archives
   (add-to-list 'elgantt--map-data `(,header . "")))
 
 
-(defun elgantt/data/check-if-header-exists (header)
-  "check to see if the new header is a member of the elgantt/map-data
+(defun elgantt--check-if-header-exists (header)
+  "check to see if the new header is a member of the elgantt--map-data
                      pass a quoted name e.g., 'Jones; return t or nil"
-  (if (assoc header elgantt/map-data)
+  (if (assoc header elgantt--map-data)
       't
     nil))
 
@@ -333,8 +320,8 @@ agenda-with-archives
   (cdr (car (org-entry-properties (point) "FILE"))))
 
 (defun elgantt--get-hashtag-from-org-point (point)
-  (if ( (elgantt--get-all-tags-as-string-from-org-point (point)))
-      (substring ( (elgantt--get-all-tags-as-string-from-org-point (point))) 1)
+  (if (elgantt--get-hashtag-from-tag-string (elgantt--get-all-tags-as-string-from-org-point (point)))
+      (substring (elgantt--get-hashtag-from-tag-string (elgantt--get-all-tags-as-string-from-org-point (point))) 1)
     nil))
 
 (defun elgantt--get-todo-from-org-point (point)
@@ -607,7 +594,7 @@ agenda-with-archives
       (if (elgantt--leap-year-p year)
 	  (setq calendar-line (concat calendar-line 
 				      (replace-regexp-in-string "xxxx" (number-to-string year) 
-								elgantt-leap-year-month-line)))
+								elgantt--leap-year-month-line)))
 	(setq calendar-line (concat calendar-line
 				    (replace-regexp-in-string "xxxx" (number-to-string year) 
 							      elgantt--normal-year-month-line)))))
