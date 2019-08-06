@@ -179,7 +179,7 @@ function or Emacs Lisp form:
   (define-key elgantt-mode-map (kbd "r") 'elgantt-open)
   (define-key elgantt-mode-map (kbd "SPC") 'elgantt--open-org-file-at-point)
   (define-key elgantt-mode-map (kbd "f")   'elgantt--move-selection-bar-forward)
-  (define-key elgantt-mode-map (kbd "b")   'elgantt--move-selection-bar-forward)
+  (define-key elgantt-mode-map (kbd "b")   'elgantt--move-selection-bar-backward)
   (define-key elgantt-mode-map (kbd "RET") 'elgantt--open-org-agenda-at-date))
 
 (defun elgantt--highlight-weekends-in-date-line (line-number-string years)
@@ -965,10 +965,10 @@ function or Emacs Lisp form:
   (when (<= (current-column) elgantt--header-column-offset)
     (forward-char elgantt--header-column-offset))
   (forward-char)
-  (goto-char (1- (re-search-forward "[^| ]" nil t)))
+  (goto-char (1- (re-search-forward "[^| ]" (save-excursion (end-of-line) (point)) t)))
   (elgantt--vertical-highlight (current-column)))
 
-(defun elgantt--move-selection-bar-forward ()
+(defun elgantt--move-selection-bar-backward ()
   (interactive)
   (goto-char (re-search-backward "[^| ]" nil t))
   (when (< (current-column) elgantt--header-column-offset)
