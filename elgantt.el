@@ -144,10 +144,23 @@ agenda-with-archives
 (defcustom elgantt-default-background-color (face-attribute 'default :background)
   "Background color for the calendar; defaults to the background of the default face.")
 
-;;not sure what this one will do in January; this could also allow the user to determine how many preceding months to show
+;;not sure what this one will if current month is January; this could also allow the user to determine how many preceding months to show
 ;;but will moire likely be adapted to allow for side scrolling
+;;also this creates problems with the point references.
 (defcustom elgantt-hide-previous-months t
   "Begins the calender showing only the preceding month; if nil, it will show the entire current year. Use (elgantt-show-all-dates) to show all.")
+
+(defcustom elgantt-skip-files 'archive
+  "Accepts the following values (from (org-map-entries)):
+  
+archive    skip trees with the archive tag
+comment    skip trees with the COMMENT keyword
+function or Emacs Lisp form:
+           will be used as value for org-agenda-skip-function, so
+           whenever the function returns a position, FUNC will not be
+           called for that entry and search will continue from the
+           position returned")
+
 
 ;;;; Variables
 
@@ -275,7 +288,7 @@ agenda-with-archives
 								 :calendar-column nil       ; done, fills below
 								 :calendar-blocks nil       ; to be filled later
 								 :org-point ,(point)))))))
-  		   nil elgantt-agenda-files 'archive)
+  		   nil elgantt-agenda-files elgantt-skip-files)
 
   (setq elgantt--header-column-offset (+ (elgantt--get-longest-header-length) 1))
   
