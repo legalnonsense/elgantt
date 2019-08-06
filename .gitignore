@@ -5,3 +5,5 @@ TEST/*~
 *~
 .#*
 elgantt-org-parser.el
+#*#
+name-replacer.el
