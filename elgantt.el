@@ -173,6 +173,7 @@ function or Emacs Lisp form:
 (defvar elgantt--leap-year-blank-line   "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
 (defvar elgantt--header-column-offset nil)
 (defvar elgantt--number-of-lines nil)
+(defvar elgantt--hidden-past-columns 0)
 ;;;;; Keymaps
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
@@ -181,21 +182,6 @@ function or Emacs Lisp form:
   (define-key elgantt-mode-map (kbd "f")   'elgantt--move-selection-bar-forward)
   (define-key elgantt-mode-map (kbd "b")   'elgantt--move-selection-bar-backward)
   (define-key elgantt-mode-map (kbd "RET") 'elgantt--open-org-agenda-at-date))
-
-(defun elgantt--highlight-weekends-in-date-line (line-number-string years)
-  (let ((months [31 28 31 30 31 30 31 31 30 31 30 31]))
-    (dotimes (y (length years))
-      (if (elgantt--leap-year-p (nth y years))
-	  (setq months [31 29 31 30 31 30 31 31 30 31 30 31])
-	(setq months [31 28 31 30 31 30 31 31 30 31 30 31]))
-      (dotimes (m 12)
-	(dotimes (d (aref months m))
-	  (when (or (= (org-day-of-week (1+ d) (1+ m) (nth y years)) 5)
-		    (= (org-day-of-week (1+ d) (1+ m) (nth y years)) 6))
-	    (put-text-property (elgantt--convert-date-to-column-number (elgantt--normalize-date-string (format "%d-%d-%d" (nth y years) (1+ m) (1+ d))))
-			       (1+ (elgantt--convert-date-to-column-number (elgantt--normalize-date-string (format "%d-%d-%d" (nth y years) (1+ m) (1+ d)))))
-			       'font-lock-face `(:background "#696969") line-number-string))))))
-  line-number-string)
 
 ;;;;; Functions
  
@@ -212,10 +198,9 @@ function or Emacs Lisp form:
   (elgantt-mode)
   (toggle-truncate-lines 1)
   (setq cursor-type 'box)
-  (setq disable-point-adjustment t)
   (elgantt--hide-future-dates)
-  ;; Hiding past dates causes problems with the vertical highlight 
-  ;;(elgantt-hide-past-dates)
+  (when elgantt-hide-previous-months
+    (elgantt-hide-past-dates))
   (goto-char (point-min))
   (forward-line 2)
   (forward-char (elgantt--convert-date-to-column-number (format-time-string "%Y-%m-%d")))
@@ -902,7 +887,6 @@ function or Emacs Lisp form:
   (interactive)
   (elgantt-move-line 1))
 
-
 (defun elgantt-move-line (direction)
   "direction == 1 means move down
    direction == -1 means move up"
@@ -937,17 +921,15 @@ function or Emacs Lisp form:
 	(elgantt--change-brightness-of-background-at-point (+ start x) elgantt-brightness-adjust)))))
     
 (defun elgantt--vertical-highlight (&optional column)
-  "insert a vertical highlight bar at column, and remove the previous selection bar"
+  "insert a vertical highlight bar at column, and remove the previous vertical bar"
   (interactive)
   (when (not column)
-    (setq column (current-column)))
-
+    (setq column (+ (current-column) elgantt--hidden-past-columns)))
   (let ((inhibit-read-only t))
     (dolist (p elgantt--old-backgrounds)
       (when (cadr p)
 	(put-text-property (car p) (1+ (car p)) 'font-lock-face `(:background ,(cadr p))))))
   (setq elgantt/display/old-background-props '())
-
   (save-excursion
     (goto-char (point-min))
     (let ((x 1)
@@ -976,10 +958,22 @@ function or Emacs Lisp form:
     (forward-char elgantt--header-column-offset))                               
   (elgantt--vertical-highlight (current-column)))    
 
+(defun elgantt--highlight-weekends-in-date-line (line-number-string years)
+  (let ((months [31 28 31 30 31 30 31 31 30 31 30 31]))
+    (dotimes (y (length years))
+      (if (elgantt--leap-year-p (nth y years))
+	  (setq months [31 29 31 30 31 30 31 31 30 31 30 31])
+	(setq months [31 28 31 30 31 30 31 31 30 31 30 31]))
+      (dotimes (m 12)
+	(dotimes (d (aref months m))
+	  (when (or (= (org-day-of-week (1+ d) (1+ m) (nth y years)) 5)
+		    (= (org-day-of-week (1+ d) (1+ m) (nth y years)) 6))
+	    (put-text-property (elgantt--convert-date-to-column-number (elgantt--normalize-date-string (format "%d-%d-%d" (nth y years) (1+ m) (1+ d))))
+			       (1+ (elgantt--convert-date-to-column-number (elgantt--normalize-date-string (format "%d-%d-%d" (nth y years) (1+ m) (1+ d)))))
+			       'font-lock-face `(:background "#696969") line-number-string))))))
+  line-number-string)
 
-;;;; Testing
-
-;;this seems to work
+;;this seems to work, but it screws up the vertical highlight
 (defun elgantt-hide-past-dates ()
   "Shows only the previous month and hides all others."
   (interactive)
@@ -996,6 +990,7 @@ function or Emacs Lisp form:
 	(dotimes (x (1- (elgantt--count-lines-in-buffer)))
 	  (let ((start (save-excursion (move-to-column start-column) (point)))
 		(end (save-excursion (move-to-column end-column) (point))))
+	    (setq elgantt--hidden-past-columns (- end-column start-column))
 	    (put-text-property start end 'invisible t)
 	    (next-line)))))))
 
@@ -1014,7 +1009,8 @@ function or Emacs Lisp form:
 (defun elgantt-show-all-dates ()
   (interactive)
   (let ((inhibit-read-only t))
-    (put-text-property 1 (point-max) 'invisible nil)))
+    (put-text-property 1 (point-max) 'invisible nil))
+  (setq elgantt--hidden-past-columns 0))
 
 ;;;; Footer
 
