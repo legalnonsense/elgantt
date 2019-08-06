@@ -172,7 +172,7 @@ function or Emacs Lisp form:
 (defvar elgantt--leap-year-month-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (defvar elgantt--leap-year-blank-line   "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
 (defvar elgantt--header-column-offset nil)
-
+(defvar elgantt--number-of-lines nil)
 ;;;;; Keymaps
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
@@ -212,14 +212,16 @@ function or Emacs Lisp form:
   (elgantt-mode)
   (toggle-truncate-lines 1)
   (setq cursor-type 'box)
+  (setq disable-point-adjustment t)
+  (elgantt--hide-future-dates)
+  ;; Hiding past dates causes problems with the vertical highlight 
+  ;;(elgantt-hide-past-dates)
   (goto-char (point-min))
   (forward-line 2)
   (forward-char (elgantt--convert-date-to-column-number (format-time-string "%Y-%m-%d")))
   (add-hook 'post-command-hook 'elgantt--show-echo-message nil t)
   (add-hook 'post-command-hook 'elgantt--vertical-highlight nil t)
-  (delete-other-windows)
-  (elgantt--hide-future-dates)
-  (elgantt-hide-past-dates))
+  (delete-other-windows))
 
 (defun elgantt--draw ()
   (interactive)
@@ -231,7 +233,7 @@ function or Emacs Lisp form:
     (insert "\n")
     (insert (elgantt--draw-number-line))
     (insert "\n")
-    (setq elgantt/variables/number-of-lines 1)
+    (setq elgantt--number-of-lines 1)
     (dolist (header (elgantt--get-all-headers))
       (insert (elgantt--draw-string-for-header header))
       (insert "\n"))
@@ -496,7 +498,7 @@ function or Emacs Lisp form:
 (defun elgantt--draw-string-for-header (header)
   "this draws the string that will appear in the calendar for each header and returns it"
   (setq elgantt/variables/line-length (length (elgantt--draw-number-line)))
-  (setq elgantt/variables/number-of-lines (1+ elgantt/variables/number-of-lines))
+  (setq elgantt--number-of-lines (1+ elgantt--number-of-lines))
   (let ((date-line (elgantt--generate-blank-date-line header)))
     ;;put a background that matches the default background so that it is easier to manipulate later 
 
@@ -510,9 +512,9 @@ function or Emacs Lisp form:
 						     (plist-get properties :deadline))
 						    elgantt-deadline-character))
 	;;this appears to be working
-	(plist-put properties :calendar-point (+ (* elgantt/variables/number-of-lines elgantt/variables/line-length)
+	(plist-put properties :calendar-point (+ (* elgantt--number-of-lines elgantt/variables/line-length)
 	 					 (elgantt--convert-date-to-column-number (plist-get properties :deadline))
-						 elgantt/variables/number-of-lines 1)))
+						 elgantt--number-of-lines 1)))
       
       (when (plist-get properties :timestamp-active)
 	(setq date-line 
@@ -521,11 +523,11 @@ function or Emacs Lisp form:
 						     (plist-get properties :timestamp-active))
 						    elgantt-active-timestamp-character))
 
-	(plist-put properties :calendar-point (+ (* elgantt/variables/number-of-lines elgantt/variables/line-length)
+	(plist-put properties :calendar-point (+ (* elgantt--number-of-lines elgantt/variables/line-length)
 	 					 (elgantt--convert-date-to-column-number (plist-get properties :timestamp-active))
-						 elgantt/variables/number-of-lines 1))))
+						 elgantt--number-of-lines 1))))
 
-    (if (= 0 (% elgantt/variables/number-of-lines 2))
+    (if (= 0 (% elgantt--number-of-lines 2))
 	(put-text-property 0 (length date-line) 'font-lock-face `(:background ,(color-lighten-name (face-attribute 'default :background) elgantt-brightness-adjust)) date-line)
       (put-text-property 0 (length date-line) 'font-lock-face `(:background ,(face-attribute 'default :background)) date-line))
     
@@ -991,7 +993,7 @@ function or Emacs Lisp form:
       (let ((start-column (1+ elgantt--header-column-offset))
 	    (end-column (elgantt--convert-date-to-column-number (concat year "-" month "-01"))))
 	(goto-char (point-min))
-	(dotimes (x (elgantt--count-lines-in-buffer))
+	(dotimes (x (1- (elgantt--count-lines-in-buffer)))
 	  (let ((start (save-excursion (move-to-column start-column) (point)))
 		(end (save-excursion (move-to-column end-column) (point))))
 	    (put-text-property start end 'invisible t)
@@ -1003,7 +1005,7 @@ function or Emacs Lisp form:
     (let ((inhibit-read-only t)
 	  (start-column (elgantt--convert-date-to-column-number (elgantt--get-oldest-date))))
       (goto-char (point-min))
-      (dotimes (x (elgantt--count-lines-in-buffer))
+      (dotimes (x (1- (elgantt--count-lines-in-buffer)))
 	(let ((start (1+ (save-excursion (move-to-column start-column) (point))))
 	      (end (save-excursion (end-of-line) (point))))
 	  (put-text-property start end 'invisible t)
