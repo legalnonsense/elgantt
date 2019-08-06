@@ -144,6 +144,11 @@ agenda-with-archives
 (defcustom elgantt-default-background-color (face-attribute 'default :background)
   "Background color for the calendar; defaults to the background of the default face.")
 
+;;not sure what this one will do in January; this could also allow the user to determine how many preceding months to show
+;;but will moire likely be adapted to allow for side scrolling
+(defcustom elgantt-hide-previous-months t
+  "Begins the calender showing only the preceding month; if nil, it will show the entire current year. Use (elgantt-show-all-dates) to show all.")
+
 ;;;; Variables
 
 (defvar elgantt--map-data nil)
@@ -161,7 +166,7 @@ agenda-with-archives
   (define-key elgantt-mode-map (kbd "r") 'elgantt-open)
   (define-key elgantt-mode-map (kbd "SPC") 'elgantt--open-org-file-at-point)
   (define-key elgantt-mode-map (kbd "f")   'elgantt--move-selection-bar-forward)
-  (define-key elgantt-mode-map (kbd "b")   'elgantt/display/move-selection-bar-backward)
+  (define-key elgantt-mode-map (kbd "b")   'elgantt--move-selection-bar-forward)
   (define-key elgantt-mode-map (kbd "RET") 'elgantt--open-org-agenda-at-date))
 
 (defun elgantt--highlight-weekends-in-date-line (line-number-string years)
@@ -182,9 +187,8 @@ agenda-with-archives
 ;;;;; Functions
  
 (defun elgantt-open ()
-  "Display Gantt chart for an Orgmode outline"
   (interactive)
-  (switch-to-buffer "El Gantt Calendar")
+  (switch-to-buffer "*El Gantt Calendar*")
   (let ((inhibit-read-only t))
     (erase-buffer))
   (when elgantt-dark-mode
@@ -200,28 +204,26 @@ agenda-with-archives
   (forward-char (elgantt--convert-date-to-column-number (format-time-string "%Y-%m-%d")))
   (add-hook 'post-command-hook 'elgantt--show-echo-message nil t)
   (add-hook 'post-command-hook 'elgantt--vertical-highlight nil t)
-  (delete-other-windows))
+  (delete-other-windows)
+  (elgantt--hide-future-dates)
+  (when elgantt-hide-previous-months
+    (elgantt-hide-past-dates)))
 
 (defun elgantt--draw ()
   (interactive)
   (let ((inhibit-read-only t))
     (erase-buffer)
-    (insert "Parsing org files...")
     (elgantt--parse-org-files)
     (erase-buffer)
-    ;;calculate the offset that will be used for the calendar 
-
     (insert (elgantt--draw-month-line))
     (insert "\n")
     (insert (elgantt--draw-number-line))
     (insert "\n")
     (setq elgantt/variables/number-of-lines 1)
-
     (dolist (header (elgantt--get-all-headers))
       (insert (elgantt--draw-string-for-header header))
       (insert "\n"))
     (elgantt--highlight-current-day)))
-
 
 (defun elgantt--show-parsed-data ()
   "this is for debugging"
@@ -236,7 +238,6 @@ agenda-with-archives
 	(terpri))))
   (switch-to-buffer-other-window "El Gantt Parsed Data")
   (toggle-truncate-lines 1))
-
 
 (defun elgantt--parse-org-files ()
   "returns a list of alists. the cdr of each alist is a plist of the properties of the heading
@@ -318,7 +319,6 @@ agenda-with-archives
                      adds in the form of '(,header . "")
                      (for now, it appears initializing with "" is necessary to create a blank alist"
   (add-to-list 'elgantt--map-data `(,header . "")))
-
 
 (defun elgantt--check-if-header-exists (header)
   "check to see if the new header is a member of the elgantt--map-data
@@ -954,13 +954,51 @@ agenda-with-archives
   (goto-char (1- (re-search-forward "[^| ]" nil t)))
   (elgantt--vertical-highlight (current-column)))
 
-(defun elgantt/display/move-selection-bar-backward ()
+(defun elgantt--move-selection-bar-forward ()
   (interactive)
   (goto-char (re-search-backward "[^| ]" nil t))
   (when (< (current-column) elgantt--header-column-offset)
     (move-beginning-of-line nil)
     (forward-char elgantt--header-column-offset))                               
   (elgantt--vertical-highlight (current-column)))    
+
+
+;;;; Testing
+
+;;this seems to work
+(defun elgantt-hide-past-dates ()
+  "Shows only the previous month and hides all others."
+  (interactive)
+  (let* ((inhibit-read-only t)
+	 (year (format-time-string "%Y"))
+	 (month (1- (string-to-number (format-time-string "%m")))))
+    (if (< month 10)
+	(setq month (concat "0" (number-to-string month)))
+      (setq month (number-to-string month)))
+    (let ((start-column (1+ elgantt--header-column-offset))
+	  (end-column (elgantt--convert-date-to-column-number (concat year "-" month "-01"))))
+      (goto-char (point-min))
+      (dotimes (x (elgantt--count-lines-in-buffer))
+	(let ((start (save-excursion (move-to-column start-column) (point)))
+	      (end (save-excursion (move-to-column end-column) (point))))
+	  (put-text-property start end 'invisible t)
+	  (next-line))))))
+
+(defun elgantt--hide-future-dates ()
+  (interactive)
+  (let ((inhibit-read-only t)
+	 (start-column (elgantt--convert-date-to-column-number (elgantt--get-oldest-date))))
+      (goto-char (point-min))
+      (dotimes (x (elgantt--count-lines-in-buffer))
+	(let ((start (1+ (save-excursion (move-to-column start-column) (point))))
+	      (end (save-excursion (end-of-line) (point))))
+	  (put-text-property start end 'invisible t)
+	  (next-line)))))
+  
+(defun elgantt-show-all-dates ()
+  (interactive)
+  (let ((inhibit-read-only t))
+    (put-text-property 1 (point-max) 'invisible nil)))
 
 ;;;; Footer
 
