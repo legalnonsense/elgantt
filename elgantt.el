@@ -995,8 +995,11 @@ function or Emacs Lisp form:
   (interactive)
   (save-excursion 
     (let ((inhibit-read-only t)
-	   (year (format-time-string "%Y"))
-	   (month (1- (string-to-number (format-time-string "%m")))))
+	  (year (format-time-string "%Y"))
+	  (month (1- (string-to-number (format-time-string "%m")))))
+      (when (= 0 month)
+	(setq month 12)
+	(setq year (number-to-string (1- (string-to-number year)))))
       (if (< month 10)
 	  (setq month (concat "0" (number-to-string month)))
 	(setq month (number-to-string month)))
@@ -1008,7 +1011,8 @@ function or Emacs Lisp form:
 		(end (save-excursion (move-to-column end-column) (point))))
 	    (setq elgantt--hidden-past-columns (- end-column start-column))
 	    (put-text-property start end 'invisible t)
-	    (next-line)))))))
+	    (next-line)))))));;this seems to work, but it screws up the vertical highlight
+
 
 (defun elgantt--hide-future-dates ()
   (interactive)
