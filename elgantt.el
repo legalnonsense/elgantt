@@ -122,7 +122,7 @@
   "The color of every other line in the calendar is darkened or lightened for readability. This is a percent and can be negative (darken) or positive (lighten).")
 
 (defcustom elgantt-agenda-files 'agenda
-  "Files are used to generate the calendar. Accepts any value used by org-map-entries:
+  "Files are used to generate the calendar. Accepts any value used by `org-map-entries':
 
 nil     The current buffer, respecting the restriction if any
 tree    The subtree started with the entry at point
@@ -151,11 +151,11 @@ agenda-with-archives
   "Begins the calender showing only the preceding month; if nil, it will show the entire current year. Use (elgantt-show-all-dates) to show all.")
 
 (defcustom elgantt-skip-files 'archive
-  "Accepts the following values (from (org-map-entries)):
+  "Accepts the following values from `org-map-entries'):
   
-archive    skip trees with the archive tag
-comment    skip trees with the COMMENT keyword
-function or Emacs Lisp form:
+`archive'    skip trees with the archive tag
+`comment'    skip trees with the COMMENT keyword
+`function' or Emacs Lisp form:
            will be used as value for org-agenda-skip-function, so
            whenever the function returns a position, FUNC will not be
            called for that entry and search will continue from the
@@ -238,45 +238,86 @@ function or Emacs Lisp form:
   (switch-to-buffer-other-window "El Gantt Parsed Data")
   (toggle-truncate-lines 1))
 
-(defun elgantt--parse-org-files ()
-  "returns a list of alists. the cdr of each alist is a plist of the properties of the heading
-   access the elgantt--map-data data structure using the elgantt/data functions
-   if use-hashtag is non-nil, then it will use tags that start with # to create the
-   elgantt--map-data. the argument type-of-search parameter allows the specification of a specific file to use by passing a list of files
-   and valid values are determined by the SCOPE parameter in org-map-entries"
-  (interactive)
-  (setq elgantt--map-data '())
-  (org-map-entries (lambda ()
-		     ;; get the header by interning the category
-		     (let ((header (intern (elgantt--get-property-from-org-point))))
-		       ;; when using hashtags, find the tag with the hashtag, remove the hashtag, and intern it
-		       (when elgantt-use-hashtags
-			 (if (elgantt--get-hashtag-from-org-point)
-			     (setq header (intern (elgantt--get-hashtag-from-org-point)))
-			   (setq header nil)))
-		       (when (not (member (symbol-name header) elgantt-exclusions))
-			 ;; if there is no hashtag, then skip the entry bc it will not appear in the calendar
-			 (when header
-			   (elgantt--add-properties header `(:category                  ,(elgantt--get-property-from-org-point)
-								 :hashtag                   ,(elgantt--get-hashtag-from-org-point)
-								 :tag-string                ,(elgantt--get-all-tags-as-string-from-org-point)
-								 :timestamp-active          ,(elgantt--get-active-timestamp-from-org-point)
-								 :timestamp-inactive        ,(elgantt--get-inactive-timestamp-from-org-point)
-								 :timestamp-range-active    ,(elgantt--get-active-time-range-from-org-point)
-								 :timestamp-range-inactive  ,(elgantt--get-inactive-time-range-from-org-point)	
-								 :deadline                  ,(elgantt--get-deadline-from-org-point)
-								 :headline-text             ,(elgantt--get-headline-text-from-org-point)
-								 :todo                      ,(elgantt--get-todo-from-org-point)
-								 :start-or-end-or-range     ,(nth 0 (elgantt--get-calendar-data-from-org-point))
-								 :calendar-label            ,(nth 1 (elgantt--get-calendar-data-from-org-point))
-								 :calendar-date             ,(nth 2 (elgantt--get-calendar-data-from-org-point))
-								 :file                      ,(elgantt--get-file-from-org-point)
-								 :calendar-point nil        ; done, this fills in later 
-								 :calendar-column nil       ; done, fills below
-								 :calendar-blocks nil       ; to be filled later
-								 :org-point ,(point)))))))
-  		   nil elgantt-agenda-files elgantt-skip-files)
+;; (defun elgantt--parse-org-files ()
+;;   "returns a list of alists. the cdr of each alist is a plist of the properties of the heading
+;;    access the elgantt--map-data data structure using the elgantt/data functions
+;;    if use-hashtag is non-nil, then it will use tags that start with # to create the
+;;    elgantt--map-data. the argument type-of-search parameter allows the specification of a specific file to use by passing a list of files
+;;    and valid values are determined by the SCOPE parameter in org-map-entries"
+;;   (interactive)
+;;   (setq elgantt--map-data '())
+;;   (org-map-entries (lambda ()
+;; 		     ;; get the header by interning the category
+;; 		     (let ((header (intern (elgantt--get-property-from-org-point))))
+;; 		       ;; when using hashtags, find the tag with the hashtag, remove the hashtag, and intern it
+;; 		       (when elgantt-use-hashtags
+;; 			 (if (elgantt--get-hashtag-from-org-point)
+;; 			     (setq header (intern (elgantt--get-hashtag-from-org-point)))
+;; 			   (setq header nil)))
+;; 		       (when (not (member (symbol-name header) elgantt-exclusions))
+;; 			 ;; if there is no hashtag, then skip the entry bc it will not appear in the calendar
+;; 			 (when header
+;; 			   (elgantt--add-properties header `(:category                  ,(elgantt--get-property-from-org-point)
+;; 											:hashtag                   ,(elgantt--get-hashtag-from-org-point)
+;; 											:tag-string                ,(elgantt--get-all-tags-as-string-from-org-point)
+;; 											:timestamp-active          ,(elgantt--get-active-timestamp-from-org-point)
+;; 											:timestamp-inactive        ,(elgantt--get-inactive-timestamp-from-org-point)
+;; 											:timestamp-range-active    ,(elgantt--get-active-time-range-from-org-point)
+;; 											:timestamp-range-inactive  ,(elgantt--get-inactive-time-range-from-org-point)	
+;; 											:deadline                  ,(elgantt--get-deadline-from-org-point)
+;; 											:headline-text             ,(elgantt--get-headline-text-from-org-point)
+;; 											:todo                      ,(elgantt--get-todo-from-org-point)
+;; 											:start-or-end-or-range     ,(nth 0 (elgantt--get-calendar-data-from-org-point))
+;; 											:calendar-label            ,(nth 1 (elgantt--get-calendar-data-from-org-point))
+;; 											:calendar-date             ,(nth 2 (elgantt--get-calendar-data-from-org-point))
+;; 											:file                      ,(elgantt--get-file-from-org-point)
+;; 											:calendar-point nil        ; done, this fills in later 
+;; 											:calendar-column nil       ; done, fills below
+;; 											:calendar-blocks nil       ; to be filled later
+;; 											:org-point ,(point)))))))
+;; 		   nil elgantt-agenda-files elgantt-skip-files)
 
+;;   (setq elgantt--header-column-offset (+ (elgantt--get-longest-header-length) 1))
+
+;;   (dolist (property (elgantt--get-all-properties-from-header))
+;;     (when (stringp (plist-get property :calendar-date))
+;;       (plist-put property :calendar-column (elgantt--convert-date-to-column-number (plist-get property :calendar-date)))))
+;;   elgantt--map-data)
+
+
+(defun elgantt--parse-org-files ()
+  (org-ql-select (org-agenda-files) '(and (or (ts) (deadline))
+					  (not (tags "ARCHIVE")))
+    :action (lambda ()
+	      ;; get the header by interning the category
+	      (let ((header (intern (elgantt--get-property-from-org-point))))
+		;; when using hashtags, find the tag with the hashtag, remove the hashtag, and intern it
+		(when elgantt-use-hashtags
+		  (if (elgantt--get-hashtag-from-org-point)
+		      (setq header (intern (elgantt--get-hashtag-from-org-point)))
+		    (setq header nil)))
+		(when (not (member (symbol-name header) elgantt-exclusions))
+		  ;; if there is no hashtag, then skip the entry bc it will not appear in the calendar
+		  (when header
+		    (elgantt--add-properties header `(:category ,(elgantt--get-property-from-org-point)
+								:hashtag                   ,(elgantt--get-hashtag-from-org-point)
+								:tag-string                ,(elgantt--get-all-tags-as-string-from-org-point)
+								:timestamp-active          ,(elgantt--get-active-timestamp-from-org-point)
+								:timestamp-inactive        ,(elgantt--get-inactive-timestamp-from-org-point)
+								:timestamp-range-active    ,(elgantt--get-active-time-range-from-org-point)
+								:timestamp-range-inactive  ,(elgantt--get-inactive-time-range-from-org-point)	
+								:deadline                  ,(elgantt--get-deadline-from-org-point)
+								:headline-text             ,(elgantt--get-headline-text-from-org-point)
+								:todo                      ,(elgantt--get-todo-from-org-point)
+								:start-or-end-or-range     ,(nth 0 (elgantt--get-calendar-data-from-org-point))
+								:calendar-label            ,(nth 1 (elgantt--get-calendar-data-from-org-point))
+								:calendar-date             ,(nth 2 (elgantt--get-calendar-data-from-org-point))
+								:file                      ,(elgantt--get-file-from-org-point)
+								:calendar-point nil        ; done, this fills in later 
+								:calendar-column nil       ; done, fills below
+								:calendar-blocks nil       ; to be filled later
+								:org-point ,(point))))))))
+  
   (setq elgantt--header-column-offset (+ (elgantt--get-longest-header-length) 1))
   
   (dolist (property (elgantt--get-all-properties-from-header))
@@ -288,11 +329,11 @@ function or Emacs Lisp form:
   "Assumes a YYYY-MM-DD date, returns the column number including the name offset column"
   (let ((spaces 0))
     (cl-subseq (elgantt--get-range-of-years)
-	    0 (cl-position (string-to-number (substring date 0 4)) (elgantt--get-range-of-years)))
+	       0 (cl-position (string-to-number (substring date 0 4)) (elgantt--get-range-of-years)))
     ;; add the preceding years
     (dolist (year
 	     (cl-subseq (elgantt--get-range-of-years)
-		     0 (cl-position (string-to-number (substring date 0 4)) (elgantt--get-range-of-years))))
+			0 (cl-position (string-to-number (substring date 0 4)) (elgantt--get-range-of-years))))
       (if (elgantt--leap-year-p year)
 	  (setq spaces (+ spaces 366 12))
 	(setq spaces (+ spaces 365 12))))
@@ -1010,7 +1051,7 @@ function or Emacs Lisp form:
 	  (let ((start (save-excursion (move-to-column start-column) (point)))
 		(end (save-excursion (move-to-column end-column) (point))))
 	    (setq elgantt--hidden-past-columns (- end-column start-column))
-	    (put-text-property start end 'invisible t)
+	    ()	    (put-text-property start end 'invisible t)
 	    (next-line)))))));;this seems to work, but it screws up the vertical highlight
 
 
