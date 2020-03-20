@@ -801,7 +801,6 @@ agenda-with-archives
     (org-agenda-list nil (calendar-absolute-from-gregorian date) 'day))
   (other-window 1))
 
-
 (defun elgantt/display/days-in-year (year)
   (if (elgantt--leap-year-p year)
       366
@@ -818,7 +817,6 @@ agenda-with-archives
                        this works on leap years"
   (+ (elgantt/display/convert-date-string-to-day-number-in-year date)
      (- (string-to-number (substring date 5 7)) 1)))
-
 
 (defun elgantt--get-total-days ()
   (let ((total-days 0))
@@ -838,9 +836,7 @@ agenda-with-archives
     days))
 
 (defun elgantt--leap-year-p (year)
-  (if (= (% year 4) 0)
-      t
-    nil))
+  (= (% year 4) 0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DEALING WITH THE BUFFER / COLORIZERS
 
