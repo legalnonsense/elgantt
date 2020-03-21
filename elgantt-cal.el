@@ -39,8 +39,9 @@
     (+ spaces (elgantt--convert-date-to-column-in-current-year date) elgantt--header-column-offset)))
 
 (defun elgantt-cal:check-if-header-exists (header)
-  (goto-char (point-min))
-  (search-forward header nil t))
+  (save-excursion 
+    (goto-char (point-min))
+    (search-forward header nil t)))
 
 (defsubst elgantt-cal:get-days-in-year (year)
   (if (elgantt--leap-year-p year) 366 365))
