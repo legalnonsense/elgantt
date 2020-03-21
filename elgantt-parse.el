@@ -1,17 +1,13 @@
 
-;; 1. check if entry has a date
-;; 2. check to see if it has a heading already
-;; 3. a. if it has a heading, goto the beginning of that line
-;;    b. otherwise, insert a new heading
-;; 4. insert the entry by changing the text properties at point
-
 (defsubst elgantt-parse::convert-date-string-to-ts (date-string)
   (ts-parse-org date-string))
 
 (defun elgantt-parse::parse-this-headline (&optional props)
+  "Return a property list with all properties available."
   (-flatten-n 1
 	      (mapcar #'elgantt-parse::get (or (-list props)
 					       '(root
+						 headline
 						 timestamp
 						 timestamp-ia
 						 timestamp-range
@@ -25,14 +21,14 @@
 						 elgantt-data
 						 alltags)))))
 
-(defun elgantt-parse::get (prop)
+(defun elgantt-parse::get (prop &rest args)
   "Accepts any of the following arguments: `root', `timestamp', 
 `timestamp-ia', `category', `hashtag', `timestamp-range', `timestamp-ia-range',
-`deadline', `todo', `alltags', `elgantt-data', `scheduled' and `file'. 
+`deadline', `todo', `alltags', `elgantt-data', `scheduled', `file', and `headline'. 
 PROP may also be a function to get heading information, 
-which is claled with POINT at the first point of the org headline."
+which is called with POINT at the first point of the org headline with ARGS."
   (pcase prop
-    ((pred functionp) (funcall prop))
+    ((pred functionp) (funcall prop args))
     ('root
      (list :root
 	   (save-excursion 
@@ -44,6 +40,9 @@ which is claled with POINT at the first point of the org headline."
     ('file
      (list :file 
 	   (cdr (car (org-entry-properties (point) "FILE")))))
+    ('headline
+     (list :headline
+	   (cdar (org-entry-properties (point) "ITEM"))))
     ('timestamp
      (list :timestamp
 	   (when-let ((timestamp (cdar (org-entry-properties (point) "TIMESTAMP"))))
