@@ -23,7 +23,10 @@
 (defvar elgantt-cal::years-shown nil
   "A list of the number of years shown on the calendar")
 
-(defun elgantt-cal--convert-date-to-column-number (date)				    
+(defvar elgantt-cal::deadline-warning-days org-deadline-warning-days
+  "Warning days to show in calendar.")
+
+(defun elgantt-cal::convert-date-to-column-number (date)				    
   "Assumes a YYYY-MM-DD date, returns the column number including the name offset column"
   (let ((spaces 0))
     (cl-subseq (elgantt--get-range-of-years)
@@ -38,18 +41,28 @@
     ;; add the current year
     (+ spaces (elgantt--convert-date-to-column-in-current-year date) elgantt--header-column-offset)))
 
-(defun elgantt-cal:check-if-header-exists (header)
+(defun elgantt-cal::get-create-header (header)
+  "Put point at HEADER, creating it if necessary."
   (save-excursion 
     (goto-char (point-min))
-    (search-forward header nil t)))
+    (unless (search-forward header nil t)
+      (elgantt-cal::insert-new-header-line header)
+      (elgantt-cal::get-create-header header))))
 
-(defsubst elgantt-cal:get-days-in-year (year)
+(defsubst elgantt-cal::get-days-in-year (year)
   (if (elgantt--leap-year-p year) 366 365))
 
-(defsubst elgantt-cal:leap-year-p (year) 
+(defsubst elgantt-cal::leap-year-p (year) 
   (= (% year 4) 0))
 
-(defun elgantt-cal:insert-new-header-line (header years)
+(defsubset elgantt-cal::get-
+
+(defun elgantt-cal::insert-entry (header type &rest props)
+  (elgantt-cal::get-create-header header)
+  (goto-char (elgantt-cal::convert-date-to-column-number DATE))
+  (insert 
+
+(defun elgantt-cal::insert-new-header-line (header years)
   (unless (search-forward header nil t)
     (goto-char (point-max))
     (insert "\n")
@@ -57,6 +70,8 @@
 	     do (if (elgantt-cal:leap-year-p year)
 		    (insert elgantt-cal:leap-year-blank-line)
 		  (insert elgantt-cal:normal-year-blank-line)))))
+
+
 
 
 
