@@ -10,6 +10,9 @@
 (defcustom elgantt-cal-active-timestamp-character "●"
   "Character used for active timestamps in the calendar")
 
+(defcustom elgantt-cal-scheduled-character "s"
+  "Character used for active timestamps in the calendar")
+
 (defvar elgantt-cal:normal-year-date-line  "|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
 (defvar elgantt-cal:normal-year-month-line "| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (defvar elgantt-cal:normal-year-blank-line "|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
@@ -20,15 +23,15 @@
 (defcustom elgantt-cal:header-column-offset 20
   "Width of the header column")
 
-(defvar elgantt-cal::years-shown nil
-  "A list of the number of years shown on the calendar")
-
 (defvar elgantt-cal::deadline-warning-days org-deadline-warning-days
   "Warning days to show in calendar.")
 
-(defun elgantt-cal::convert-date-to-column-number (date)				    
+(defvar elgantt::dates
+
+(defun elgantt-cal::convert-date-to-column-number (ts)				    
   "Assumes a YYYY-MM-DD date, returns the column number including the name offset column"
-  (let ((spaces 0))
+  (let ((spaces 0)
+	(date (ts-format "%Y-%m-%d" ts)))
     (cl-subseq (elgantt--get-range-of-years)
 	       0 (cl-position (string-to-number (substring date 0 4)) (elgantt--get-range-of-years)))
     ;; add the preceding years
@@ -55,14 +58,11 @@
 (defsubst elgantt-cal::leap-year-p (year) 
   (= (% year 4) 0))
 
-(defsubset elgantt-cal::get-
+;; (defun elgantt-cal::insert-entry (header type &rest props)
+;;   (elgantt-cal::get-create-header header)
+;;   (goto-char (elgantt-cal::convert-date-to-column-number DATE)))
 
-(defun elgantt-cal::insert-entry (header type &rest props)
-  (elgantt-cal::get-create-header header)
-  (goto-char (elgantt-cal::convert-date-to-column-number DATE))
-  (insert 
-
-(defun elgantt-cal::insert-new-header-line (header years)
+(defun elgantt-cal::insert-new-header-line (header)
   (unless (search-forward header nil t)
     (goto-char (point-max))
     (insert "\n")
@@ -70,16 +70,4 @@
 	     do (if (elgantt-cal:leap-year-p year)
 		    (insert elgantt-cal:leap-year-blank-line)
 		  (insert elgantt-cal:normal-year-blank-line)))))
-
-
-
-
-
-
-
-
-
-
-
-
 

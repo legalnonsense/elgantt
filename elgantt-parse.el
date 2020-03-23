@@ -127,3 +127,55 @@ which is called with POINT at the first point of the org headline with ARGS."
 	 `(:elgantt-type ,start-or-end-or-range :elgantt-label ,label :elgantt-date ,date))))
     (_ (user-error "\"%s\" is not a valid argument." prop))))
 
+;; This needs to be fixed to accept the value of
+;; `elgantt:agenda-files'. Right now, it defaults to
+;; `org-agenda-files'. 
+(defun elgantt-parse::get-years (&optional date-type)
+  "Get the date range of all time values in all agenda files.
+Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
+        all: all timestamps
+     active: only active timestamps (<...>)
+   inactive: only inactive timestamps ([...])
+  scheduled: only scheduled timestamps
+   deadline: only deadline timestamps
+     closed: only closed time-stamps
+If it is not provided, the default is ('active inactive deadline)"
+  (save-excursion 
+    (let ((first-year 9999)
+	  (last-year 0))
+      (--each (org-agenda-files)
+	(with-current-buffer (find-buffer-visiting it)
+	  (goto-char (point-min))
+	  (--each (or (-list date-type)
+		      '(active inactive deadline))
+	    (while (re-search-forward (org-re-timestamp it) nil t)
+	      (let ((current-year (string-to-number (ts-format "%Y" (ts-parse-org (match-string 0))))))
+		(cond ((> current-year last-year)
+		       (setq last-year current-year))
+		      ((< current-year first-year)
+		       (setq first-year current-year))))))))
+      (when (or (= first-year 9999)
+		(= last-year 0))
+	(error "Error in elgantt-parse::get-years. Years not parsed properly."))
+      (-iterate '1+ first-year (1+ (- last-year first-year))))))
+
+(defun elgantt-parse::get-years* (&optional date-type)
+  "Get the date range of all time values in all agenda files.
+Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
+        all: all timestamps
+     active: only active timestamps (<...>)
+   inactive: only inactive timestamps ([...])
+  scheduled: only scheduled timestamps
+   deadline: only deadline timestamps
+     closed: only closed time-stamps
+If it is not provided, the default is ('active inactive deadline)"
+  (save-excursion
+    (let ((years '()))
+      (--each (org-agenda-files)
+	(with-current-buffer (find-buffer-visiting it)
+	  (--each (or (-list date-type)
+		      '(active inactive deadline))
+	    (while (re-search-forward (org-re-timestamp it) nil t)
+	      (cl-pushnew (string-to-number (ts-format "%Y" (ts-parse-org (match-string 0)))) years)))))
+      (sort years '<))))
+
