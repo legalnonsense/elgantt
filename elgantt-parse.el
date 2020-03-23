@@ -9,22 +9,24 @@
   "Return a property list with all properties available.
 Function should be called with POINT at the first headline.
 PROPS are additional text properties to append."
-  (-flatten-n 1
-	      (mapcar #'elgantt-parse::get (or (-list props)
-					       '(root
-						 headline
-						 timestamp
-						 timestamp-ia
-						 timestamp-range
-						 timestamp-ia-range
-						 deadline
-						 scheduled
-						 file
-						 todo
-						 hashtag
-						 category
-						 elgantt-data
-						 alltags)))))
+  (-flatten-n
+   1
+   (mapcar #'elgantt-parse::get (or (-list props)
+				    '(root
+				      headline
+				      timestamp
+				      timestamp-ia
+				      timestamp-range
+				      timestamp-ia-range
+				      deadline
+				      scheduled
+				      file
+				      todo
+				      hashtag
+				      category
+				      elgantt-header-type
+				      elgantt-data
+				      alltags)))))
 
 (defun elgantt-parse::get (prop &rest args)
   "Accepts any of the following arguments: `root', `timestamp', 
@@ -109,11 +111,21 @@ which is called with POINT at the first point of the org headline with ARGS."
      (list :alltags
 	   (when-let ((tag-string (cdar (org-entry-properties (point) "ALLTAGS"))))
 	     (s-split ":" tag-string t))))
+    ('elgantt-header-type
+     (pcase elgantt-header-type
+       ('root
+	(list :elgantt-header (cadr (elgantt-parse::get 'root))))
+       ('hashtag
+	(list :elgantt-header (cadr (elgantt-parse::get 'hashtag))))
+       ('category 
+	(list :elgantt-header (cadr (elgantt-parse::get 'category))))
+       (_ (error "Invalid header type."))))
     ('elgantt-data
      (let ((label nil)
 	   (start-or-end-or-range nil)
 	   (date nil)
-	   (type nil))
+	   (type nil)
+	   (header nil))
        (when (cdar (org-entry-properties (point) "ALLTAGS"))
 	 (dolist (tag (s-split ":" (cdar (org-entry-properties (point) "ALLTAGS"))))
 	   (when (or (s-ends-with-p "_start" tag) (s-ends-with-p "_end" tag) (s-ends-with-p "_block" tag))
@@ -136,12 +148,12 @@ which is called with POINT at the first point of the org headline with ARGS."
 		     ((elgantt-parse::get 'scheduled)
 		      (setq type 'scheduled)
 		      (setq date (cadr (elgantt-parse::get 'scheduled)))))))))
-       `(:elgantt-type ,start-or-end-or-range :elgantt-label ,label :elgantt-date ,date :type ,type)))
+       `(:elgantt-start-end-range ,start-or-end-or-range :elgantt-label ,label :elgantt-date ,date :elgantt-type ,type)))
     (_ (user-error "\"%s\" is not a valid argument." prop))))
 
 
 (defun elgantt-parse::get-years (&optional date-type)
-  "Get the date range of all time values in all agenda files.
+  "Get the date range of all time values in all agenda files. 
 Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
         all: all timestamps
      active: only active timestamps (<...>)
@@ -149,7 +161,7 @@ Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestam
   scheduled: only scheduled timestamps
    deadline: only deadline timestamps
      closed: only closed time-stamps
-If it is not provided, the default is ('active inactive deadline)"
+If it is not provided, the default is ('active inactive deadline)."
   (save-excursion
     (let ((years '()))
       (--each (-list elgantt:agenda-files)
