@@ -1,7 +1,10 @@
+;;;  -*- lexical-binding: t; -*-
+
 (require 'cl-lib)
 (require 'color)
 (require 'org)
 (require 's)
+(require 'dash)
 (require 'ts)
 
 (defcustom elgantt-cal-deadline-character "▲"
@@ -9,6 +12,9 @@
 
 (defcustom elgantt-cal-active-timestamp-character "●"
   "Character used for active timestamps in the calendar")
+
+(defcustom elgantt-cal-inactive-timestamp-character " "
+  "Character used for inactive timestamps in the calendar")
 
 (defcustom elgantt-cal-scheduled-character "s"
   "Character used for active timestamps in the calendar")
@@ -20,39 +26,50 @@
 (defvar elgantt-cal:leap-year-month-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (defvar elgantt-cal:leap-year-blank-line   "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
 
+(defcustom elgantt:agenda-files (org-agenda-files)
+  "A single agenda file or list of agenda files to use to generate the calendar.
+Default: `org-agenda-files'")
+
 (defcustom elgantt-cal:header-column-offset 20
   "Width of the header column")
 
 (defvar elgantt-cal::deadline-warning-days org-deadline-warning-days
   "Warning days to show in calendar.")
 
-(defvar elgantt-cal::date-range (elgantt-parse::get-years*)
+(defvar elgantt-cal::date-range (elgantt-parse::get-years)
+  "Range of years to be calendared. Default: `elgantt-parse::get-years'")
 
+(defun elgantt-cal::get-char (type)
+  "Get the character to insert."
+  (pcase type
+    ('deadline elgantt-cal-deadline-character)
+    ('timestamp elgantt-cal-active-timestamp-character)
+    ('timestamp-ia elgantt-cal-inactive-timestamp-character)
+    ('scheduled elgantt-cal-scheduled-character)))
 
-
+;; This should be re-written
 (defun elgantt-cal::convert-date-to-column-number (ts)				    
-  "Assumes a YYYY-MM-DD date, returns the column number including the name offset column"
+  "Assumes a TS date, returns the column number including the name offset column"
   (let ((spaces 0)
 	(date (ts-format "%Y-%m-%d" ts)))
-    (cl-subseq (elgantt--get-range-of-years)
-	       0 (cl-position (string-to-number (substring date 0 4)) (elgantt--get-range-of-years)))
+    (cl-subseq elgantt-cal::date-range
+	       0 (cl-position (string-to-number (substring date 0 4)) elgantt-cal::date-range))
     ;; add the preceding years
     (dolist (year
-	     (cl-subseq (elgantt--get-range-of-years)
-			0 (cl-position (string-to-number (substring date 0 4)) (elgantt--get-range-of-years))))
+	     (cl-subseq elgantt-cal::date-range
+			0 (cl-position (string-to-number (substring date 0 4)) elgantt-cal::date-range)))
       (if (elgantt--leap-year-p year)
 	  (setq spaces (+ spaces 366 12))
 	(setq spaces (+ spaces 365 12))))
     ;; add the current year
     (+ spaces (elgantt--convert-date-to-column-in-current-year date) elgantt--header-column-offset)))
 
-(defun elgantt-cal::get-create-header (header)
+(defun elgantt-cal::get-header-create (header)
   "Put point at HEADER, creating it if necessary."
-  (save-excursion 
-    (goto-char (point-min))
-    (unless (search-forward header nil t)
-      (elgantt-cal::insert-new-header-line header)
-      (elgantt-cal::get-create-header header))))
+  (goto-char (point-min))
+  (if (search-forward header nil t)
+      (beginning-of-line)
+    (elgantt-cal::insert-new-header-line header)))
 
 (defsubst elgantt-cal::get-days-in-year (year)
   (if (elgantt--leap-year-p year) 366 365))
@@ -60,16 +77,32 @@
 (defsubst elgantt-cal::leap-year-p (year) 
   (= (% year 4) 0))
 
-;; (defun elgantt-cal::insert-entry (header type &rest props)
-;;   (elgantt-cal::get-create-header header)
-;;   (goto-char (elgantt-cal::convert-date-to-column-number DATE)))
+(defun elgantt-cal::overwrite-point (point input-char)
+  (goto-char point)
+  (delete-char 1)
+  (insert input-char))
 
+;;CURRENT
+(defun elgantt-cal::insert-entry (&rest props)
+  "PROPS is a plist which must include, at minimum, the following properties:"
+
+  ;;  (goto-char (elgantt-cal::convert-date-to-column-number (plist-get props :elgantt-date)))
+  (delete-char 1)
+  (insert 
+   (propertize (elgantt-cal::get-char (plist-get props :type)) props)))
+
+
+(elgantt-cal::insert-entry :test 'test :type 'deadline)
 (defun elgantt-cal::insert-new-header-line (header)
   (unless (search-forward header nil t)
     (goto-char (point-max))
-    (insert "\n")
-    (cl-loop for year in (-list years)
+    (insert "\n"
+	    (substring 
+	     (concat header (make-string elgantt-cal:header-column-offset ? ))
+	     1 elgantt-cal:header-column-offset))
+    (cl-loop for year in (-list elgantt-cal::date-range)
 	     do (if (elgantt-cal:leap-year-p year)
 		    (insert elgantt-cal:leap-year-blank-line)
 		  (insert elgantt-cal:normal-year-blank-line)))))
+
 

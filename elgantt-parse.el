@@ -1,9 +1,14 @@
+;;;  -*- lexical-binding: t; -*-
+
+
 
 (defsubst elgantt-parse::convert-date-string-to-ts (date-string)
   (ts-parse-org date-string))
 
 (defun elgantt-parse::parse-this-headline (&optional props)
-  "Return a property list with all properties available."
+  "Return a property list with all properties available.
+Function should be called with POINT at the first headline.
+PROPS are additional text properties to append."
   (-flatten-n 1
 	      (mapcar #'elgantt-parse::get (or (-list props)
 					       '(root
@@ -107,7 +112,8 @@ which is called with POINT at the first point of the org headline with ARGS."
     ('elgantt-data
      (let ((label nil)
 	   (start-or-end-or-range nil)
-	   (date nil))
+	   (date nil)
+	   (type nil))
        (when (cdar (org-entry-properties (point) "ALLTAGS"))
 	 (dolist (tag (s-split ":" (cdar (org-entry-properties (point) "ALLTAGS"))))
 	   (when (or (s-ends-with-p "_start" tag) (s-ends-with-p "_end" tag) (s-ends-with-p "_block" tag))
@@ -119,17 +125,21 @@ which is called with POINT at the first point of the org headline with ARGS."
 		       ((elgantt-parse::get 'timestamp-ia-range)
 			(setq date (elgantt-parse::get 'timestamp-ia-range))))
 	       (cond ((elgantt-parse::get 'deadline)
+		      (setq type 'deadline)
 		      (setq date (cadr (elgantt-parse::get 'deadline))))
 		     ((elgantt-parse::get 'timestamp)
+		      (setq type 'timestamp)
 		      (setq date (cadr (elgantt-parse::get 'timestamp))))
 		     ((elgantt-parse::get 'timestamp-ia)
-		      (setq date (cadr (elgantt-parse::get 'timestamp-ia))))))))
-	 `(:elgantt-type ,start-or-end-or-range :elgantt-label ,label :elgantt-date ,date))))
+		      (setq type 'timestamp-ia)
+		      (setq date (cadr (elgantt-parse::get 'timestamp-ia))))
+		     ((elgantt-parse::get 'scheduled)
+		      (setq type 'scheduled)
+		      (setq date (cadr (elgantt-parse::get 'scheduled)))))))))
+       `(:elgantt-type ,start-or-end-or-range :elgantt-label ,label :elgantt-date ,date :type ,type)))
     (_ (user-error "\"%s\" is not a valid argument." prop))))
 
-;; This needs to be fixed to accept the value of
-;; `elgantt:agenda-files'. Right now, it defaults to
-;; `org-agenda-files'. 
+
 (defun elgantt-parse::get-years (&optional date-type)
   "Get the date range of all time values in all agenda files.
 Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
@@ -140,69 +150,21 @@ Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestam
    deadline: only deadline timestamps
      closed: only closed time-stamps
 If it is not provided, the default is ('active inactive deadline)"
-  (save-excursion 
-    (let ((first-year 9999)
-	  (last-year 0))
-      (--each (org-agenda-files)
-	(with-temp-buffer
-	  (insert-file-contents it)
-	  (goto-char (point-min))
-	  (--each (or (-list date-type)
-		      '(active inactive deadline))
-	    (while (re-search-forward (org-re-timestamp it) nil t)
-	      (let ((current-year (string-to-number (ts-format "%Y" (ts-parse-org (match-string 0))))))
-		(cond ((> current-year last-year)
-		       (setq last-year current-year))
-		      ((< current-year first-year)
-		       (setq first-year current-year))))))))
-      (when (or (= first-year 9999)
-		(= last-year 0))
-	(error "Error in elgantt-parse::get-years. Years not parsed properly."))
-      (-iterate '1+ first-year (1+ (- last-year first-year))))))
-
-(defun elgantt-parse::get-years* (&optional date-type)
-  "Get the date range of all time values in all agenda files.
-Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
-        all: all timestamps
-     active: only active timestamps (<...>)
-   inactive: only inactive timestamps ([...])
-  scheduled: only scheduled timestamps
-   deadline: only deadline timestamps
-     closed: only closed time-stamps
-If it is not provided, the default is ('active inactive deadline)"
   (save-excursion
     (let ((years '()))
-      (--each (org-agenda-files)
+      (--each (-list elgantt:agenda-files)
 	(with-temp-buffer
 	  (insert-file-contents it)
 	  (goto-char (point-min))
 	  (--each (or (-list date-type)
 		      '(active inactive deadline))
 	    (while (re-search-forward (org-re-timestamp it) nil t)
-	      (cl-pushnew (string-to-number (ts-format "%Y" (ts-parse-org (match-string 0)))) years)))))
-      (sort years '<))))
-
-
-
-(defun elgantt-parse::get-years** (&optional date-type)
-  "Get the date range of all time values in all agenda files.
-Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
-        all: all timestamps
-     active: only active timestamps (<...>)
-   inactive: only inactive timestamps ([...])
-  scheduled: only scheduled timestamps
-   deadline: only deadline timestamps
-     closed: only closed time-stamps
-If it is not provided, the default is ('active inactive deadline)"
-  (save-excursion
-    (let ((years '()))
-      (--each (org-agenda-files)
-	(with-temp-buffer
-	  (insert-file-contents it)
-	  (goto-char (point-min))
-	  (--each (or (-list date-type)
-		      '(active inactive deadline))
-	    (while (re-search-forward (org-re-timestamp it) nil t)
-	      (push years (string-match "[[:digit:]\\{4\\}" (match-string 0)))))))
-      (delete-dups years))))
+	      (push (car (s-split "-" (match-string 0))) years)))))
+      (delete-dups years)
+      (sort
+       (mapcar (lambda (it)
+		 (string-to-number
+		  (substring it 1)))
+	       years)
+       '<))))
 
