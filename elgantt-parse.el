@@ -144,7 +144,8 @@ If it is not provided, the default is ('active inactive deadline)"
     (let ((first-year 9999)
 	  (last-year 0))
       (--each (org-agenda-files)
-	(with-current-buffer (find-buffer-visiting it)
+	(with-temp-buffer
+	  (insert-file-contents it)
 	  (goto-char (point-min))
 	  (--each (or (-list date-type)
 		      '(active inactive deadline))
@@ -172,10 +173,36 @@ If it is not provided, the default is ('active inactive deadline)"
   (save-excursion
     (let ((years '()))
       (--each (org-agenda-files)
-	(with-current-buffer (find-buffer-visiting it)
+	(with-temp-buffer
+	  (insert-file-contents it)
+	  (goto-char (point-min))
 	  (--each (or (-list date-type)
 		      '(active inactive deadline))
 	    (while (re-search-forward (org-re-timestamp it) nil t)
 	      (cl-pushnew (string-to-number (ts-format "%Y" (ts-parse-org (match-string 0)))) years)))))
       (sort years '<))))
+
+
+
+(defun elgantt-parse::get-years** (&optional date-type)
+  "Get the date range of all time values in all agenda files.
+Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
+        all: all timestamps
+     active: only active timestamps (<...>)
+   inactive: only inactive timestamps ([...])
+  scheduled: only scheduled timestamps
+   deadline: only deadline timestamps
+     closed: only closed time-stamps
+If it is not provided, the default is ('active inactive deadline)"
+  (save-excursion
+    (let ((years '()))
+      (--each (org-agenda-files)
+	(with-temp-buffer
+	  (insert-file-contents it)
+	  (goto-char (point-min))
+	  (--each (or (-list date-type)
+		      '(active inactive deadline))
+	    (while (re-search-forward (org-re-timestamp it) nil t)
+	      (push years (string-match "[[:digit:]\\{4\\}" (match-string 0)))))))
+      (delete-dups years))))
 

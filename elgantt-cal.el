@@ -26,7 +26,9 @@
 (defvar elgantt-cal::deadline-warning-days org-deadline-warning-days
   "Warning days to show in calendar.")
 
-(defvar elgantt::dates
+(defvar elgantt-cal::date-range (elgantt-parse::get-years*)
+
+
 
 (defun elgantt-cal::convert-date-to-column-number (ts)				    
   "Assumes a YYYY-MM-DD date, returns the column number including the name offset column"
