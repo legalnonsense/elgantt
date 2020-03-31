@@ -23,7 +23,6 @@
 
 (defcustom elgantt:skip-files 'archive
   "Accepts the following values from `org-map-entries'):
-  
 `archive'    skip trees with the archive tag
 `comment'    skip trees with the COMMENT keyword
 `function' or Emacs Lisp form:
@@ -69,11 +68,10 @@
 
 (setq elgantt:horizontal-bar " ")
 
-
 ;; This was more macro practice than anything...
 (defmacro elgantt-cal::add-vertical-line-props (lines)
   (let ((body (cl-loop for line in lines
-		 collect `(setq ,line (s-replace "|" ,elgantt:vertical-line-char ,line)))))
+		       collect `(setq ,line (s-replace "|" ,elgantt:vertical-line-char ,line)))))
     `(progn ,@body)))
 
 (elgantt-cal::add-vertical-line-props (elgantt-cal:leap-year-month-line
@@ -296,11 +294,11 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	(progn
 	  (beginning-of-line)
 	  (let* ((start-color `(,(string-to-number (substring start-color 1 3) 16)
-				 ,(string-to-number (substring start-color 3 5) 16)
-				 ,(string-to-number (substring start-color 5 7) 16)))
+				,(string-to-number (substring start-color 3 5) 16)
+				,(string-to-number (substring start-color 5 7) 16)))
 		 (end-color `(,(string-to-number (substring end-color 1 3) 16)
-			       ,(string-to-number (substring end-color 3 5) 16)
-			       ,(string-to-number (substring end-color 5 7) 16)))
+			      ,(string-to-number (substring end-color 3 5) 16)
+			      ,(string-to-number (substring end-color 5 7) 16)))
 		 (start-col (elgantt-cal::convert-date-to-column-number start-date))
 		 (end-col (elgantt-cal::convert-date-to-column-number end-date))
 		 (start (save-excursion (forward-char start-col) (point)))
@@ -318,9 +316,9 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	      (setq start (+ 1 start)))))
       (error "Error in elgantt-cal:change-gradient. Header not found."))))
 
-
-
 (defun elgantt-cal:get-prop-at-point (&optional property)
+  "Get the text PROPERTY at point, if specified. 
+Otherwise, get a plist of all properties."
   (let ((properties (text-properties-at (point))))
     (if property
 	(plist-get properties property)
@@ -349,10 +347,10 @@ Buffer is determined from the `:org-buffer' property."
 	 (goto-char marker)
 	 ,@body))))
 
-(defun elgantt-cal:with-point-at-orig-timestamp (&rest body)
+(defun elgantt-cal:shift-date-forward (&rest body)
   (elgantt-cal:with-point-at-orig-entry
-      (when (re-search-forward (org-re-timestamp 'all))
-	(
+   (when (re-search-forward (org-re-timestamp 'all))
+     (org-timestamp-change 1 'day))))
   
 
 
