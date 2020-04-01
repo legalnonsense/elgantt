@@ -154,14 +154,18 @@
   "PROPS is a plist which must include, at minimum, the following properties:
 `elgantt-header', `elgantt-date', `elgantt-type',
 `elgantt-label', `elgantt-start-or-end-or-range'"
-  (when-let ((props (car props)))
-    (unless (equal props '(()))
-      (elgantt-cal::get-header-create (plist-get props :elgantt-header))
-      (forward-char (elgantt-cal::convert-date-to-column-number (plist-get props :elgantt-date)))
-      (delete-char 1)
-      (let ((char (elgantt-cal::get-char (plist-get props :elgantt-type))))
-	(set-text-properties 0 1 props char)
-	(insert char)))))
+  (if-let ((props (car props)))
+      (unless (equal props '(()))
+	(elgantt-cal::get-header-create (plist-get props :elgantt-header))
+	(beginning-of-line)
+	(forward-char (elgantt-cal::convert-date-to-column-number (plist-get props :elgantt-date)))
+	(delete-char 1)
+	(let ((char (elgantt-cal::get-char (plist-get props :elgantt-type))))
+	  (set-text-properties 0 1 props char)
+	  (insert char)))
+    (delete-char 1)
+    (insert " ")))
+
 
 (defun elgantt-cal::insert-new-header-line (header)
   (goto-char (point-max))
@@ -359,10 +363,14 @@ Buffer is determined from the `:org-buffer' property."
 
 ;; (elgantt-cal::create-shift-date-funcs (up down) (day month year))
 
-(defun elgantt-cal::shift-date (n direction unit)
+(defun elgantt-cal::shift-date (n what updown)
+  "Change the date in the time stamp at point.
+The date will be changed by N times WHAT.  WHAT can be `day', `month',
+`year', `minute', `second'.  If WHAT is not given, the cursor position
+in the timestamp determines what will be changed."
   (elgantt-cal:with-point-at-orig-entry
       (when (re-search-forward (org-re-timestamp 'all))
-	(org-timestamp-change n unit direction))))
+	(org-timestamp-change n what updown))))
 
 (defun elgantt-cal:update-this-cell ()
   "Gets data for a specific cell by looking for any headings
@@ -378,19 +386,11 @@ the same CATEGORY, HASHTAG, or ROOT."
 		 ('category header)
 		 ('hashtag header)
 		 ('ancestors `(regexp ,header)))))
-    (org-ql-select elgantt:agenda-files
-	`(and (ts (:on ,date))
-	  (,type ,item)))))
-
-(org-ql-select elgantt:agenda-files
-    '(ts :on "2020-03-31"))
-
-(org-ql-select elgantt:agenda-files
-    '(ts-a :on "2020-03-31"))
-
-(org-ql-query
-  :from (org-agenda-files)
-  :where '(ts :on "2020-03-31"))
+    (mapc #'elgantt-cal::insert-entry
+	  (org-ql-select elgantt:agenda-files
+	      `(and (ts :on ,date)
+		(,type ,item))
+	    :action '(elgantt-parse::parse-this-headline)))))
 
 
 
