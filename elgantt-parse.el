@@ -111,7 +111,7 @@ which is called with POINT at the first point of the org headline with ARGS."
 	     (when-let ((tag-string (cdar (org-entry-properties (point) "ALLTAGS"))))
 	       (s-split ":" tag-string t)))))
     ('elgantt-header
-     (pcase elgantt-header-type
+     (pcase elgantt:header-type
        ('root
 	(list :elgantt-header (cadr (elgantt-parse::get 'root))))
        ('hashtag

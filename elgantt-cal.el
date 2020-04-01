@@ -7,8 +7,6 @@
 (require 'dash)
 (require 'ts)
 
-
-
 (setq elgantt-cal-deadline-character "▲")
 ;;      "Character used for deadlines in the calendar.")
 
@@ -31,11 +29,12 @@
            called for that entry and search will continue from the
            position returned")
 
-(defcustom elgantt-header-type 'category
+(defcustom elgantt:header-type 'root
   "Define how to gather the headers"
   :options '(root hashtag category))
 
-(setq elgantt-header-type 'root)
+
+(setq elgantt:header-type 'root)
 (setq elgantt-cal:leap-year-month-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (setq elgantt-cal:leap-year-date-line    "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
 (setq elgantt-cal:leap-year-blank-line   "|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               ")
@@ -228,13 +227,6 @@
 		       'face
 		       'elgantt-vertical-line-face)))
 
-(defun elgantt-cal:get-props-at-point (&optional prop)
-  "Get text properties at point. If PROP is specified, 
-get that property." 
-  (let ((props (text-properties-at (point) )))
-    (if prop
-	(plist-get props prop)
-      (props))))
 
 (defun elgantt-cal:get-date-at-point (&optional column)
   (if (not (char-equal (char-after) ?|))
@@ -334,12 +326,12 @@ Otherwise, get a plist of all properties."
     (goto-char marker)
     (outline-show-children)
     (outline-show-entry)
-    (beginning-of-visual-line)))
+    (beginning-of-line)))
 
 (defmacro elgantt-cal:with-point-at-orig-entry (&rest body)
   "Execute BODY with point at location given by the `:begin' property.
 Buffer is determined from the `:org-buffer' property." 
-  (declare (indent 4))
+  (declare (indent 2))
   `(let ((marker (get-text-property (point) :begin))
 	 (marker-buffer (get-text-property (point) :org-buffer)))
      (with-current-buffer marker-buffer
@@ -347,11 +339,59 @@ Buffer is determined from the `:org-buffer' property."
 	 (goto-char marker)
 	 ,@body))))
 
-(defun elgantt-cal:shift-date-forward (&rest body)
+;; (defmacro elgantt-cal::create-shift-date-funcs (directions units)
+;;   "Creates functions which adjust the date at point
+;; DIRECTIONS and UNITS are arguments ultimately used in `org-timestamp-change'.
+;; See that documentation. The functions are named:
+;; `elgantt-cal::shift-UNIT-DIRECTION'"
+;;   (let ((funcs (cl-loop for direction in (-list directions)
+;; 		  append (cl-loop for unit in (-list units)
+;; 			    collect `(defun ,(intern (concat "elgantt-cal::shift-"
+;; 							     (symbol-name unit)
+;; 							     "-"
+;; 							     (symbol-name direction))) ()
+;; 				       ,(concat "Shift date at point " (symbol-name direction)
+;; 						" by one " (symbol-name unit))
+;; 				       (elgantt-cal:with-point-at-orig-entry
+;; 					   (when (re-search-forward (org-re-timestamp 'all))
+;; 					     (org-timestamp-change 1 ',unit ',direction))))))))
+;;     `(progn ,@funcs)))
+
+;; (elgantt-cal::create-shift-date-funcs (up down) (day month year))
+
+(defun elgantt-cal::shift-date (n direction unit)
   (elgantt-cal:with-point-at-orig-entry
-   (when (re-search-forward (org-re-timestamp 'all))
-     (org-timestamp-change 1 'day))))
-  
+      (when (re-search-forward (org-re-timestamp 'all))
+	(org-timestamp-change n unit direction))))
+
+(defun elgantt-cal:update-this-cell ()
+  "Gets data for a specific cell by looking for any headings
+which occur on on the operative DATE which also contain
+the same CATEGORY, HASHTAG, or ROOT."
+  (let* ((date (elgantt-cal:get-date-at-point))
+	 (type (pcase elgantt:header-type
+		 ('root 'ancestors)
+		 ('category 'category)
+		 ('hashtag 'tags-inherited)))
+	 (header (elgantt-cal:get-prop-at-point :elgantt-header))
+	 (item (pcase type
+		 ('category header)
+		 ('hashtag header)
+		 ('ancestors `(regexp ,header)))))
+    (org-ql-select elgantt:agenda-files
+	`(and (ts (:on ,date))
+	  (,type ,item)))))
+
+(org-ql-select elgantt:agenda-files
+    '(ts :on "2020-03-31"))
+
+(org-ql-select elgantt:agenda-files
+    '(ts-a :on "2020-03-31"))
+
+(org-ql-query
+  :from (org-agenda-files)
+  :where '(ts :on "2020-03-31"))
+
 
 
 ;;;###autoload 
