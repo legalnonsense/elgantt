@@ -33,7 +33,6 @@
   "Define how to gather the headers"
   :options '(root hashtag category))
 
-
 (setq elgantt:header-type 'root)
 (setq elgantt-cal:leap-year-month-line   "| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 ")
 (setq elgantt-cal:leap-year-date-line    "|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901")
@@ -80,14 +79,12 @@
 				       elgantt-cal:normal-year-date-line
 				       elgantt-cal:normal-year-blank-line))
 
-
-
-
 (defcustom elgantt:agenda-files (org-agenda-files)
   "Source files. Default: `org-agenda-files'.")
+(setq elgantt:agenda-files "~/.emacs.d/lisp/elgantt/TEST/sample.org")
 
-1(defcustom elgantt-cal:header-column-offset 20
-   "Width of the header column")
+(defcustom elgantt-cal:header-column-offset 20
+  "Width of the header column")
 
 (defvar elgantt-cal::deadline-warning-days org-deadline-warning-days
   "Warning days to show in calendar.")
@@ -132,16 +129,6 @@
   (+ (elgantt-cal::convert-date-string-to-day-number-in-year date)
      (- (string-to-number (substring date 5 7)) 1)))
 
-(defun elgantt-cal::get-header-create (header)
-  "Put point at HEADER, creating it if necessary."
-  (goto-char (point-min))
-  (let ((header (s-truncate elgantt-cal:header-column-offset header)))
-    (if (search-forward header nil t)
-	(beginning-of-line)
-      (progn 
-	(elgantt-cal::insert-new-header-line header)
-	(beginning-of-line)))))
-
 (defsubst elgantt-cal::get-days-in-year (year)
   (if (elgantt::leap-year-p year) 366 365))
 
@@ -154,18 +141,27 @@
   "PROPS is a plist which must include, at minimum, the following properties:
 `elgantt-header', `elgantt-date', `elgantt-type',
 `elgantt-label', `elgantt-start-or-end-or-range'"
-  (if-let ((props (car props)))
-      (unless (equal props '(()))
-	(elgantt-cal::get-header-create (plist-get props :elgantt-header))
-	(beginning-of-line)
-	(forward-char (elgantt-cal::convert-date-to-column-number (plist-get props :elgantt-date)))
-	(delete-char 1)
-	(let ((char (elgantt-cal::get-char (plist-get props :elgantt-type))))
-	  (set-text-properties 0 1 props char)
-	  (insert char)))
+  (let ((props (car props)))
+    ;; (unless (equal props '(()))
+    (elgantt-cal::get-header-create (plist-get props :elgantt-header))
+    (beginning-of-line)
+    (forward-char (elgantt-cal::convert-date-to-column-number (plist-get props :elgantt-date)))
     (delete-char 1)
-    (insert " ")))
+    (let ((char (elgantt-cal::get-char (plist-get props :elgantt-type))))
+      (set-text-properties 0 1 props char)
+      (insert char))))
 
+(defun elgantt-cal::get-header-create (header)
+  "Put point at HEADER, creating it if necessary."
+  (goto-char (point-min))
+  (let ((new-header (concat (s-truncate elgantt-cal:header-column-offset header))))
+    ;; Concat is necessary for reasosn I do not understand, but without it
+    ;; the text properties are not set propertly. 
+    (if (search-forward new-header nil t)
+	(beginning-of-line)
+      (put-text-property 0 (length new-header) 'elgantt-header header new-header)
+      (elgantt-cal::insert-new-header-line new-header)
+      (beginning-of-line))))
 
 (defun elgantt-cal::insert-new-header-line (header)
   (goto-char (point-max))
@@ -231,7 +227,6 @@
 		       'face
 		       'elgantt-vertical-line-face)))
 
-
 (defun elgantt-cal:get-date-at-point (&optional column)
   (if (not (char-equal (char-after) ?|))
       (progn
@@ -281,7 +276,7 @@
 				     (plist-get (get-text-property point 'face) :background) change))))
 
 (defun elgantt-cal::set-gradient (header start-date end-date start-color end-color)
-  "   HEADER is a string, which will be automatically truncated as needed.
+  "HEADER is a string, which will be automatically truncated as needed.
 START-COLOR and END-COLOR are hex colors formatted as a string: \"#xxxxxx\".
 START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
   (goto-char (point-min))
@@ -290,11 +285,11 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	(progn
 	  (beginning-of-line)
 	  (let* ((start-color `(,(string-to-number (substring start-color 1 3) 16)
-				,(string-to-number (substring start-color 3 5) 16)
-				,(string-to-number (substring start-color 5 7) 16)))
+				 ,(string-to-number (substring start-color 3 5) 16)
+				 ,(string-to-number (substring start-color 5 7) 16)))
 		 (end-color `(,(string-to-number (substring end-color 1 3) 16)
-			      ,(string-to-number (substring end-color 3 5) 16)
-			      ,(string-to-number (substring end-color 5 7) 16)))
+			       ,(string-to-number (substring end-color 3 5) 16)
+			       ,(string-to-number (substring end-color 5 7) 16)))
 		 (start-col (elgantt-cal::convert-date-to-column-number start-date))
 		 (end-col (elgantt-cal::convert-date-to-column-number end-date))
 		 (start (save-excursion (forward-char start-col) (point)))
@@ -322,93 +317,247 @@ Otherwise, get a plist of all properties."
 
 (defun elgantt-cal:navigate-to-org-file ()
   "this will navigate to a location in an org file when
-                supplied with the file name (string) and point (number)"
-  (let ((buffer (elgantt-cal:get-prop-at-point :org-buffer))
-	(marker (elgantt-cal:get-prop-at-point :begin)))
-    (switch-to-buffer-other-window buffer)
-    (org-shifttab)
-    (goto-char marker)
-    (outline-show-children)
-    (outline-show-entry)
-    (beginning-of-line)))
+supplied with the file name (string) and point (number)"
+  (interactive)
+  (if-let ((buffer (elgantt-cal:get-prop-at-point :org-buffer))
+	   (marker (elgantt-cal:get-prop-at-point :begin)))
+      (progn 
+	(switch-to-buffer-other-window buffer)
+	(goto-char marker)
+	(outline-show-children)
+	(outline-show-entry)
+	(beginning-of-line))
+    (message "Cannot navigate to org file: no data at point.")))
 
 (defmacro elgantt-cal:with-point-at-orig-entry (&rest body)
   "Execute BODY with point at location given by the `:begin' property.
 Buffer is determined from the `:org-buffer' property." 
   (declare (indent 2))
   `(let ((marker (get-text-property (point) :begin))
-	 (marker-buffer (get-text-property (point) :org-buffer)))
-     (with-current-buffer marker-buffer
+	 (buffer (get-text-property (point) :org-buffer)))
+     (with-current-buffer buffer
        (save-excursion
 	 (goto-char marker)
 	 ,@body))))
 
-;; (defmacro elgantt-cal::create-shift-date-funcs (directions units)
-;;   "Creates functions which adjust the date at point
-;; DIRECTIONS and UNITS are arguments ultimately used in `org-timestamp-change'.
-;; See that documentation. The functions are named:
-;; `elgantt-cal::shift-UNIT-DIRECTION'"
-;;   (let ((funcs (cl-loop for direction in (-list directions)
-;; 		  append (cl-loop for unit in (-list units)
-;; 			    collect `(defun ,(intern (concat "elgantt-cal::shift-"
-;; 							     (symbol-name unit)
-;; 							     "-"
-;; 							     (symbol-name direction))) ()
-;; 				       ,(concat "Shift date at point " (symbol-name direction)
-;; 						" by one " (symbol-name unit))
-;; 				       (elgantt-cal:with-point-at-orig-entry
-;; 					   (when (re-search-forward (org-re-timestamp 'all))
-;; 					     (org-timestamp-change 1 ',unit ',direction))))))))
-;;     `(progn ,@funcs)))
+(defun elgantt-cal::on-vertical-line ()
+  (string= "|"
+	   (buffer-substring (point) (1+ (point)))))
 
-;; (elgantt-cal::create-shift-date-funcs (up down) (day month year))
+(defun elgantt-cal::move-horizontally (n)
+  (forward-char n)
+  (when (elgantt-cal::on-vertical-line)
+    (if (< n 0)
+	(backward-char)
+      (forward-char))))
 
-(defun elgantt-cal::shift-date (n what updown)
-  "Change the date in the time stamp at point.
-The date will be changed by N times WHAT.  WHAT can be `day', `month',
-`year', `minute', `second'.  If WHAT is not given, the cursor position
-in the timestamp determines what will be changed."
+(defun elgantt-cal::shift-date (n)
+  "Move the timestamp up or down by one day.
+N should be 1 or -1."
+  (unless (or (= n 1)
+	      (= n -1))
+    (error "elgantt-cal::shift-date: Invalid argument. N must be 1 or -1."))
   (elgantt-cal:with-point-at-orig-entry
       (when (re-search-forward (org-re-timestamp 'all))
-	(org-timestamp-change n what updown))))
+	(org-timestamp-change n 'day)))
+  (elgantt-cal:update-this-cell)
+  (pcase n
+    (1  (elgantt-cal::move-horizontally 1)
+	(elgantt-cal:update-this-cell))
+    (-1 (elgantt-cal::move-horizontally -1)
+	(elgantt-cal:update-this-cell))))
 
-(defun elgantt-cal:update-this-cell ()
+(defun elgantt-cal:update-this-cell* ()
   "Gets data for a specific cell by looking for any headings
 which occur on on the operative DATE which also contain
 the same CATEGORY, HASHTAG, or ROOT."
+  (when-let* ((date (elgantt-cal:get-date-at-point))
+	      (type (pcase elgantt:header-type
+		      ('root 'ancestors)
+		      ('category 'category)
+		      ('hashtag 'tags-inherited)))
+	      (header (elgantt-cal:get-header-at-point))
+	      (item (pcase type
+		      ('category header)
+		      ('hashtag header)
+		      ('ancestors `(regexp ,header)))))
+    (org-ql-select elgantt:agenda-files
+	`(and (ts :on ,date)
+	  (,type ,item))
+      :action #'elgantt-parse::parse-this-headline)))
+
+(defun elgantt-cal:update-this-cell ()
+  "Gets data for a specific cell by looking for any headings
+which occur on the operative date."
+  (when (elgantt-cal::on-vertical-line)
+    (user-error "Error in elgantt-cal:update-this-cell: Not on a calendar cell."))
+  (save-excursion 
+    (delete-char 1)
+    (insert " ")
+    (backward-char)
+    (when-let* ((date (elgantt-cal:get-date-at-point))
+		(type (pcase elgantt:header-type
+			('root 'ancestors)
+			('category 'category)
+			('hashtag 'tags-inherited)))
+		(header (elgantt-cal:get-header-at-point))
+		(item (pcase type
+			('category header)
+			('hashtag header)
+			('ancestors `(regexp ,header)))))
+      (mapc #'elgantt-cal::insert-entry
+	    (-non-nil
+	     ;;-non-nil is necessary because elgantt-parse::parse-this-headline
+	     ;;returns nil if the entry does not match
+	     (org-ql-select elgantt:agenda-files
+		 `(and (ts :on ,date)
+		   (,type ,item))
+	       :action #'(elgantt-parse::parse-this-headline)))))))
+;; NOTE: Why not combine the parsing and inserting functions? 
+(defun elgantt-cal::run-org-ql-for-date-at-point ()
+  (interactive)
+  (when-let* ((date (elgantt-cal:get-date-at-point))
+	      (type (pcase elgantt:header-type
+		      ('root 'ancestors)
+		      ('category 'category)
+		      ('hashtag 'tags-inherited)))
+	      (header (elgantt-cal:get-header-at-point))
+	      (item (pcase type
+		      ('category header)
+		      ('hashtag header)
+		      ('ancestors `(regexp ,header)))))
+    ;;-non-nil is necessary because elgantt-parse::parse-this-headline
+    ;;returns nil if the entry does not match
+    (org-ql-select elgantt:agenda-files
+	`(and (ts :on ,date)
+	  (,type ,item))
+      :action #'(elgantt-parse::parse-this-headline))))))
+
+
+(defun elgantt-cal:update-this-cell* ()
+  "Testing function to see what data is returned." 
+  (when-let* ((date (elgantt-cal:get-date-at-point))
+	      (type (pcase elgantt:header-type
+		      ('root 'ancestors)
+		      ('category 'category)
+		      ('hashtag 'tags-inherited)))
+	      (header (elgantt-cal:get-prop-at-point :elgantt-header))
+	      (item (pcase type
+		      ('category header)
+		      ('hashtag header)
+		      ('ancestors `(regexp ,header)))))
+    (org-ql-select elgantt:agenda-files
+	`(and (ts :on ,date)
+	  (,type ,item)))))
+
+(defun elgantt-cal:get-header-at-point ()
+  (save-excursion
+    (beginning-of-line)
+    (get-text-property (point) 'elgantt-header)))
+
+(defsubst elgantt-cal::shift-date-forward ()
+  (interactive)
+  (elgantt-cal::shift-date 1))
+
+(defsubst elgantt-cal::shift-date-backward ()
+  (interactive)
+  (elgantt-cal::shift-date -1))
+
+(defun elgantt-cal::open-org-agenda-at-date ()
+  (interactive)
   (let* ((date (elgantt-cal:get-date-at-point))
-	 (type (pcase elgantt:header-type
-		 ('root 'ancestors)
-		 ('category 'category)
-		 ('hashtag 'tags-inherited)))
-	 (header (elgantt-cal:get-prop-at-point :elgantt-header))
-	 (item (pcase type
-		 ('category header)
-		 ('hashtag header)
-		 ('ancestors `(regexp ,header)))))
-    (mapc #'elgantt-cal::insert-entry
-	  (org-ql-select elgantt:agenda-files
-	      `(and (ts :on ,date)
-		(,type ,item))
-	    :action '(elgantt-parse::parse-this-headline)))))
+	 (date `(,(nth 4 (parse-time-string date))
+		  ,(nth 3 (parse-time-string date))
+		  ,(nth 5 (parse-time-string date)))))
+    (org-agenda-list nil (calendar-absolute-from-gregorian date) 'day))
+  (other-window 1))
+
+(define-derived-mode elgantt1-mode special-mode "El Gantt"
+		     (define-key elgantt1-mode-map (kbd "r") 'elgantt-open)
+		     (define-key elgantt1-mode-map (kbd "SPC") #'elgantt-cal:navigate-to-org-file)
+		     (define-key elgantt1-mode-map (kbd "f")   'elgantt::move-selection-bar-forward)
+		     (define-key elgantt1-mode-map (kbd "b")   'elgantt::move-selection-bar-backward)
+		     (define-key elgantt1-mode-map (kbd "RET") #'elgantt-cal::open-org-agenda-at-date)
+		     (define-key elgantt1-mode-map (kbd "M-f") #'elgantt-cal::shift-date-forward)
+		     (define-key elgantt1-mode-map (kbd "M-b") #'elgantt-cal::shift-date-backward))
 
 
+(defun elgantt::vertical-highlight (&optional column)
+  "insert a vertical highlight bar at column, and remove the previous vertical bar"
+  (interactive)
+  (let ((inhibit-read-only t))
+    (dolist (p elgantt--old-backgrounds)
+      (when (cadr p)
+	(put-text-property (car p) (1+ (car p)) 'font-lock-face `(:background ,(cadr p))))))
+  (save-excursion
+    (goto-char (point-min))
+    (let ((x 1)
+	  (inhibit-read-only t))
+      (while (< x (elgantt--count-lines-in-buffer))
+	(move-beginning-of-line 1)
+	(forward-char (or column
+			  (+ (current-column) elgantt--hidden-past-columns)))
+	(add-to-list 'elgantt--old-backgrounds `(,(point) ,(plist-get (get-text-property (point) 'font-lock-face) :background)))
+	(elgantt--change-brightness-of-background-at-point (point) -35)
+	(forward-line)
+	(setq x (1+ x))))))
 
-;;;###autoload 
+;; (defun elgantt::move-selection-bar-forward ()
+;;   (interactive)
+;;   (when (<= (current-column) elgantt-cal:header-column-offset)
+;;     (forward-char elgantt-cal:header-column-offset))
+;;   (forward-char)
+;;   (goto-char (1- (re-search-forward "[^| ]" (save-excursion (end-of-line) (point)) t)))
+;;   (elgantt::vertical-highlight (current-column)))
+
+;; (defun elgantt::move-selection-bar-backward ()
+;;   (interactive)
+;;   (goto-char (re-search-backward "[^| ]" nil t))
+;;   (when (< (current-column) elgantt-cal:header-column-offset)
+;;     (move-beginning-of-line nil)
+;;     (forward-char elgantt-cal:header-column-offset))                               
+;;   (elgantt--vertical-highlight (current-column)))
+
+
+(defun elgantt::show-echo-message ()
+  (interactive)
+  (unless (elgantt-cal::on-vertical-line)
+    (message "%s -- %s -- %s"
+	     (elgantt-cal:get-date-at-point)
+	     (elgantt-cal:get-header-at-point)
+	     (elgantt-cal:get-prop-at-point :raw-value))))
+
+(defun elgantt-cal::populate-cells ()
+  "Insert data from agenda files into buffer." 
+  (mapc #'elgantt-cal::insert-entry
+	(-non-nil
+	 (org-map-entries #'elgantt-parse::parse-this-headline
+			  nil
+			  (-list elgantt:agenda-files)
+			  'archive))))
+
 (defun elgantt:open ()
   (switch-to-buffer "*El Gantt Calendar*")
   (setq elgantt-cal::date-range (elgantt-parse::get-years))
-  (toggle-truncate-lines 1)
-  (horizontal-scroll-bar-mode 1)
   (erase-buffer)
   (elgantt-cal::draw-month-line)
   (insert "\n")
   (elgantt-cal::draw-number-line)
   ;;(insert "\n")
   ;;  (elgantt-cal::draw-horizontal-line)
-  (mapc #'elgantt-cal::insert-entry
-	(org-map-entries #'elgantt-parse::parse-this-headline
-			 nil
-			 (org-agenda-files)
-			 'archive))
-  (goto-char (point-min)))
+  (elgantt-cal::populate-cells)
+
+  (elgantt1-mode)
+  (toggle-truncate-lines 1)
+  (horizontal-scroll-bar-mode 1)
+  
+  (goto-char (point-min))
+  (forward-line 2)
+  (forward-char (elgantt-cal::convert-date-to-column-number (format-time-string "%Y-%m-%d")))
+  (add-hook 'post-command-hook 'elgantt::show-echo-message nil t)
+  ;;(add-hook 'post-command-hook 'elgantt::vertical-highlight nil t)
+  (delete-other-windows)
+  (read-only-mode -1)
+  )
+
+
