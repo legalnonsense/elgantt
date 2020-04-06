@@ -143,11 +143,11 @@
 `elgantt-label', `elgantt-start-or-end-or-range'"
   (let ((props (car props)))
     ;; (unless (equal props '(()))
-    (elgantt-cal::get-header-create (plist-get props :elgantt-header))
+    (elgantt-cal::get-header-create (plist-get props :elg-header))
     (beginning-of-line)
-    (forward-char (elgantt-cal::convert-date-to-column-number (plist-get props :elgantt-date)))
+    (forward-char (elgantt-cal::convert-date-to-column-number (plist-get props :elg-date)))
     (delete-char 1)
-    (let ((char (elgantt-cal::get-char (plist-get props :elgantt-type))))
+    (let ((char (elgantt-cal::get-char (plist-get props :elg-type))))
       (set-text-properties 0 1 props char)
       (insert char))))
 
@@ -413,6 +413,7 @@ which occur on the operative date."
 		 `(and (ts :on ,date)
 		   (,type ,item))
 	       :action #'(elgantt-parse::parse-this-headline)))))))
+
 ;; NOTE: Why not combine the parsing and inserting functions? 
 (defun elgantt-cal::run-org-ql-for-date-at-point ()
   (interactive)
@@ -431,7 +432,7 @@ which occur on the operative date."
     (org-ql-select elgantt:agenda-files
 	`(and (ts :on ,date)
 	  (,type ,item))
-      :action #'(elgantt-parse::parse-this-headline))))))
+      :action #'(elgantt-parse::parse-this-headline))))
 
 
 (defun elgantt-cal:update-this-cell* ()
@@ -441,7 +442,7 @@ which occur on the operative date."
 		      ('root 'ancestors)
 		      ('category 'category)
 		      ('hashtag 'tags-inherited)))
-	      (header (elgantt-cal:get-prop-at-point :elgantt-header))
+	      (header (elgantt-cal:get-prop-at-point :elg-header))
 	      (item (pcase type
 		      ('category header)
 		      ('hashtag header)
@@ -522,7 +523,7 @@ which occur on the operative date."
 (defun elgantt::show-echo-message ()
   (interactive)
   (unless (elgantt-cal::on-vertical-line)
-    (message "%s -- %s -- %s"
+    (message "%s -- %s -- %s!!"
 	     (elgantt-cal:get-date-at-point)
 	     (elgantt-cal:get-header-at-point)
 	     (elgantt-cal:get-prop-at-point :raw-value))))
@@ -534,7 +535,7 @@ which occur on the operative date."
 	 (org-map-entries #'elgantt-parse::parse-this-headline
 			  nil
 			  (-list elgantt:agenda-files)
-			  'archive))))
+			  'archive)) ))
 
 (defun elgantt:open ()
   (switch-to-buffer "*El Gantt Calendar*")
@@ -546,7 +547,6 @@ which occur on the operative date."
   ;;(insert "\n")
   ;;  (elgantt-cal::draw-horizontal-line)
   (elgantt-cal::populate-cells)
-
   (elgantt1-mode)
   (toggle-truncate-lines 1)
   (horizontal-scroll-bar-mode 1)
