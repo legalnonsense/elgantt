@@ -136,20 +136,18 @@
   (= (% year 4) 0))
 
 ;;CURRENT
-;; props should not be a list 
-(defun elgantt-cal::insert-entry (&rest props)
+
+(defun elgantt-cal::insert-entry (props)
   "PROPS is a plist which must include, at minimum, the following properties:
 `elgantt-header', `elgantt-date', `elgantt-type',
 `elgantt-label', `elgantt-start-or-end-or-range'"
-  (let ((props (car props)))
-    ;; (unless (equal props '(()))
-    (elgantt-cal::get-header-create (plist-get props :elg-header))
-    (beginning-of-line)
-    (forward-char (elgantt-cal::convert-date-to-column-number (plist-get props :elg-date)))
-    (delete-char 1)
-    (let ((char (elgantt-cal::get-char (plist-get props :elg-type))))
-      (set-text-properties 0 1 props char)
-      (insert char))))
+  (elgantt-cal::get-header-create (plist-get props :elg-header))
+  (beginning-of-line)
+  (forward-char (elgantt-cal::convert-date-to-column-number (plist-get props :elg-date)))
+  (delete-char 1)
+  (let ((char (elgantt-cal::get-char (plist-get props :elg-type))))
+    (set-text-properties 0 1 props char)
+    (insert char)))
 
 (defun elgantt-cal::get-header-create (header)
   "Put point at HEADER, creating it if necessary."
@@ -170,9 +168,9 @@
 	   (concat header (make-string elgantt-cal:header-column-offset ? ))
 	   0 elgantt-cal:header-column-offset))
   (cl-loop for year in (elgantt-parse::get-years)
-     do (if (elgantt-cal::leap-year-p year)
-	    (insert elgantt-cal:leap-year-blank-line)
-	  (insert elgantt-cal:normal-year-blank-line))))
+	   do (if (elgantt-cal::leap-year-p year)
+		  (insert elgantt-cal:leap-year-blank-line)
+		(insert elgantt-cal:normal-year-blank-line))))
 
 (defun elgantt-cal::draw-month-line ()
   (let ((calendar-line ""))
@@ -216,7 +214,7 @@
    (-non-nil
     (org-map-entries #'elgantt-parse::parse-this-headline
 		     nil
-		     (org-agenda-files)
+		     '("~/.emacs.d/lisp/elgantt/TEST/sample.org")
 		     elgantt:skip-files))))
 
 (defun elgnatt:set-vertical-bar-face ()
@@ -228,6 +226,11 @@
 		       'elgantt-vertical-line-face)))
 
 (defun elgantt-cal:get-date-at-point (&optional column)
+  "Get the date at point in YYYY-MM-DD format."
+  ;; I decided the easiest way to get it was from the
+  ;; context of the buffer, rather than calculating it
+  ;; based on the column. This is ugly and should be
+  ;; cleaned. 
   (if (not (char-equal (char-after) ?|))
       (progn
 	(when (not column)
@@ -535,7 +538,7 @@ which occur on the operative date."
 	 (org-map-entries #'elgantt-parse::parse-this-headline
 			  nil
 			  (-list elgantt:agenda-files)
-			  'archive)) ))
+			  'archive))))
 
 (defun elgantt:open ()
   (switch-to-buffer "*El Gantt Calendar*")
@@ -547,17 +550,15 @@ which occur on the operative date."
   ;;(insert "\n")
   ;;  (elgantt-cal::draw-horizontal-line)
   (elgantt-cal::populate-cells)
-  (elgantt1-mode)
+  ;;(elgantt1-mode)
+  (read-only-mode -1)
   (toggle-truncate-lines 1)
   (horizontal-scroll-bar-mode 1)
-  
   (goto-char (point-min))
   (forward-line 2)
   (forward-char (elgantt-cal::convert-date-to-column-number (format-time-string "%Y-%m-%d")))
   (add-hook 'post-command-hook 'elgantt::show-echo-message nil t)
   ;;(add-hook 'post-command-hook 'elgantt::vertical-highlight nil t)
-  (delete-other-windows)
-  (read-only-mode -1)
-  )
+  (delete-other-windows))
 
 

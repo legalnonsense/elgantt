@@ -107,7 +107,7 @@
 			       (elgantt-parse::convert-date-string (cdr (car (org-entry-properties (point) "SCHEDULED")))))))
 		     (list :elg-alltags
 			   (when-let ((tag-string (cdar (org-entry-properties (point) "ALLTAGS"))))
-			     (s-split ":" tag-string t)))
+			     (mapcar #'org-no-properties (s-split ":" tag-string t))))
 		     (list :elg-header
 			   (pcase elgantt:header-type
 			     ('root 
@@ -120,12 +120,26 @@
 					(s-split ":" tag-string))))
 			     ('category  category)
 			     (_ (error "Invalid header type.")))))))
-    (append prop-list (list :elg-date (or (cadr (plist-get prop-list :deadline))
-					  (cadr (plist-get prop-list :timestamp))
-					  (cadr (plist-get prop-list :timestamp-ia))
-					  (cadr (plist-get prop-list :scheduled)))))
+    (setq prop-list (append 
+		     (cond ((plist-get prop-list :elg-deadline)
+			    (list :elg-date (plist-get prop-list :elg-deadline)
+				  :elg-type 'deadline))
+			   ((plist-get prop-list :elg-timestamp)
+			    (list :elg-date (plist-get prop-list :elg-timestamp)
+				  :elg-type 'timestamp))
+			   ((plist-get prop-list :elg-timestamp-ia)
+			    (list :elg-date (plist-get prop-list :elg-timestamp-ia)
+				  :elg-type 'timestamp-ia))
+			   ((plist-get prop-list :elg-scheduled)
+			    (list :elg-date (plist-get prop-list :elg-scheduled)
+				  :elg-type 'scheduled)))
+		     prop-list))
     (when (plist-get prop-list :elg-date)
-      prop-list))
+      prop-list)))
+
+
+
+
 
 (defun elgantt-parse::get-years (&optional date-type)
   "Get the date range of all time values in all agenda files. 
