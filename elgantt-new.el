@@ -3,6 +3,7 @@
 (require 'cl-lib)
 (require 'color)
 (require 'org)
+(require 'org-ql)
 (require 's)
 (require 'dash)
 (require 'ts)
@@ -81,7 +82,6 @@
 
 
 ;;;  -*- lexical-binding: t; -*-
-(require 'assoc)
 (require 'cl-lib)
 (require 'color)
 (require 'org)
@@ -249,6 +249,7 @@ If it is not provided, the default is ('active inactive deadline)."
 (defcustom elgantt:agenda-files (org-agenda-files)
   "Source files. Default: `org-agenda-files'.")
 (setq elgantt:agenda-files "~/.emacs.d/lisp/elgantt/TEST/sample.org")
+;;(setq elgantt:agenda-files "~/Dropbox/DropsyncFiles/taskmaster.org")
 
 (defcustom elgantt:header-column-offset 20
   "Width of the header column")
@@ -730,9 +731,20 @@ which occur on the operative date."
   "Prompt user for the anchor heading. Add an `org-id' to the 
 anchor heading if necessary. Add the property `ELGANTT-ANCHOR'
 to the current heading, which is the `org-id' of the anchor."
-  (let ((anchor-heading-id (save-excursion (org-goto)
+  (let ((anchors (cdar (org-entry-properties (point) "ELGANTT-ANCHOR")))
+	(anchor-heading-id (save-excursion (org-goto)
 					   (org-id-get-create))))
-    (org-set-property "ELGANTT-ANCHOR" anchor-heading-id)))
+    (org-set-property "ELGANTT-ANCHOR" (concat
+					anchors " "
+					anchor-heading-id))))
+
+(defun elgantt:get-anchors ()
+  "Return a list of anchors"
+  (when-let ((anchors (cdar (org-entry-properties (point) "ELGANTT-ANCHOR"))))
+    (s-split " " 
+	     anchors)))
+
+
 
 (defun elgantt::move-date-and-anchor (&optional backward)
   "Move the current date and all anchored dates forward by one days
