@@ -80,15 +80,6 @@
 				   elgantt:normal-year-date-line
 				   elgantt:normal-year-blank-line))
 
-
-;;;  -*- lexical-binding: t; -*-
-(require 'cl-lib)
-(require 'color)
-(require 'org)
-(require 's)
-(require 'dash)
-(require 'ts)
-
 (defun elgantt::convert-date-string (date-string)
   (ts-format "%Y-%m-%d" (ts-parse-org date-string)))
 (setq elgantt:header-type 'root)
@@ -197,18 +188,22 @@
     (setq prop-list (append 
 		     (cond ((plist-get prop-list :elg-deadline)
 			    (list :elg-date (plist-get prop-list :elg-deadline)
-				  :elg-type 'deadline))
+				  :elg-type 'deadline
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'deadline))))
 			   ((plist-get prop-list :elg-timestamp)
 			    (list :elg-date (plist-get prop-list :elg-timestamp)
-				  :elg-type 'timestamp))
+				  :elg-type 'timestamp
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'timestamp))))
 			   ((plist-get prop-list :elg-timestamp-ia)
 			    (list :elg-date (plist-get prop-list :elg-timestamp-ia)
-				  :elg-type 'timestamp-ia))
+				  :elg-type 'timestamp-ia
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'timestamp-ia))))
 			   ((plist-get prop-list :elg-scheduled)
 			    (list :elg-date (plist-get prop-list :elg-scheduled)
-				  :elg-type 'scheduled)))
-		     (list :elgantt-anchor-date
-		     	   (when-let ((anchor-id (plist-get prop-list :elg-anchor))
+				  :elg-type 'scheduled
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'scheduled)))))
+		     (list :elg-anchor-date
+			   (when-let ((anchor-id (plist-get prop-list :elg-anchor))
 				      (id-point (cdr (org-id-find anchor-id))))
 			     (save-excursion 
 			       (goto-char id-point)
@@ -243,7 +238,7 @@ If it is not provided, the default is ('active inactive deadline)."
       (sort
        (mapcar (lambda (it)
 		 (string-to-number it))
-	       years)
+ 	       years)
        '<))))
 
 (defcustom elgantt:agenda-files (org-agenda-files)
@@ -260,7 +255,7 @@ If it is not provided, the default is ('active inactive deadline)."
 (defvar elgantt::date-range (elgantt::get-years)
   "Range of years to be calendared. Default: `elgantt::get-years'")
 
-(defun elgantt::get-char (type)
+(defun elgantt::get-display-char (type)
   "Get the character to insert."
   (pcase type
     ('deadline elgantt-cal-deadline-character)
@@ -305,8 +300,6 @@ If it is not provided, the default is ('active inactive deadline)."
   "Return t if YEAR is a leap year. Otherwise, nil."
   (= (% year 4) 0))
 
-;;CURRENT
-
 (defun elgantt::insert-entry (props)
   "PROPS is a plist which must include, at minimum, the following properties:
 `elgantt-header', `elgantt-date', `elgantt-type',
@@ -315,8 +308,8 @@ If it is not provided, the default is ('active inactive deadline)."
   (beginning-of-line)
   (forward-char (elgantt::convert-date-to-column-number (plist-get props :elg-date)))
   (delete-char 1)
-  (let ((char (elgantt::get-char (plist-get props :elg-type))))
-    (set-text-properties 0 1 props char)
+  (let ((char (concat (elgantt::get-display-char (plist-get props :elg-type)))))
+    (set-text-propertibpes 0 1 props char)
     (insert char)))
 
 (defun elgantt::get-header-create (header)
@@ -690,6 +683,8 @@ which occur on the operative date."
 	     (elgantt:get-header-at-point)
 	     (elgantt:get-prop-at-point :elg-headline))))
 
+
+
 (defun elgantt::populate-cells ()
   "Insert data from agenda files into buffer." 
   ;; Org-ql is much faster, but there are buffer issues if calling
@@ -744,15 +739,13 @@ to the current heading, which is the `org-id' of the anchor."
     (s-split " " 
 	     anchors)))
 
-
-
 (defun elgantt::move-date-and-anchor (&optional backward)
   "Move the current date and all anchored dates forward by one days
 If called with an argument, move backward."
   (if backward
       (elgantt::shift-date-backward)
     (elgantt::shift-date-forward))
-  (when-let ((anchor-date (elgantt:get-prop-at-point :elgantt-anchor-date)))
+  (when-let ((anchor-date (elgantt:get-prop-at-point :elg-anchor-date)))
     (save-excursion
       (beginning-of-line)
       (forward-char (elgantt::convert-date-to-column-number anchor-date))
@@ -760,10 +753,14 @@ If called with an argument, move backward."
 	  (elgantt::move-date-and-anchor 'backward)
 	(elgantt::move-date-and-anchor)))))
 
+(defun elgantt:date-calculator (date offset)
+  "DATE is a string \"YYYY-MM-DD\"
+OFFSET is a positive or negative integer representing
+the number of days."
+  (ts-format "%Y-%m-%d" (ts-adjust 'day offset (ts-parse date))))
 
 
-
-
-
-
+(defun elgantt:colorize ()
+  (goto-char (point-min))
+  
 
