@@ -189,19 +189,23 @@
 		     (cond ((plist-get prop-list :elg-deadline)
 			    (list :elg-date (plist-get prop-list :elg-deadline)
 				  :elg-type 'deadline
-				  :elg-display-char (org-no-properties (elgantt::get-display-char 'deadline))))
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'deadline))
+				  'display (org-no-properties (elgantt::get-display-char 'deadline))))
 			   ((plist-get prop-list :elg-timestamp)
 			    (list :elg-date (plist-get prop-list :elg-timestamp)
 				  :elg-type 'timestamp
-				  :elg-display-char (org-no-properties (elgantt::get-display-char 'timestamp))))
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'timestamp))
+				  'display (org-no-properties (elgantt::get-display-char 'timestamp))))
 			   ((plist-get prop-list :elg-timestamp-ia)
 			    (list :elg-date (plist-get prop-list :elg-timestamp-ia)
 				  :elg-type 'timestamp-ia
-				  :elg-display-char (org-no-properties (elgantt::get-display-char 'timestamp-ia))))
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'timestamp-ia))
+				  'display (org-no-properties (elgantt::get-display-char 'timestamp-ia))))
 			   ((plist-get prop-list :elg-scheduled)
 			    (list :elg-date (plist-get prop-list :elg-scheduled)
 				  :elg-type 'scheduled
-				  :elg-display-char (org-no-properties (elgantt::get-display-char 'scheduled)))))
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'scheduled))
+				  'display (org-no-properties (elgantt::get-display-char 'scheduled)))))
 		     (list :elg-anchor-date
 			   (when-let ((anchor-id (plist-get prop-list :elg-anchor))
 				      (id-point (cdr (org-id-find anchor-id))))
@@ -307,10 +311,8 @@ If it is not provided, the default is ('active inactive deadline)."
   (elgantt::get-header-create (plist-get props :elg-header))
   (beginning-of-line)
   (forward-char (elgantt::convert-date-to-column-number (plist-get props :elg-date)))
-  (delete-char 1)
-  (let ((char (concat (elgantt::get-display-char (plist-get props :elg-type)))))
-    (set-text-propertibpes 0 1 props char)
-    (insert char)))
+  (set-text-properties (point) (1+ (point)) props))
+
 
 (defun elgantt::get-header-create (header)
   "Put point at HEADER, creating it if necessary."
@@ -370,6 +372,9 @@ If it is not provided, the default is ('active inactive deadline)."
 		       'elgantt:horizontal-line-face
 		       string)
     (insert string)))
+
+
+
 
 (defun elgantt:get-data ()
   (interactive)
@@ -760,7 +765,6 @@ the number of days."
   (ts-format "%Y-%m-%d" (ts-adjust 'day offset (ts-parse date))))
 
 
-(defun elgantt:colorize ()
-  (goto-char (point-min))
-  
+
+
 
