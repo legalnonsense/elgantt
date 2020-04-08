@@ -765,6 +765,10 @@ the number of days."
   (ts-format "%Y-%m-%d" (ts-adjust 'day offset (ts-parse date))))
 
 
-
+(defun elgantt::get-points-of-cells ()
+  (while (next-single-property-change (point) :elg-date)
+    (goto-char (next-single-property-change (point) :elg-date))
+    
+	       
 
 
