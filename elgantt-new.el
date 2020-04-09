@@ -184,7 +184,9 @@
 		     (list :elg-org-buffer
 			   (current-buffer))
 		     (list :elg-anchor
-			   (org-entry-get (point) "ELGANTT-ANCHOR")))))
+			   (org-entry-get (point) "ELGANTT-ANCHOR"))
+		     (list :elg-org-id
+			   (org-id-get-create)))))
     (setq prop-list (append 
 		     (cond ((plist-get prop-list :elg-deadline)
 			    (list :elg-date (plist-get prop-list :elg-deadline)
@@ -311,6 +313,9 @@ If it is not provided, the default is ('active inactive deadline)."
   (elgantt::get-header-create (plist-get props :elg-header))
   (beginning-of-line)
   (forward-char (elgantt::convert-date-to-column-number (plist-get props :elg-date)))
+  (delete-char 1)
+  (insert (elgantt::get-display-char (plist-get props :elg-type)))
+  (backward-char)
   (set-text-properties (point) (1+ (point)) props))
 
 
@@ -727,36 +732,88 @@ which occur on the operative date."
   ;;(add-hook 'post-command-hook 'elgantt::vertical-highlight nil t)
   (delete-other-windows))
 
-(defun elgantt:create-anchor ()
+
+
+;; TODO: make sure the anchored date is earlier than the heading
+;; TODO: make sure the anchored date has a date
+(defun elgantt:org-create-anchor ()
   "Prompt user for the anchor heading. Add an `org-id' to the 
 anchor heading if necessary. Add the property `ELGANTT-ANCHOR'
 to the current heading, which is the `org-id' of the anchor."
-  (let ((anchors (cdar (org-entry-properties (point) "ELGANTT-ANCHOR")))
-	(anchor-heading-id (save-excursion (org-goto)
-					   (org-id-get-create))))
-    (org-set-property "ELGANTT-ANCHOR" (concat
-					anchors " "
-					anchor-heading-id))))
+  ;;Prompt the user for the offset?
+  (let* ((current-heading-id (org-id-get-create))
+	 (anchor-heading-id (save-excursion (org-goto)
+					    (org-id-get-create))))
+    (save-excursion
+      (org-id-goto anchor-heading-id)
+      (org-set-property "ELGANTT-DEPENDENTS"
+			(concat 
+			 (cdar
+			  (org-entry-properties
+			   (point)
+			   "ELGANTT-DEPENDENTS"))
+			 " "
+			 current-heading-id)))
+    (org-set-property "ELGANTT-ANCHOR" anchor-heading-id)))
 
-(defun elgantt:get-anchors ()
-  "Return a list of anchors"
-  (when-let ((anchors (cdar (org-entry-properties (point) "ELGANTT-ANCHOR"))))
-    (s-split " " 
-	     anchors)))
+(defun elgantt::org-get-dependents ()
+  "Return a list of dependent deadlines from an org buffer."
+  (when-let ((anchors (cdar (org-entry-properties (point) "ELGANTT-DEPENDENTS"))))
+    (s-split " " anchors)))
 
-(defun elgantt::move-date-and-anchor (&optional backward)
+(defun elgantt::get-anchor ()
+  "Return a list of dependent deadlines"
+  (cdar (org-entry-properties (point) "ELGANTT-ANCHOR")))
+
+(defun elgantt::goto-id (id)
+  "Go to the cell for the org entry with ID. Return nil if not found."
+  ;; Note: one cannot use `text-property-any' to find the value because
+  ;; comparisons are done using `eq' which will not work for string values.
+  (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elg-org-id
+		       thereis (when (string= (get-text-property (car points) :elg-org-id) id)
+				 (car points)))))
+    (goto-char point)
+    (point)))
+
+(defun elgantt::get-dependents ()
+  (when-let ((dependents (elgantt:get-prop-at-point :ELGANTT-DEPENDENTS)))
+    (s-split " " dependents)))
+
+(defun elgantt::pop-up-org-heading ()
+  (interactive)
+  (when-let ((citation-text (get-text-property (point) 'text)))
+    (if org-transcript::citation-popup-active
+	(posframe-delete "*TRANSCRIPT CITATION*")
+      (when (posframe-workable-p)
+	(posframe-show "*TRANSCRIPT CITATION*"
+		       :string (concat "  " citation-text)
+		       :position (point)
+		       :internal-border-width 2
+		       :internal-border-color "blue")))
+    (setq org-transcript::citation-popup-active (not org-transcript::citation-popup-active))))
+
+
+(posframe-show "sample.org"
+	       :position (point))
+
+(defun elgantt::move-date-and-dependents (&optional backward)
   "Move the current date and all anchored dates forward by one days
 If called with an argument, move backward."
+  ;; Shift the cell at point
   (if backward
       (elgantt::shift-date-backward)
     (elgantt::shift-date-forward))
-  (when-let ((anchor-date (elgantt:get-prop-at-point :elg-anchor-date)))
-    (save-excursion
-      (beginning-of-line)
-      (forward-char (elgantt::convert-date-to-column-number anchor-date))
-      (if backward
-	  (elgantt::move-date-and-anchor 'backward)
-	(elgantt::move-date-and-anchor)))))
+  ;; If the cell has dependents, shift those
+  (when-let ((dependent-ids (elgantt::get-dependents)))
+    (mapc (lambda (dependent-id)
+	    (save-excursion
+	      (elgantt::goto-id dependent-id)
+	      (if backward
+		  (elgantt::move-date-and-dependents 'backward)
+		(elgantt::move-date-and-dependents))))
+	  dependent-ids)))
+
+
 
 (defun elgantt:date-calculator (date offset)
   "DATE is a string \"YYYY-MM-DD\"
@@ -765,10 +822,11 @@ the number of days."
   (ts-format "%Y-%m-%d" (ts-adjust 'day offset (ts-parse date))))
 
 
-(defun elgantt::get-points-of-cells ()
-  (while (next-single-property-change (point) :elg-date)
-    (goto-char (next-single-property-change (point) :elg-date))
-    
-	       
+
+;; (defun elgantt::get-points-of-cells ()
+;;   (while (next-single-property-change (point) :elg-date)
+;;     (goto-char (next-single-property-change (point) :elg-date))
+
+
 
 
