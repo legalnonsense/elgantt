@@ -310,24 +310,89 @@ If it is not provided, the default is ('active inactive deadline)."
   "Return t if YEAR is a leap year. Otherwise, nil."
   (= (% year 4) 0))
 
-;; QUESTION: Why not combine the parsing and inserting functions?
-;; ANSWER: Buffer switching seems to be a problem. 
+(defun elgantt::insert-char (char)
+  "CHAR is a single character string to insert at point.
+All text properties are preserved."
+  (let ((props (elgantt:get-prop-at-point)))
+    (delete-char 1)
+    (insert char)
+    (set-text-properties (point) (1+ (point) props))))
+
+;; NEW--INSERTS A SINGLE `:elg' property which nests
+;; all text properties to account for multiple entries per cell
 (defun elgantt::insert-entry (props)
-  "PROPS is a plist which must include, at minimum, the following properties:
-`elg-header', `elg-date', and `elg-type'."
-  ;; Goto the header
   (elgantt::get-header-create (plist-get props :elg-header))
-  ;; Goto the date
   (forward-char (elgantt::convert-date-to-column-number (plist-get props :elg-date)))
-  ;; Delete the cell--DANGER WE DO NOT WANT TO DO THIS
-  ;; WE NEED TO APPEND NEW PROPERTIES TO ANYTHING ALREADY EXISTING
-  ;; This means a cell needs to be able to have a list of properties 
-  (delete-char 1)
-  ;; Insert the display character
-  (insert (elgantt::get-display-char (plist-get props :elg-type)))
-  (backward-char)
-  ;; Set the text properties
-  (set-text-properties (point) (1+ (point)) props))
+  (let ((old-props (plist-get (text-properties-at (point)) :elg)))
+    (delete-char 1)
+    (insert (elgantt::get-display-char (plist-get props :elg-type)))
+    (backward-char)
+    (if old-props
+	;; This is where you should convert the display character property 
+	(set-text-properties (point) (1+ (point)) `(:elg ,(append old-props
+								  (list props))))
+      (set-text-properties (point) (1+ (point)) `(:elg ,(list props))))
+    (add-text-properties (point) (1+ (point)) '(face (:background "red")))))
+
+
+(append (append '((1 2 3)) '((4 5 6))) '((7 8 9)))
+
+;;STOPPED HEJRE XXXX !!!
+;; NEED TO MAKE SURE THERE IS A LIST OF INITIAL PROPS 
+
+;; OLD--DOES NOT ALLOW MULTIPLE ENTRIES PER CELL
+;; (defun elgantt::insert-entry (props)
+;;   "PROPS is a plist which must include, at minimum, the following properties:
+;; `elg-header', `elg-date', and `elg-type'."
+;;   ;; Goto the header
+;;   (elgantt::get-header-create (plist-get props :elg-header))
+;;   ;; Goto the date
+;;   (forward-char (elgantt::convert-date-to-column-number (plist-get props :elg-date)))
+;;   ;; Delete the cell--DANGER WE DO NOT WANT TO DO THIS
+;;   ;; WE NEED TO APPEND NEW PROPERTIES TO ANYTHING ALREADY EXISTING
+;;   ;; This means a cell needs to be able to have a list of properties 
+;;   (delete-char 1)
+;;   ;; Insert the display character
+;;   (insert (elgantt::get-display-char (plist-get props :elg-type)))
+;;   (backward-char)
+;;   ;; Set the text properties
+;;   (set-text-properties (point) (1+ (point)) props))
+
+;; NEW - gets a list of all props
+(defun elgantt:get-prop-at-point (&optional prop)
+  (let ((prop-list (plist-get (text-properties-at (point)) :elg)))
+    (mapcar (lambda (props) (plist-get props prop))
+	    prop-list)))
+
+;; OLD - only gets one property
+;; (defun elgantt:get-prop-at-point (&optional property which)
+;;   "Get the text PROPERTY at point, if specified. 
+;; Otherwise, get a plist of all properties."
+;;   (let ((properties (plist-get (text-properties-at (point)) :elg)))
+;;     (if property
+;; 	(plist-get properties property)
+;;       properties)))
+
+;; (defun elgantt:get-prop-at-point (&optional property)
+;;   "Get the text PROPERTY at point, if specified. 
+;; Otherwise, get a plist of all properties."
+;;   (let ((properties (text-properties-at (point))))
+;;     (if property
+;; 	(plist-get properties property)
+;;       properties)))
+
+;; (defun elgantt:get-elg-prop-at-point (&optional property)
+;;   "Get the text PROPERTY at point, if specified. 
+;; Otherwise, get a plist of all properties."
+;;   (let ((properties (plist-get (text-properties-at (point)) :elg)))
+;;     (if property
+;; 	(plist-get properties property)
+;;       properties)))
+
+
+
+
+
 
 
 (defun elgantt::get-header-create (header)
@@ -417,10 +482,9 @@ If it is not provided, the default is ('active inactive deadline)."
 
 (defun elgantt:get-date-at-point (&optional column)
   "Get the date at point in YYYY-MM-DD format."
-  ;; I decided the easiest way to get it was from the
-  ;; context of the buffer, rather than calculating it
-  ;; based on the column. This is ugly and written
-  ;; when just beginning to learn Emacs/coding. 
+  ;; This is ugly and written when just beginning
+  ;; to learn Emacs/coding. Now, it could just grab
+  ;; the `elg-date' property. 
   (if (not (char-equal (char-after) ?|))
       (progn
 	(when (not column)
@@ -553,13 +617,7 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	      (setq start (+ 1 start)))))
       (error "Error in elgantt:change-gradient. Header not found."))))
 
-(defun elgantt:get-prop-at-point (&optional property)
-  "Get the text PROPERTY at point, if specified. 
-Otherwise, get a plist of all properties."
-  (let ((properties (text-properties-at (point))))
-    (if property
-	(plist-get properties property)
-      properties)))
+
 
 (defun elgantt:navigate-to-org-file ()
   "this will navigate to a location in an org file when
