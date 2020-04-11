@@ -8,6 +8,10 @@
 (require 'dash)
 (require 'ts)
 
+
+
+
+
 (setq elgantt-cal-deadline-character "▲")
 ;;      "Character used for deadlines in the calendar.")
 
@@ -19,6 +23,13 @@
 
 (setq elgantt-cal-scheduled-character "⬟")
 ;;"Character used for active timestamps in the calendar")
+
+(setq elgantt:cell-entry-re (concat "["
+				    elgantt-cal-deadline-character
+				    elgantt-cal-active-timestamp-character
+				    elgantt-cal-inactive-timestamp-character
+				    elgantt-cal-scheduled-character
+				    "]"))
 
 (defcustom elgantt:skip-files 'archive
   "Accepts the following values from `org-map-entries'):
@@ -362,8 +373,10 @@ existing text properties."
 ;; NEW - gets a list of all props
 (defun elgantt:get-prop-at-point (&optional prop)
   (let ((prop-list (plist-get (text-properties-at (point)) :elg)))
-    (mapcar (lambda (props) (plist-get props prop))
-	    prop-list)))
+    (if prop
+	(mapcar (lambda (props) (plist-get props prop))
+		prop-list)
+      prop-list)))
 
 ;; OLD - only gets one property
 ;; (defun elgantt:get-prop-at-point (&optional property which)
@@ -590,11 +603,11 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	(progn
 	  (beginning-of-line)
 	  (let* ((start-color `(,(string-to-number (substring start-color 1 3) 16)
-				,(string-to-number (substring start-color 3 5) 16)
-				,(string-to-number (substring start-color 5 7) 16)))
+				 ,(string-to-number (substring start-color 3 5) 16)
+				 ,(string-to-number (substring start-color 5 7) 16)))
 		 (end-color `(,(string-to-number (substring end-color 1 3) 16)
-			      ,(string-to-number (substring end-color 3 5) 16)
-			      ,(string-to-number (substring end-color 5 7) 16)))
+			       ,(string-to-number (substring end-color 3 5) 16)
+			       ,(string-to-number (substring end-color 5 7) 16)))
 		 (start-col (elgantt::convert-date-to-column-number start-date))
 		 (end-col (elgantt::convert-date-to-column-number end-date))
 		 (start (save-excursion (forward-char start-col) (point)))
@@ -612,12 +625,26 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	      (setq start (+ 1 start)))))
       (error "Error in elgantt:change-gradient. Header not found."))))
 
+(defun elgantt::select-from-multiple-entries ()
+  "Prompt the user to select from multiple entries."
+  (let ((prop-list (elgantt:get-prop-at-point)))
+    (-first (lambda (x)
+	      (string= (completing-read "Select entry: "
+					(elgantt:get-prop-at-point :raw-value)
+					nil
+					'require-match)
+		       (plist-get x :raw-value)))
+	    prop-list)))
+
+(defun elgantt::multiple-entries-p ()
+  (> (length (elgantt:get-prop-at-point)) 1))
+
 (defun elgantt:navigate-to-org-file ()
   "Navigate to a location in an org file when
-supplied with the file name (string) and point (number)"
+supplied with the file name (string) and point (number)."
   (interactive)
   (if-let ((buffer (car (elgantt:get-prop-at-point :elg-org-buffer)))
-	   (marker (car elgantt:get-prop-at-point :begin)))
+	   (marker (car (elgantt:get-prop-at-point :begin))))
       (progn 
 	(switch-to-buffer-other-window buffer)
 	(goto-char marker)
@@ -640,6 +667,33 @@ Buffer is determined from the `:org-buffer' property."
 (defun elgantt::on-vertical-line ()
   (string= "|"
 	   (buffer-substring (point) (1+ (point)))))
+
+(defsubst elgantt::move-up ()
+  (interactive)
+  (elgantt::move-vertically 'up))
+(defsubst elgantt::move-down ()
+  (interactive)
+  (elgantt::move-vertically 'down))
+
+(cl-defun elgantt::move-vertically (up-or-down)
+  (if (eq up-or-down 'up)
+      (if (> (org-current-line) 3)
+	  (previous-line)
+	(return-from elgantt::move-vertically nil))
+    (if (< (org-current-line) (count-lines (point-min) (point-max)))
+	(next-line)
+      (return-from elgantt::move-vertically nil)))
+  (let ((next (save-excursion (re-search-forward elgantt:cell-entry-re (point-at-eol) t)))
+	(previous (save-excursion (re-search-backward elgantt:cell-entry-re (point-at-bol) t))))
+    (cond ((and (not next) (not previous))
+	   (elgantt::move-vertically up-or-down))
+	  ((and (not next) previous)
+	   (goto-char previous))
+	  ((and (not previous) next)
+	   (goto-char (1- next)))
+	  (t (if (< (- next (point)) (- (point) previous))
+		 (goto-char (1- next))
+	       (goto-char previous))))))
 
 (defun elgantt::move-horizontally (n)
   (forward-char n)
@@ -733,15 +787,17 @@ which occur on the operative date."
   (other-window 1))
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
-  (define-key elgantt-mode-map (kbd "r")   #'elgantt:open)
-  (define-key elgantt-mode-map (kbd "SPC") #'elgantt:navigate-to-org-file)
-  (define-key elgantt-mode-map (kbd "f")   #'elgantt::move-selection-bar-forward)
-  (define-key elgantt-mode-map (kbd "b")   #'elgantt::move-selection-bar-backward)
-  (define-key elgantt-mode-map (kbd "RET") #'elgantt::open-org-agenda-at-date)
-  (define-key elgantt-mode-map (kbd "M-f") #'elgantt::shift-date-forward)
-  (define-key elgantt-mode-map (kbd "M-b") #'elgantt::shift-date-backward)
-  (define-key elgantt-mode-map (kbd "C-M-f") #'elgantt:move-date-and-dependents-forward)
-  (define-key elgantt-mode-map (kbd "C-M-b") #'elgantt:move-date-and-dependents-backward))
+		     (define-key elgantt-mode-map (kbd "r")   #'elgantt:open)
+		     (define-key elgantt-mode-map (kbd "SPC") #'elgantt:navigate-to-org-file)
+		     (define-key elgantt-mode-map (kbd "p")   #'elgantt::move-up)
+		     (define-key elgantt-mode-map (kbd "n")   #'elgantt::move-down)
+		     (define-key elgantt-mode-map (kbd "f")   #'elgantt::move-selection-bar-forward)
+		     (define-key elgantt-mode-map (kbd "b")   #'elgantt::move-selection-bar-backward)
+		     (define-key elgantt-mode-map (kbd "RET") #'elgantt::open-org-agenda-at-date)
+		     (define-key elgantt-mode-map (kbd "M-f") #'elgantt::shift-date-forward)
+		     (define-key elgantt-mode-map (kbd "M-b") #'elgantt::shift-date-backward)
+		     (define-key elgantt-mode-map (kbd "C-M-f") #'elgantt:move-date-and-dependents-forward)
+		     (define-key elgantt-mode-map (kbd "C-M-b") #'elgantt:move-date-and-dependents-backward))
 
 (defun elgantt::vertical-highlight (&optional column)
   "insert a vertical highlight bar at column, and remove the previous vertical bar"
@@ -774,15 +830,9 @@ next line if it is at the last entry on the line."
     (forward-char elgantt:header-column-offset))
   (when-let ((point (save-excursion 
 		      (forward-char 1)
-		      (re-search-forward 
-		       (concat "["
-			       elgantt-cal-deadline-character
-			       elgantt-cal-active-timestamp-character
-			       elgantt-cal-inactive-timestamp-character
-			       elgantt-cal-scheduled-character
-			       "]")
-		       (point-at-eol)
-		       t))))
+		      (re-search-forward elgantt:cell-entry-re
+					 (point-at-eol)
+					 t))))
     (goto-char (1- point))))
 
 (defun elgantt::move-selection-bar-backward ()
@@ -899,11 +949,18 @@ of ids which are anchored to the heading."
 ;; 				 (org-id-get-create))))
 ;; 	(anchor-heading-id (while (not (eq (read-event) 'return)))))))
 
+;; (defun xxx ()
+;;   (interactive)
+;;   (insert "k"))
+;; (defun yyy ()
+;;   (interactive)
+;;   (insert "00000")
 
 
-(let ((map (make-sparse-keymap)))
-  (set-transient-map map t))
-(current-active-maps)
+;; (let ((map (make-sparse-keymap)))
+;;   (define-key map (kbd "j") #'xxx)
+;;   (define-key map (kbd "k") #'yyy)
+;;   (set-transient-map map t))
 
 (defun elgantt::org-get-dependents ()
   "Return a list of dependent deadlines from an org buffer."
