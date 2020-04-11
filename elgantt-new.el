@@ -223,7 +223,11 @@
     (when (plist-get prop-list :elg-date)
       prop-list)))
 
-(defun elgantt::get-years (&optional date-type)
+(cl-defun xxx (&optional (x '(1 2 3)))
+  x)
+
+
+(cl-defun elgantt::get-years (&optional (date-type '(all)))
   "Get the date range of all time values in all agenda files. 
 Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
         all: all timestamps
@@ -232,7 +236,7 @@ Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestam
   scheduled: only scheduled timestamps
    deadline: only deadline timestamps
      closed: only closed time-stamps
-If it is not provided, the default is ('active inactive deadline)."
+If it is not provided, the default is `all'."
   (save-excursion
     (let ((years '()))
       (--each (-list elgantt:agenda-files)
@@ -248,11 +252,12 @@ If it is not provided, the default is ('active inactive deadline)."
       (sort
        (mapcar (lambda (it)
 		 (string-to-number it))
- 	       years)
+	       years)
        '<))))
 
 (defcustom elgantt:agenda-files (org-agenda-files)
   "Source files. Default: `org-agenda-files'.")
+
 (setq elgantt:agenda-files "~/.emacs.d/lisp/elgantt/TEST/sample.org")
 ;;(setq elgantt:agenda-files "~/Dropbox/DropsyncFiles/taskmaster.org")
 
@@ -273,7 +278,6 @@ If it is not provided, the default is ('active inactive deadline)."
     ('timestamp-ia elgantt-cal-inactive-timestamp-character)
     ('scheduled elgantt-cal-scheduled-character)))
 
-;; This should be re-written
 (defun elgantt::convert-date-to-column-number (timestamp)
   "Accepts a date in the form of \"YYYY-MM-DD\""
   (let ((spaces 0)
@@ -282,8 +286,8 @@ If it is not provided, the default is ('active inactive deadline)."
 	       0 (cl-position (string-to-number (substring date 0 4)) elgantt::date-range))
     ;; add the preceding years
     (dolist (year
-	      (cl-subseq elgantt::date-range
-			 0 (cl-position (string-to-number (substring date 0 4)) elgantt::date-range)))
+	     (cl-subseq elgantt::date-range
+			0 (cl-position (string-to-number (substring date 0 4)) elgantt::date-range)))
       (if (elgantt::leap-year-p year)
 	  (setq spaces (+ spaces 366 12))
 	(setq spaces (+ spaces 365 12))))
@@ -310,9 +314,9 @@ If it is not provided, the default is ('active inactive deadline)."
   "Return t if YEAR is a leap year. Otherwise, nil."
   (= (% year 4) 0))
 
-(defun elgantt::insert-char (char)
-  "CHAR is a single character string to insert at point.
-All text properties are preserved."
+(defun elgantt::change-char (char)
+  "Repleace the character at point with CHAR, preserving all 
+existing text properties."
   (let ((props (elgantt:get-prop-at-point)))
     (delete-char 1)
     (insert char)
@@ -333,9 +337,6 @@ All text properties are preserved."
 								  (list props))))
       (set-text-properties (point) (1+ (point)) `(:elg ,(list props))))
     (add-text-properties (point) (1+ (point)) '(face (:background "red")))))
-
-
-(append (append '((1 2 3)) '((4 5 6))) '((7 8 9)))
 
 ;;STOPPED HEJRE XXXX !!!
 ;; NEED TO MAKE SURE THERE IS A LIST OF INITIAL PROPS 
@@ -388,12 +389,6 @@ All text properties are preserved."
 ;;     (if property
 ;; 	(plist-get properties property)
 ;;       properties)))
-
-
-
-
-
-
 
 (defun elgantt::get-header-create (header)
   "Put point at HEADER, creating it if necessary."
@@ -595,11 +590,11 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	(progn
 	  (beginning-of-line)
 	  (let* ((start-color `(,(string-to-number (substring start-color 1 3) 16)
-				 ,(string-to-number (substring start-color 3 5) 16)
-				 ,(string-to-number (substring start-color 5 7) 16)))
+				,(string-to-number (substring start-color 3 5) 16)
+				,(string-to-number (substring start-color 5 7) 16)))
 		 (end-color `(,(string-to-number (substring end-color 1 3) 16)
-			       ,(string-to-number (substring end-color 3 5) 16)
-			       ,(string-to-number (substring end-color 5 7) 16)))
+			      ,(string-to-number (substring end-color 3 5) 16)
+			      ,(string-to-number (substring end-color 5 7) 16)))
 		 (start-col (elgantt::convert-date-to-column-number start-date))
 		 (end-col (elgantt::convert-date-to-column-number end-date))
 		 (start (save-excursion (forward-char start-col) (point)))
@@ -617,14 +612,12 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	      (setq start (+ 1 start)))))
       (error "Error in elgantt:change-gradient. Header not found."))))
 
-
-
 (defun elgantt:navigate-to-org-file ()
-  "this will navigate to a location in an org file when
+  "Navigate to a location in an org file when
 supplied with the file name (string) and point (number)"
   (interactive)
-  (if-let ((buffer (elgantt:get-prop-at-point :elg-org-buffer))
-	   (marker (elgantt:get-prop-at-point :begin)))
+  (if-let ((buffer (car (elgantt:get-prop-at-point :elg-org-buffer)))
+	   (marker (car elgantt:get-prop-at-point :begin)))
       (progn 
 	(switch-to-buffer-other-window buffer)
 	(goto-char marker)
@@ -740,15 +733,15 @@ which occur on the operative date."
   (other-window 1))
 
 (define-derived-mode elgantt-mode special-mode "El Gantt"
-		     (define-key elgantt-mode-map (kbd "r")   #'elgantt:open)
-		     (define-key elgantt-mode-map (kbd "SPC") #'elgantt:navigate-to-org-file)
-		     (define-key elgantt-mode-map (kbd "f")   #'elgantt::move-selection-bar-forward)
-		     (define-key elgantt-mode-map (kbd "b")   #'elgantt::move-selection-bar-backward)
-		     (define-key elgantt-mode-map (kbd "RET") #'elgantt::open-org-agenda-at-date)
-		     (define-key elgantt-mode-map (kbd "M-f") #'elgantt::shift-date-forward)
-		     (define-key elgantt-mode-map (kbd "M-b") #'elgantt::shift-date-backward)
-		     (define-key elgantt-mode-map (kbd "C-M-f") #'elgantt:move-date-and-dependents-forward)
-		     (define-key elgantt-mode-map (kbd "C-M-b") #'elgantt:move-date-and-dependents-backward))
+  (define-key elgantt-mode-map (kbd "r")   #'elgantt:open)
+  (define-key elgantt-mode-map (kbd "SPC") #'elgantt:navigate-to-org-file)
+  (define-key elgantt-mode-map (kbd "f")   #'elgantt::move-selection-bar-forward)
+  (define-key elgantt-mode-map (kbd "b")   #'elgantt::move-selection-bar-backward)
+  (define-key elgantt-mode-map (kbd "RET") #'elgantt::open-org-agenda-at-date)
+  (define-key elgantt-mode-map (kbd "M-f") #'elgantt::shift-date-forward)
+  (define-key elgantt-mode-map (kbd "M-b") #'elgantt::shift-date-backward)
+  (define-key elgantt-mode-map (kbd "C-M-f") #'elgantt:move-date-and-dependents-forward)
+  (define-key elgantt-mode-map (kbd "C-M-b") #'elgantt:move-date-and-dependents-backward))
 
 (defun elgantt::vertical-highlight (&optional column)
   "insert a vertical highlight bar at column, and remove the previous vertical bar"
@@ -814,7 +807,7 @@ and then it will be removed from the `post-command-hook'."
     (message "%s -- %s -- %s!!"
 	     (elgantt:get-date-at-point)
 	     (elgantt:get-header-at-point)
-	     (elgantt:get-prop-at-point :elg-headline))))
+	     (car (elgantt:get-prop-at-point :elg-headline)))))
 
 
 ;;(defcustom elgantt:timestamps-to-dislay '(active inactive scheduled deadline))
@@ -858,7 +851,7 @@ and then it will be removed from the `post-command-hook'."
 (defun elgantt::highlight-dependent-dates (face)
   "Apply FACE to all dependant dates of the current date at point."
   (save-excursion 
-    (if-let ((dependents (elgantt::get-dependents)))
+    (if-let ((dependents (car (elgantt::get-dependents))))
 	(progn 
 	  (backward-char)
 	  (elgantt::set-face-at-point face)
@@ -901,6 +894,17 @@ of ids which are anchored to the heading."
 				current-heading-id)))
     (org-set-property "ELGANTT-ANCHOR" anchor-heading-id)))
 
+;; (defun elgantt:create-anchor ()
+;;   (let ((current-heading-id ((elgantt:with-point-at-orig-entry
+;; 				 (org-id-get-create))))
+;; 	(anchor-heading-id (while (not (eq (read-event) 'return)))))))
+
+
+
+(let ((map (make-sparse-keymap)))
+  (set-transient-map map t))
+(current-active-maps)
+
 (defun elgantt::org-get-dependents ()
   "Return a list of dependent deadlines from an org buffer."
   (when-let ((anchors (cdar (org-entry-properties (point) "ELGANTT-DEPENDENTS"))))
@@ -922,7 +926,7 @@ of ids which are anchored to the heading."
 
 (defun elgantt::get-dependents ()
   "Get a list of dependents from the cell at point." 
-  (when-let ((dependents (elgantt:get-prop-at-point :elg-dependents)))
+  (when-let ((dependents (car (elgantt:get-prop-at-point :elg-dependents))))
     (s-split " " dependents)))
 
 ;; (defun elgantt::pop-up-org-heading ()
