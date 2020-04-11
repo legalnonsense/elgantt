@@ -9,6 +9,11 @@
 :ELGANTT-DEPENDENTS: ee459a87-359c-4fc3-ab65-9b5b9c5f9dba acd9eb67-a567-403d-a8a9-a95bff3f15cd
 :END:
 <2019-01-06 Sun>
+** Some deadline on the same date
+DEADLINE: <2019-01-06 Sun>
+:PROPERTIES:
+:ID:       9ca27fed-2d65-491a-9c88-ae3914d268b0
+:END:
 ** inactive date stamp
 :PROPERTIES:
 :ID:       ee459a87-359c-4fc3-ab65-9b5b9c5f9dba

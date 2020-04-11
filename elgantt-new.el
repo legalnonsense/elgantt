@@ -328,7 +328,7 @@ If it is not provided, the default is `all'."
 (defun elgantt::change-char (char)
   "Repleace the character at point with CHAR, preserving all 
 existing text properties."
-  (let ((props (elgantt:get-prop-at-point)))
+  (let ((props (elgantt:select-entry)))
     (delete-char 1)
     (insert char)
     (set-text-properties (point) (1+ (point) props))))
@@ -625,26 +625,26 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 	      (setq start (+ 1 start)))))
       (error "Error in elgantt:change-gradient. Header not found."))))
 
-(defun elgantt::select-from-multiple-entries ()
+(defun elgantt::select-entry ()
   "Prompt the user to select from multiple entries."
   (let ((prop-list (elgantt:get-prop-at-point)))
-    (-first (lambda (x)
-	      (string= (completing-read "Select entry: "
-					(elgantt:get-prop-at-point :raw-value)
-					nil
-					'require-match)
-		       (plist-get x :raw-value)))
-	    prop-list)))
-
-(defun elgantt::multiple-entries-p ()
-  (> (length (elgantt:get-prop-at-point)) 1))
+    (if (= (length prop-list) 1)
+	(car prop-list)
+      (-first (lambda (x)
+		(string= (completing-read "Select entry: "
+					  (elgantt:get-prop-at-point :raw-value)
+					  nil
+					  'require-match)
+			 (plist-get x :raw-value)))
+	      prop-list))))
 
 (defun elgantt:navigate-to-org-file ()
   "Navigate to a location in an org file when
 supplied with the file name (string) and point (number)."
   (interactive)
-  (if-let ((buffer (car (elgantt:get-prop-at-point :elg-org-buffer)))
-	   (marker (car (elgantt:get-prop-at-point :begin))))
+  (if-let* ((props (elgantt::select-entry))
+	    (buffer (plist-get props :elg-org-buffer))
+	    (marker (plist-get props :begin)))
       (progn 
 	(switch-to-buffer-other-window buffer)
 	(goto-char marker)
@@ -653,6 +653,7 @@ supplied with the file name (string) and point (number)."
 	(beginning-of-line))
     (message "Cannot navigate to org file: no data at point.")))
 
+;;STABLE
 (defmacro elgantt:with-point-at-orig-entry (&rest body)
   "Execute BODY with point at location given by the `:begin' property.
 Buffer is determined from the `:org-buffer' property." 
@@ -663,6 +664,23 @@ Buffer is determined from the `:org-buffer' property."
        (save-excursion
 	 (goto-char marker)
 	 ,@body))))
+
+;; NEW
+(defmacro elgantt:with-point-at-orig-entry (&rest body)
+  "Execute BODY with point at location given by the `:begin' property.
+Buffer is determined from the `:org-buffer' property." 
+  (declare (indent 2))
+  `(let* ((props (elgantt::select-entry))
+	  (marker (plist-get props :begin))
+	  (buffer (plist-get props :elg-org-buffer)))
+     (with-current-buffer buffer
+       (save-excursion
+	 (goto-char marker)
+	 ,@body))))
+
+
+(elgantt:with-point-at-orig-entry (funcall outline-level))
+
 
 (defun elgantt::on-vertical-line ()
   (string= "|"
@@ -983,7 +1001,8 @@ of ids which are anchored to the heading."
 
 (defun elgantt::get-dependents ()
   "Get a list of dependents from the cell at point." 
-  (when-let ((dependents (car (elgantt:get-prop-at-point :elg-dependents))))
+  (when-let ((prop (elgantt::select-entry))
+	     (dependents (plist-get prop :elg-dependents)))
     (s-split " " dependents)))
 
 ;; (defun elgantt::pop-up-org-heading ()
