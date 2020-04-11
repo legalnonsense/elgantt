@@ -654,16 +654,16 @@ supplied with the file name (string) and point (number)."
     (message "Cannot navigate to org file: no data at point.")))
 
 ;;STABLE
-(defmacro elgantt:with-point-at-orig-entry (&rest body)
-  "Execute BODY with point at location given by the `:begin' property.
-Buffer is determined from the `:org-buffer' property." 
-  (declare (indent 2))
-  `(let ((marker (get-text-property (point) :begin))
-	 (buffer (get-text-property (point) :elg-org-buffer)))
-     (with-current-buffer buffer
-       (save-excursion
-	 (goto-char marker)
-	 ,@body))))
+;; (defmacro elgantt:with-point-at-orig-entry (&rest body)
+;;   "Execute BODY with point at location given by the `:begin' property.
+;; Buffer is determined from the `:org-buffer' property." 
+;;   (declare (indent 2))
+;;   `(let ((marker (get-text-property (point) :begin))
+;; 	 (buffer (get-text-property (point) :elg-org-buffer)))
+;;      (with-current-buffer buffer
+;;        (save-excursion
+;; 	 (goto-char marker)
+;; 	 ,@body))))
 
 ;; NEW
 (defmacro elgantt:with-point-at-orig-entry (&rest body)
