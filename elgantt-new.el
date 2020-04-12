@@ -230,10 +230,6 @@
     (when (plist-get prop-list :elg-date)
       prop-list)))
 
-(cl-defun xxx (&optional (x '(1 2 3)))
-  x)
-
-
 (cl-defun elgantt::get-years (&optional (date-type '(all)))
   "Get the date range of all time values in all agenda files. 
 Optional DATE-TYPE is any value (or list of values) accepted by `org-re-timestamp':
@@ -329,8 +325,6 @@ existing text properties."
     (insert char)
     (set-text-properties (point) (1+ (point) props))))
 
-;; NEW--INSERTS A SINGLE `:elg' property which nests
-;; all text properties to account for multiple entries per cell
 (defun elgantt::insert-entry (props)
   (elgantt::get-header-create (plist-get props :elg-header))
   (forward-char (elgantt::convert-date-to-column-number (plist-get props :elg-date)))
@@ -345,28 +339,6 @@ existing text properties."
       (set-text-properties (point) (1+ (point)) `(:elg ,(list props))))
     (add-text-properties (point) (1+ (point)) '(face (:background "red")))))
 
-;;STOPPED HEJRE XXXX !!!
-;; NEED TO MAKE SURE THERE IS A LIST OF INITIAL PROPS 
-
-;; OLD--DOES NOT ALLOW MULTIPLE ENTRIES PER CELL
-;; (defun elgantt::insert-entry (props)
-;;   "PROPS is a plist which must include, at minimum, the following properties:
-;; `elg-header', `elg-date', and `elg-type'."
-;;   ;; Goto the header
-;;   (elgantt::get-header-create (plist-get props :elg-header))
-;;   ;; Goto the date
-;;   (forward-char (elgantt::convert-date-to-column-number (plist-get props :elg-date)))
-;;   ;; Delete the cell--DANGER WE DO NOT WANT TO DO THIS
-;;   ;; WE NEED TO APPEND NEW PROPERTIES TO ANYTHING ALREADY EXISTING
-;;   ;; This means a cell needs to be able to have a list of properties 
-;;   (delete-char 1)
-;;   ;; Insert the display character
-;;   (insert (elgantt::get-display-char (plist-get props :elg-type)))
-;;   (backward-char)
-;;   ;; Set the text properties
-;;   (set-text-properties (point) (1+ (point)) props))
-
-;; NEW - gets a list of all props
 (defun elgantt:get-prop-at-point (&optional prop)
   "Returns all `:elg' properties at point. If a property is 
 specified, then return that property for each entry at point."
@@ -376,36 +348,11 @@ specified, then return that property for each entry at point."
 		prop-list)
       prop-list)))
 
-;; OLD - only gets one property
-;; (defun elgantt:get-prop-at-point (&optional property which)
-;;   "Get the text PROPERTY at point, if specified. 
-;; Otherwise, get a plist of all properties."
-;;   (let ((properties (plist-get (text-properties-at (point)) :elg)))
-;;     (if property
-;; 	(plist-get properties property)
-;;       properties)))
-
-;; (defun elgantt:get-prop-at-point (&optional property)
-;;   "Get the text PROPERTY at point, if specified. 
-;; Otherwise, get a plist of all properties."
-;;   (let ((properties (text-properties-at (point))))
-;;     (if property
-;; 	(plist-get properties property)
-;;       properties)))
-
-;; (defun elgantt:get-elg-prop-at-point (&optional property)
-;;   "Get the text PROPERTY at point, if specified. 
-;; Otherwise, get a plist of all properties."
-;;   (let ((properties (plist-get (text-properties-at (point)) :elg)))
-;;     (if property
-;; 	(plist-get properties property)
-;;       properties)))
-
 (defun elgantt::get-header-create (header)
   "Put point at HEADER, creating it if necessary."
   (goto-char (point-min))
   (let ((new-header (concat (s-truncate elgantt:header-column-offset header))))
-    ;; Concat is necessary for reasosn I do not understand, but without it
+    ;; Concat is necessary for reasons I do not understand. Without it,
     ;; the text properties are not set propertly. 
     (if (search-forward new-header nil t)
 	(beginning-of-line)
@@ -461,22 +408,18 @@ specified, then return that property for each entry at point."
     (insert string)))
 
 
+;; (defun elgantt:get-data ()
+;;   (-non-nil
+;;    (org-map-entries #'elgantt::parse-this-headline
+;; 		    nil
+;; 		    (-list elgantt:agenda-files)
+;; 		    elgantt:skip-files)))
 
-
-(defun elgantt:get-data ()
-  (interactive)
-  (-non-nil
-   (org-map-entries #'elgantt::parse-this-headline
-		    nil
-		    (-list elgantt:agenda-files)
-		    elgantt:skip-files)))
-
-(defun elgantt:get-data-org-ql ()
-  (interactive)
-  (-non-nil
-   (org-ql-select elgantt:agenda-files
-       '(ts)
-     :action #'elgantt::parse-this-headline)))
+;; (defun elgantt:get-data-org-ql ()
+;;   (-non-nil
+;;    (org-ql-select elgantt:agenda-files
+;;        '(ts)
+;;      :action #'elgantt::parse-this-headline)))
 
 (defun elgnatt:set-vertical-bar-face ()
   (goto-char (point-min))
@@ -651,19 +594,6 @@ supplied with the file name (string) and point (number)."
 	(beginning-of-line))
     (message "Cannot navigate to org file: no data at point.")))
 
-;;STABLE
-;; (defmacro elgantt:with-point-at-orig-entry (&rest body)
-;;   "Execute BODY with point at location given by the `:begin' property.
-;; Buffer is determined from the `:org-buffer' property." 
-;;   (declare (indent 2))
-;;   `(let ((marker (get-text-property (point) :begin))
-;; 	 (buffer (get-text-property (point) :elg-org-buffer)))
-;;      (with-current-buffer buffer
-;;        (save-excursion
-;; 	 (goto-char marker)
-;; 	 ,@body))))
-
-;; NEW
 (defmacro elgantt:with-point-at-orig-entry (props &rest body)
   "Execute BODY with point at location given by the `:begin' property.
 Buffer is determined from the `:org-buffer' property." 
@@ -674,8 +604,6 @@ Buffer is determined from the `:org-buffer' property."
        (save-excursion
 	 (goto-char marker)
 	 ,@body))))
-
-
 
 (defun elgantt::on-vertical-line ()
   (string= "|"
@@ -710,6 +638,7 @@ Buffer is determined from the `:org-buffer' property."
 	       (goto-char previous))))))
 
 (defun elgantt::move-horizontally (n)
+  "Ensures that the point is not on a vertical line."
   (forward-char n)
   (when (elgantt::on-vertical-line)
     (if (< n 0)
@@ -767,7 +696,6 @@ which occur on the operative date."
 		 `(and (ts :on ,date)
 		   (,type ,item))
 	       :action #'(elgantt::parse-this-headline)))))))
-
 
 (defun elgantt::run-org-ql-for-date-at-point ()
   (interactive)
@@ -997,33 +925,30 @@ of ids which are anchored to the heading."
   "Move the current date and all anchored dates (and their dependents) forward by one days
 If called with an argument, move backward."
   (interactive)
-  ;; Shift the date, and get the props of that date
   (when-let* ((props (if backward
 			 (elgantt::shift-date -1 props)
 		       (elgantt::shift-date 1 props)))
-	      ;; get the dependents of the date
 	      (dependent-ids (elgantt::get-dependents props)))
-    ;; for each dependent...
     (mapc (lambda (dependent-id)
 	    (save-excursion
-	      ;; ...go to it...
 	      (elgantt::goto-id dependent-id)
 	      (let ((new-props (-first (lambda (x)
 					 (-contains? x dependent-id))
 				       (elgantt:get-prop-at-point))))
-		;; ...move it...
 		(if backward
 		    (elgantt::move-date-and-dependents 'backward new-props)
 		  (elgantt::move-date-and-dependents nil new-props)))))
 	  dependent-ids)))
 
-
-
 (defun elgantt:date-calculator (date offset &optional unit)
   "DATE is a string \"YYYY-MM-DD\"
 OFFSET is a positive or negative integer representing
 the number of days. UNIT should be day, month, year."
-  (ts-format "%Y-%m-%d" (ts-adjust (or unit 'day) offset (ts-parse date))))
+  (->> date
+       (ts-parse)
+       (ts-adjust (or unit 'day) offset)
+       (ts-format "%Y-%m-%d")))
+
 
 
 
