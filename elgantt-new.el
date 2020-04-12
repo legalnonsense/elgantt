@@ -8,10 +8,6 @@
 (require 'dash)
 (require 'ts)
 
-
-
-
-
 (setq elgantt-cal-deadline-character "▲")
 ;;      "Character used for deadlines in the calendar.")
 
@@ -678,10 +674,6 @@ Buffer is determined from the `:org-buffer' property."
 	 (goto-char marker)
 	 ,@body))))
 
-
-(elgantt:with-point-at-orig-entry (funcall outline-level))
-
-
 (defun elgantt::on-vertical-line ()
   (string= "|"
 	   (buffer-substring (point) (1+ (point)))))
@@ -689,6 +681,7 @@ Buffer is determined from the `:org-buffer' property."
 (defsubst elgantt::move-up ()
   (interactive)
   (elgantt::move-vertically 'up))
+
 (defsubst elgantt::move-down ()
   (interactive)
   (elgantt::move-vertically 'down))
@@ -800,7 +793,7 @@ which occur on the operative date."
 
 (defun elgantt::open-org-agenda-at-date ()
   (interactive)
-  (let* ((date (ts-format "%Y-%m-%d" (ts-parse (elgantt:get-date-at-point)))))
+  (let ((date (ts-format "%Y-%m-%d" (ts-parse (elgantt:get-date-at-point)))))
     (org-agenda-list nil date 'day))
   (other-window 1))
 
@@ -856,15 +849,9 @@ next line if it is at the last entry on the line."
 (defun elgantt::move-selection-bar-backward ()
   "Not a selection bar. For now, just the cursor."
   (interactive)
-  (when-let ((point (re-search-backward
-		     (concat "["
-			     elgantt-cal-deadline-character
-			     elgantt-cal-active-timestamp-character
-			     elgantt-cal-inactive-timestamp-character
-			     elgantt-cal-scheduled-character
-			     "]")
-		     (point-at-bol)
-		     t)))
+  (when-let ((point (re-search-backward elgantt:cell-entry-re
+					(point-at-bol)
+					t)))
     (goto-char point)))
 
 (defun elgantt::show-echo-message ()
@@ -877,7 +864,6 @@ and then it will be removed from the `post-command-hook'."
 	     (elgantt:get-header-at-point)
 	     (car (elgantt:get-prop-at-point :elg-headline)))))
 
-
 ;;(defcustom elgantt:timestamps-to-dislay '(active inactive scheduled deadline))
 (defun elgantt::populate-cells ()
   "Insert data from agenda files into buffer." 
@@ -885,7 +871,7 @@ and then it will be removed from the `post-command-hook'."
   (mapc #'elgantt::insert-entry
 	(-non-nil
 	 (org-ql-select elgantt:agenda-files
-	     '(ts) ;;this should be a variable, because sometimes you'll only want deadlines, etc. 
+	   '(ts) ;;this should be a variable, because sometimes you'll only want deadlines, etc. 
 	   :action #'elgantt::parse-this-headline))))
 ;; (mapc #'elgantt::insert-entry
 ;; 	(-non-nil
