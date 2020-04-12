@@ -8,9 +8,9 @@
 :ID:       a03a1600-b915-405b-ad4f-071ed227b186
 :ELGANTT-DEPENDENTS: ee459a87-359c-4fc3-ab65-9b5b9c5f9dba acd9eb67-a567-403d-a8a9-a95bff3f15cd
 :END:
-<2019-01-06 Sun>
+<2019-01-13 Sun>
 ** Some deadline on the same date
-DEADLINE: <2019-01-06 Sun>
+DEADLINE: <2019-01-13 Sun>
 :PROPERTIES:
 :ID:       9ca27fed-2d65-491a-9c88-ae3914d268b0
 :END:
@@ -88,7 +88,7 @@ DEADLINE: <2020-04-08 Wed>
 :ID:       acd9eb67-a567-403d-a8a9-a95bff3f15cd
 :ELGANTT-ANCHOR: a03a1600-b915-405b-ad4f-071ed227b186
 :END:
-[2019-01-09 Wed]
+[2019-01-10 Thu]
 ** finish and upload readme :readme_end:
 DEADLINE: <2019-03-19 Tue>
 :PROPERTIES:

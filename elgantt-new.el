@@ -634,6 +634,10 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 			 (plist-get x :raw-value)))
 	      prop-list))))
 
+
+
+(-first (lambda (x) (= 5 x)) '(1 2 3 4 5))
+
 (defun elgantt:navigate-to-org-file ()
   "Navigate to a location in an org file when
 supplied with the file name (string) and point (number)."
@@ -662,17 +666,18 @@ supplied with the file name (string) and point (number)."
 ;; 	 ,@body))))
 
 ;; NEW
-(defmacro elgantt:with-point-at-orig-entry (&rest body)
+(defmacro elgantt:with-point-at-orig-entry (props &rest body)
   "Execute BODY with point at location given by the `:begin' property.
 Buffer is determined from the `:org-buffer' property." 
   (declare (indent 2))
-  `(let* ((props (elgantt::select-entry))
-	  (marker (plist-get props :begin))
-	  (buffer (plist-get props :elg-org-buffer)))
+  `(let* ((marker (plist-get ,props :begin))
+	  (buffer (plist-get ,props :elg-org-buffer)))
      (with-current-buffer buffer
        (save-excursion
 	 (goto-char marker)
 	 ,@body))))
+
+
 
 (defun elgantt::on-vertical-line ()
   (string= "|"
@@ -715,21 +720,25 @@ Buffer is determined from the `:org-buffer' property."
 
 (defun elgantt::shift-date (n)
   "Move the timestamp up or down by one day.
-N should be 1 or -1."
+N should be 1 or -1. The return value
+is the prop list of the entry that has been moved."
   ;; Moving by single day is the easiest way to handle this,
   ;; rather than moving by week or month, etc. 
   (unless (or (= n 1)
 	      (= n -1))
     (error "elgantt::shift-date: Invalid argument. N must be 1 or -1."))
-  (elgantt:with-point-at-orig-entry
-      (when (re-search-forward (org-re-timestamp 'all))
-	(org-timestamp-change n 'day)))
-  (elgantt:update-this-cell)
-  (pcase n
-    (1  (elgantt::move-horizontally 1)
-	(elgantt:update-this-cell))
-    (-1 (elgantt::move-horizontally -1)
-	(elgantt:update-this-cell))))
+  (let ((props (elgantt::select-entry)))
+    (elgantt:with-point-at-orig-entry
+	props
+	(when (re-search-forward (org-re-timestamp 'all))
+	  (org-timestamp-change n 'day)))
+    (elgantt:update-this-cell)
+    (pcase n
+      (1  (elgantt::move-horizontally 1)
+	  (elgantt:update-this-cell))
+      (-1 (elgantt::move-horizontally -1)
+	  (elgantt:update-this-cell)))
+    props))
 
 (defun elgantt:update-this-cell ()
   "Gets data for a specific cell by looking for any headings
