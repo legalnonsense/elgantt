@@ -368,6 +368,8 @@ existing text properties."
 
 ;; NEW - gets a list of all props
 (defun elgantt:get-prop-at-point (&optional prop)
+  "Returns all `:elg' properties at point. If a property is 
+specified, then return that property for each entry at point."
   (let ((prop-list (plist-get (text-properties-at (point)) :elg)))
     (if prop
 	(mapcar (lambda (props) (plist-get props prop))
@@ -623,20 +625,16 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 
 (defun elgantt::select-entry ()
   "Prompt the user to select from multiple entries."
-  (let ((prop-list (elgantt:get-prop-at-point)))
+  (when-let ((prop-list (elgantt:get-prop-at-point)))
     (if (= (length prop-list) 1)
 	(car prop-list)
-      (-first (lambda (x)
-		(string= (completing-read "Select entry: "
-					  (elgantt:get-prop-at-point :raw-value)
-					  nil
-					  'require-match)
-			 (plist-get x :raw-value)))
-	      prop-list))))
-
-
-
-(-first (lambda (x) (= 5 x)) '(1 2 3 4 5))
+      (let ((selection (completing-read "Select entry: "
+					(elgantt:get-prop-at-point :raw-value)
+					nil
+					'require-match)))
+	(-first (lambda (x)
+		  (-contains? x selection))
+		prop-list)))))
 
 (defun elgantt:navigate-to-org-file ()
   "Navigate to a location in an org file when
@@ -718,7 +716,7 @@ Buffer is determined from the `:org-buffer' property."
 	(backward-char)
       (forward-char))))
 
-(defun elgantt::shift-date (n)
+(defun elgantt::shift-date (n &optional properties)
   "Move the timestamp up or down by one day.
 N should be 1 or -1. The return value
 is the prop list of the entry that has been moved."
@@ -727,7 +725,8 @@ is the prop list of the entry that has been moved."
   (unless (or (= n 1)
 	      (= n -1))
     (error "elgantt::shift-date: Invalid argument. N must be 1 or -1."))
-  (let ((props (elgantt::select-entry)))
+  (let ((props (or properties
+		   (elgantt::select-entry))))
     (elgantt:with-point-at-orig-entry
 	props
 	(when (re-search-forward (org-re-timestamp 'all))
@@ -910,11 +909,10 @@ and then it will be removed from the `post-command-hook'."
   ;;(add-hook 'post-command-hook 'elgantt::vertical-highlight nil t)
   (delete-other-windows))
 
-
 (defun elgantt::highlight-dependent-dates (face)
   "Apply FACE to all dependant dates of the current date at point."
   (save-excursion 
-    (if-let ((dependents (car (elgantt::get-dependents))))
+    (if-let ((dependents (elgantt::get-dependents)))
 	(progn 
 	  (backward-char)
 	  (elgantt::set-face-at-point face)
@@ -932,8 +930,6 @@ and then it will be removed from the `post-command-hook'."
 		  (elgantt::set-face-at-point face))
 		dependents))
       (elgantt::clear-elg-overlays))))
-
-
 
 ;; TODO: make sure the anchored date is earlier than the heading?
 ;; TODO: make sure the anchored date has a date?
@@ -957,23 +953,6 @@ of ids which are anchored to the heading."
 				current-heading-id)))
     (org-set-property "ELGANTT-ANCHOR" anchor-heading-id)))
 
-;; (defun elgantt:create-anchor ()
-;;   (let ((current-heading-id ((elgantt:with-point-at-orig-entry
-;; 				 (org-id-get-create))))
-;; 	(anchor-heading-id (while (not (eq (read-event) 'return)))))))
-
-;; (defun xxx ()
-;;   (interactive)
-;;   (insert "k"))
-;; (defun yyy ()
-;;   (interactive)
-;;   (insert "00000")
-
-
-;; (let ((map (make-sparse-keymap)))
-;;   (define-key map (kbd "j") #'xxx)
-;;   (define-key map (kbd "k") #'yyy)
-;;   (set-transient-map map t))
 
 (defun elgantt::org-get-dependents ()
   "Return a list of dependent deadlines from an org buffer."
@@ -986,83 +965,25 @@ of ids which are anchored to the heading."
 
 (defun elgantt::goto-id (id)
   "Go to the cell for the org entry with ID. Return nil if not found."
-  ;; Note: one cannot use `text-property-any' to find the value because
+  ;; Note: we cannot use `text-property-any' to find the value because
   ;; comparisons are done using `eq' which will not work for string values.
-  (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elg-org-id
-		       thereis (when (string= (get-text-property (car points) :elg-org-id) id)
-				 (car points)))))
-    (goto-char point)
-    (point)))
+  (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elg
+		       thereis (save-excursion
+				 (goto-char (car points))
+				 (let ((props (elgantt:get-prop-at-point)))
+				   (when (-first (lambda (x)
+						   (-contains? x id))
+						 props)
+				     (car points)))))))
+    (goto-char point)))
 
-(defun elgantt::get-dependents ()
+
+(defun elgantt::get-dependents (&optional props)
   "Get a list of dependents from the cell at point." 
-  (when-let ((prop (elgantt::select-entry))
+  (when-let ((prop (or props
+		       (elgantt::select-entry)))
 	     (dependents (plist-get prop :elg-dependents)))
     (s-split " " dependents)))
-
-;; (defun elgantt::pop-up-org-heading ()
-;;   (interactive)
-;;   (when-let ((citation-text (get-text-property (point) 'text)))
-;;     (if org-transcript::citation-popup-active
-;; 	(posframe-delete "*TRANSCRIPT CITATION*")
-;;       (when (posframe-workable-p)
-;; 	(posframe-show "*TRANSCRIPT CITATION*"
-;; 		       :string (concat "  " citation-text)
-;; 		       :position (point)
-;; 		       :internal-border-width 2
-;; 		       :internal-border-color "blue")))
-;;     (setq org-transcript::citation-popup-active (not org-transcript::citation-popup-active))))
-
-;; (setq posframe-mouse-banish (not (eq system-type 'darwin)))
-;; (setq posframe-mouse-banish nil)
-;; (defun elgantt::posframe ()
-;;   "Show the current heading in a narrowed, editable, posframe."
-;;   (interactive)
-;;   (when (posframe-workable-p)
-;;     (posframe-show "test"
-;; 		   :string "fuck you"
-;; 		   :position (point)
-;; 		   :internal-border-width 5
-;; 		   :respect-mode-line t
-;; 		   :internal-border-color "red"
-;; 		   :override-parameters '((cursor-type . box)
-;; 					  (no-accept-focus . t)))))
-
-;; (elgantt::posframe)
-;; (posframe-delete-frame "test")
-
-;; (cl-defun posframe-control (posframe-buffer
-;;                             &key
-;; 			      command
-;; 			      &allow-other-keys)
-;;   (with-current-buffer posframe-buffer
-;;     (when (framep posframe--frame)
-;;       (with-selected-frame posframe--frame
-;;         (when (functionp command)
-;;           (funcall command))))))
-
-;; (posframe-show
-;;  "foo-buffer"
-;;  :height 5
-;;  :string "this posframe can be controlled
-;; 1
-;; 2
-;; 3
-;; 4
-;; 5
-;; 6
-;; 7
-;; 7
-;; 8
-;; 9
-;; 10
-;; 11
-;; 12")
-
-;; (posframe-control "foo-buffer" :command 'scroll-up)
-
-;; (posframe-show "sample.org"
-;; 	       :position (point))
 
 (defsubst elgantt:move-date-and-dependents-forward ()
   (interactive)
@@ -1072,23 +993,31 @@ of ids which are anchored to the heading."
   (interactive)
   (elgantt::move-date-and-dependents 'backward))
 
-(defun elgantt::move-date-and-dependents (&optional backward)
+(defun elgantt::move-date-and-dependents (&optional backward props)
   "Move the current date and all anchored dates (and their dependents) forward by one days
 If called with an argument, move backward."
   (interactive)
-  ;; Shift the cell at point
-  (if backward
-      (elgantt::shift-date-backward)
-    (elgantt::shift-date-forward))
-  ;; If the cell has dependents, shift those
-  (when-let ((dependent-ids (elgantt::get-dependents)))
+  ;; Shift the date, and get the props of that date
+  (when-let* ((props (if backward
+			 (elgantt::shift-date -1 props)
+		       (elgantt::shift-date 1 props)))
+	      ;; get the dependents of the date
+	      (dependent-ids (elgantt::get-dependents props)))
+    ;; for each dependent...
     (mapc (lambda (dependent-id)
 	    (save-excursion
+	      ;; ...go to it...
 	      (elgantt::goto-id dependent-id)
-	      (if backward
-		  (elgantt::move-date-and-dependents 'backward)
-		(elgantt::move-date-and-dependents))))
+	      (let ((new-props (-first (lambda (x)
+					 (-contains? x dependent-id))
+				       (elgantt:get-prop-at-point))))
+		;; ...move it...
+		(if backward
+		    (elgantt::move-date-and-dependents 'backward new-props)
+		  (elgantt::move-date-and-dependents nil new-props)))))
 	  dependent-ids)))
+
+
 
 (defun elgantt:date-calculator (date offset &optional unit)
   "DATE is a string \"YYYY-MM-DD\"
