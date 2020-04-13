@@ -472,7 +472,7 @@ specified, then return that property for each entry at point."
     ""))
 
 (defface elgantt:dependent-highlight
-    '((t (:background "white" :foreground "white")))
+  '((t (:background "white" :foreground "white")))
   "dependent highlight face")
 
 (face-spec-set 'elgantt:dependent-highlight
@@ -491,10 +491,19 @@ specified, then return that property for each entry at point."
 ;; 					     change))
 ;;       'elg-ov t))
 
-(defun elgantt::set-face-at-point (face)
+;; (defsubst elgantt::set-face-by-date-and-header (header start-date end-date face)
+;;   (let ((start (elgantt::convert-date-to-column-number start-date))
+;; 	(end (elgantt::convert-date-to-column-number start-date)))
+;;     (elgantt::get-header-create header)
+;;     (goto-col
+
+
+(defun elgantt::set-face (face begin &optional end)
   "Puts an overlay with FACE at point, and set the overlay property `elg-ov'
-to t. FACE can be any value accepted by the 'face overlay property"
-  (ov (point) (1+ (point)) 'face face
+to t. FACE can be any value accepted by the 'face overlay property. BEGIN
+is the start point. END is the end. It is not provided, then the face is 
+applied to the character at point only."
+  (ov (or begin (point)) (or end (1+ (point))) 'face face
       'elg-ov t))
 
 (defun elgantt::clear-elg-overlays ()
