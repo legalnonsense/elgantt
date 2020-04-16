@@ -96,6 +96,7 @@
   (ts-format "%Y-%m-%d" (ts-parse-org date-string)))
 (setq elgantt:header-type 'root)
 
+
 (defun elgantt::parse-this-headline ()
   ;; Note: Many of these properties are irrelevant. This code needs to be cleaned;
   ;; for now, it is sufficent that all the information about an entry will be stored
@@ -106,108 +107,108 @@
   Returns a plist suitable for adding text properties. All property names
   are prefixed with `elg' to avoid collision with other properties. In addition,
   all properties returned be `org-element-at-point' are added to the property list."
-  (let* ((category (cdr (assoc "CATEGORY" (org-entry-properties (point) "CATEGORY")))))
-    ;; For some reason, certain properties retrieved using `org-entry-properties' return
-    ;; the `category' of an entry if the value is nil. For example, if there is no timestamp
-    ;; in an entry, it will return the category. Thus, certain property values must be check
-    ;; against the entry's category to determine whether the value is nil. Since category
-    ;; is repeatedly used, it is stored first.
-    (prop-list (append)
-	       (list :elg-category category)
-	       (list :elg-root
-		     (save-excursion 
-		       (while (org-up-heading-safe))
-		       (cdar (org-entry-properties (point) "ITEM"))))
-	       (list :elg-todo
-		     (cdr (car (org-entry-properties (point) "TODO"))))
-	       (list :elg-file
-		     (cdr (car (org-entry-properties (point) "FILE"))))
-	       (list :elg-headline
-		     (cdar (org-entry-properties (point) "ITEM")))
-	       (list :elg-timestamp
-		     (when-let ((timestamp (cdar (org-entry-properties (point) "TIMESTAMP"))))
-		       (cond ((string= timestamp))
-			     category
-			     nil)
-		       ((s-match "--" timestamp)
-			nil)
-		       (t
-			(elgantt::convert-date-string timestamp))))
-	       (list :elg-timestamp-ia
-		     (when-let ((timestamp-ia (cdar (org-entry-properties (point) "TIMESTAMP_IA"))))
-		       (cond ((string= timestamp-ia))
-			     category
-			     nil)
-		       ((s-match "--" timestamp-ia)
-			nil)
-		       (t
-			(elgantt::convert-date-string timestamp-ia))))
-	       (list :elg-timestamp-range
-		     (when-let ((range (cadr (org-entry-properties (point) "TIMESTAMP"))))
-		       (cond ((string= range category))
-			     nil)
-		       ((not (s-match "--" range))
-			nil)
-		       (t
-			(let ((dates (s-split "--" range)))
-			  (list (elgantt::convert-date-string (car dates)))
-			  (elgantt::convert-date-string (cadr dates))))))
-	       (list :elg-timestamp-ia-range
-		     (when-let ((range (cadr (org-entry-properties (point) "TIMESTAMP_IA"))))
-		       (cond ((string= range category))
-			     nil)
-		       ((not (s-match "--" range))
-			nil)
-		       (t
-			(let ((dates (s-split "--" range)))
-			  (list (elgantt::convert-date-string (car dates)))
-			  (elgantt::convert-date-string (cadr dates))))))
-	       (list :elg-deadline
-		     (when (cdr (car (org-entry-properties (point) "DEADLINE")))
-		       (if (string= (cdr (car (org-entry-properties (point) "DEADLINE"))) category)))
-		     nil
-		     (elgantt::convert-date-string (cdr (car (org-entry-properties (point) "DEADLINE")))))
-	       (list :elg-hashtag
-		     (when-let* ((tag-string (cdar (org-entry-properties (point) "ALLTAGS"))))
-		       (hashtag (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))))
-		       (s-split ":" tag-string)
-		       (org-no-properties hashtag)))
-	       (list :elg-scheduled
-		     (when (cdr (car (org-entry-properties (point) "SCHEDULED")))
-		       (if (string= (cdr (car (org-entry-properties (point) "SCHEDULED"))) category)))
-		     nil
-		     (elgantt::convert-date-string (cdr (car (org-entry-properties (point) "SCHEDULED")))))
-	       (list :elg-alltags
-		     (when-let ((tag-string (cdar (org-entry-properties (point) "ALLTAGS"))))
-		       (mapcar #'org-no-properties (s-split ":" tag-string t))))
-	       (list :elg-header
-		     (pcase elgantt:header-type
-		       ('root 
-			(save-excursion
-			  (while (org-up-heading-safe))
-			  (cdar (org-entry-properties (point) "ITEM"))))
-		       ('hashtag 
-			(when-let ((tag-string (cdar (org-entry-properties (point) "ALLTAGS"))))
-			  (substring 
-			   (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
-				   (s-split ":" tag-string))
-			   1)))
-		       ('category  category)
-		       (_ (error "Invalid header type."))))
-	       (list :elg-org-buffer
-		     (current-buffer))
-	       (list :elg-dependents
-		     (cdar (org-entry-properties (point) "ELGANTT-DEPENDENTS")))
-	       (list :elg-anchor
-		     (org-entry-get (point) "ELGANTT-ANCHOR"))
-	       (list :elg-org-id
-		     (org-id-get-create))
-	       (list :fuck-you t))
-    (setq prop-list (append
+  (let* ((category (cdr (assoc "CATEGORY" (org-entry-properties (point) "CATEGORY"))))
+	 ;; For some reason, certain properties retrieved using `org-entry-properties' return
+	 ;; the `category' of an entry if the value is nil. For example, if there is no timestamp
+	 ;; in an entry, it will return the category. Thus, certain property values must be check
+	 ;; against the entry's category to determine whether the value is nil. Since category
+	 ;; is repeatedly used, it is stored first.
+	 (prop-list (append
+		     (list :elg-category category)
+		     (list :elg-root
+			   (save-excursion 
+			     (while (org-up-heading-safe))
+			     (cdar (org-entry-properties (point) "ITEM"))))
+		     (list :elg-todo 
+			   (cdr (car (org-entry-properties (point) "TODO"))))
+		     (list :elg-file 
+			   (cdr (car (org-entry-properties (point) "FILE"))))
+		     (list :elg-headline
+			   (cdar (org-entry-properties (point) "ITEM")))
+		     (list :elg-timestamp
+			   (when-let ((timestamp (cdar (org-entry-properties (point) "TIMESTAMP"))))
+			     (cond ((string= timestamp
+					     category)
+				    nil)
+				   ((s-match "--" timestamp)
+				    nil)
+				   (t
+				    (elgantt::convert-date-string timestamp)))))
+		     (list :elg-timestamp-ia
+			   (when-let ((timestamp-ia (cdar (org-entry-properties (point) "TIMESTAMP_IA"))))
+			     (cond ((string= timestamp-ia
+					     category)
+				    nil)
+				   ((s-match "--" timestamp-ia)
+				    nil)
+				   (t
+				    (elgantt::convert-date-string timestamp-ia)))))
+		     (list :elg-timestamp-range
+			   (when-let ((range (cadr (org-entry-properties (point) "TIMESTAMP"))))
+			     (cond ((string= range category)
+				    nil)
+				   ((not (s-match "--" range))
+				    nil)
+				   (t
+				    (let ((dates (s-split "--" range)))
+				      (list (elgantt::convert-date-string (car dates))
+					    (elgantt::convert-date-string (cadr dates))))))))
+		     (list :elg-timestamp-ia-range
+			   (when-let ((range (cadr (org-entry-properties (point) "TIMESTAMP_IA"))))
+			     (cond ((string= range category)
+				    nil)
+				   ((not (s-match "--" range))
+				    nil)
+				   (t
+				    (let ((dates (s-split "--" range)))
+				      (list (elgantt::convert-date-string (car dates))
+					    (elgantt::convert-date-string (cadr dates))))))))
+		     (list :elg-deadline 
+			   (when (cdr (car (org-entry-properties (point) "DEADLINE")))
+			     (if (string= (cdr (car (org-entry-properties (point) "DEADLINE"))) category)
+				 nil
+			       (elgantt::convert-date-string (cdr (car (org-entry-properties (point) "DEADLINE")))))))
+		     (list :elg-hashtag
+		     	   (when-let* ((tag-string (cdar (org-entry-properties (point) "ALLTAGS")))
+		     		       (hashtag (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
+		     					(s-split ":" tag-string))))
+		     	     (org-no-properties hashtag)))
+		     (list :elg-scheduled
+			   (when (cdr (car (org-entry-properties (point) "SCHEDULED")))
+			     (if (string= (cdr (car (org-entry-properties (point) "SCHEDULED"))) category)
+				 nil
+			       (elgantt::convert-date-string (cdr (car (org-entry-properties (point) "SCHEDULED")))))))
+		     (list :elg-alltags
+			   (when-let ((tag-string (cdar (org-entry-properties (point) "ALLTAGS"))))
+			     (mapcar #'org-no-properties (s-split ":" tag-string t))))
+		     (list :elg-header
+			   (pcase elgantt:header-type
+			     ('root 
+			      (save-excursion 
+				(while (org-up-heading-safe))
+				(cdar (org-entry-properties (point) "ITEM"))))
+			     ('hashtag 
+			      (when-let ((tag-string (cdar (org-entry-properties (point) "ALLTAGS"))))
+				(substring 
+				 (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
+					 (s-split ":" tag-string))
+				 1)))
+			     ('category  category)
+			     (_ (error "Invalid header type."))))
+		     (list :elg-org-buffer
+			   (current-buffer))
+		     (list :elg-dependents
+			   (cdar (org-entry-properties (point) "ELGANTT-DEPENDENTS")))
+		     (list :elg-anchor
+			   (org-entry-get (point) "ELGANTT-ANCHOR"))
+		     (list :elg-org-id
+			   (org-id-get-create))
+		     (list :fuck-you t))))
+    (setq prop-list (append 
 		     (cond ((plist-get prop-list :elg-deadline)
-			    (list :elg-date (plist-get prop-list :elg-deadline))
-			    :elg-type 'deadline
-			    :elg-display-char (org-no-properties (elgantt::get-display-char 'deadline)))
+			    (list :elg-date (plist-get prop-list :elg-deadline)
+				  :elg-type 'deadline
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'deadline))))
 			   ;;'display (org-no-properties (elgantt::get-display-char 'deadline))))
 			   ((plist-get prop-list :elg-timestamp)
 			    (list :elg-date (plist-get prop-list :elg-timestamp)
@@ -222,19 +223,18 @@
 			   ((plist-get prop-list :elg-scheduled)
 			    (list :elg-date (plist-get prop-list :elg-scheduled)
 				  :elg-type 'scheduled
-				  :elg-display-char (org-no-properties (elgantt::get-display-char 'scheduled))))
-			   ;;'display (org-no-properties (elgantt::get-display-char 'scheduled)))))
-			   (list :elg-anchor-date
-				 (when-let ((anchor-id (plist-get prop-list :elg-anchor)))
-				   (id-point (cdr (org-id-find anchor-id)))
-				   (save-excursion 
-				     (goto-char id-point)
-				     (plist-get (elgantt::parse-this-headline) :elg-date)))
-				 (cadr (org-element-at-point))))
-		     prop-list)
-	  (when (plist-get prop-list :elg-date)
-	    prop-list))))
-
+				  :elg-display-char (org-no-properties (elgantt::get-display-char 'scheduled)))))
+		     ;;'display (org-no-properties (elgantt::get-display-char 'scheduled)))))
+		     (list :elg-anchor-date
+			   (when-let ((anchor-id (plist-get prop-list :elg-anchor))
+				      (id-point (cdr (org-id-find anchor-id))))
+			     (save-excursion 
+			       (goto-char id-point)
+			       (plist-get (elgantt::parse-this-headline) :elg-date))))
+		     (cadr (org-element-at-point))
+		     prop-list))
+    (when (plist-get prop-list :elg-date)
+      prop-list)))
 
 (cl-defun elgantt::get-years (&optional (date-type '(all)))
   "Get the date range of all time values in all agenda files. 
@@ -585,10 +585,10 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
   "Prompt the user to select from multiple entries.
 If PROP is `all', then return the list of all props at point."
   (when-let ((prop-list (elgantt:get-prop-at-point)))
-    (cond ((= (length prop-list) 1)
-	   (car prop-list))
-	  ((eq prop 'all)
+    (cond ((eq prop 'all)
 	   prop-list)
+	  ((= (length prop-list) 1)
+	   (car prop-list))
 	  (t
 	   (let ((selection (completing-read "Select entry: "
 					     (elgantt:get-prop-at-point :raw-value)
@@ -674,8 +674,7 @@ Otherwise, the values are based on the supplied property list."
 	 ,@body))))
 
 (defun elgantt::on-vertical-line ()
-  (string= "|"
-	   (buffer-substring (point) (1+ (point)))))
+  (string= "|" (buffer-substring (point) (1+ (point)))))
 
 (defsubst elgantt::move-up ()
   (interactive)
@@ -763,8 +762,8 @@ which occur on the operative date."
 	     ;;-non-nil is necessary because elgantt::parse-this-headline
 	     ;;returns nil if the entry does not match
 	     (org-ql-select elgantt:agenda-files
-		 `(and (ts :on ,date)
-		   (,type ,item))
+	       `(and (ts :on ,date)
+		     (,type ,item))
 	       :action #'(elgantt::parse-this-headline)))))))
 
 (defun elgantt::run-org-ql-for-date-at-point ()
@@ -917,17 +916,17 @@ next line if it is at the last entry on the line."
   "Insert data from agenda files into buffer." 
   ;; org-ql is much faster than org-map-entries.
   (if (fboundp 'org-ql-select)
-      (mapc #'elgantt::insert-entry)
-    (-non-nil
-     (org-ql-select elgantt:agenda-files))
-    '(ts ;;this should be a variable, because sometimes you'll only want deadlines, etc. 
-      :action #'elgantt::parse-this-headline)
-    (mapc #'elgantt::insert-entry)
-    (-non-nil
-     (org-map-entries #'elgantt::parse-this-headline
-		      nil
-		      (-list elgantt:agenda-files)
-		      'archive))))
+      (mapc #'elgantt::insert-entry
+	    (-non-nil
+	     (org-ql-select elgantt:agenda-files
+	       '(ts) ;;this should be a variable, because sometimes you'll only want deadlines, etc. 
+	       :action #'elgantt::parse-this-headline)))
+    (mapc #'elgantt::insert-entry
+	  (-non-nil
+	   (org-map-entries #'elgantt::parse-this-headline
+			    nil
+			    (-list elgantt:agenda-files)
+			    'archive)))))
 
 (defun elgantt:open ()
   (interactive)
@@ -961,7 +960,18 @@ next line if it is at the last entry on the line."
 (defun elgantt::highlight-dependent-dates (face)
   "Apply FACE to all dependant dates of the current date at point."
   (save-excursion 
-    (if-let ((dependents (elgantt::get-dependents)))
+    (if-let ((dependents (elgantt::get-dependents 'all)))
+	(progn (elgantt::set-face-at-point face)
+	       (mapc (lambda (dependent-id)
+		       (elgantt::goto-id dependent-id)
+		       (elgantt::set-face-at-point face))
+		     dependents))
+      (elgantt::clear-elg-overlays))))
+
+(defun elgantt::highlight-dependent-dates (face &optional props)
+  "Apply FACE to all dependant dates of the current date at point."
+  (save-excursion 
+    (if-let ((dependents (elgantt::get-dependents props)))
 	(progn (elgantt::set-face-at-point face)
 	       (mapc (lambda (dependent-id)
 		       (elgantt::goto-id dependent-id)
@@ -1011,22 +1021,32 @@ of ids which are anchored to the heading."
   ;; Note: we cannot use `text-property-any' to find the value because
   ;; comparisons are done using `eq' which will not work for string values.
   (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elg
-		       thereis (save-excursion
-				 (goto-char (car points))
-				 (let ((props (elgantt:get-prop-at-point)))
-				   (when (-first (lambda (x)
-						   (-contains? x id))
-						 props)
-				     (car points)))))))
+			     thereis (save-excursion
+				       (goto-char (car points))
+				       (let ((props (elgantt:get-prop-at-point)))
+					 (when (-first (lambda (x)
+							 (-contains? x id))
+						       props)
+					   (car points)))))))
     (goto-char point)))
 
 
+
 (defun elgantt::get-dependents (&optional props)
-  "Get a list of dependents from the cell at point." 
-  (when-let ((prop (or props
-		       (elgantt::select-entry)))
-	     (dependents (plist-get prop :elg-dependents)))
-    (s-split " " dependents)))
+  "Get a list of dependents from the cell at point.
+If PROPS, get the dependent from those properties. If
+PROPS is `all', then get all dependents at point if there
+are multiple entries in the cell." 
+  (when-let ((prop (or (when (eq props 'all)
+			 (elgantt::select-entry 'all))
+		       (when props (list props))
+		       (list (elgantt::select-entry))))
+	     (dependents (mapcar (lambda (p)
+				   (plist-get p :elg-dependents))
+				 prop)))
+    (unless (eq (-non-nil dependents) nil)
+      (s-split " " (cl-loop for dep in (-flatten dependents)
+			    concat dep)))))
 
 (defsubst elgantt:move-date-and-dependents-forward ()
   (interactive)
