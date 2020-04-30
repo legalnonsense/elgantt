@@ -1,5 +1,9 @@
+* Lexical binding
+#+begin_src emacs-lisp :results silent
+;;; -*- lexical-binding: t; -*-
+#+end_src
 * Requirements
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :results silent
 (require 'cl-lib)
 (require 'color)
 (require 'org)
@@ -21,7 +25,6 @@
 (defface elg:dependent-highlight
   '((t (:background "white" :foreground "white")))
   "dependent highlight face")
-
 
 (defun elgnatt:set-vertical-bar-face ()
   (goto-char (point-min))
@@ -66,32 +69,42 @@
 * Custom variables
 ** Display customization
 #+begin_src emacs-lisp :results silent
-(defcustom elg-cal-deadline-character "▲"
-  "Character used for deadlines in the calendar.")
 
-(defcustom elg-cal-active-timestamp-character "●"
-  "Character used for active timestamps in the calendar")
+  ;; (defvar elg--character-rules '(("▲" . (lambda ()  ))
+  ;; 			       ("●" . (lambda ()))
+  ;; 			       ("⊚" . (lambda ()))
+  ;; 			       ("⬟" . (lambda ()))
+  ;; 			       ("☰" . (lambda ()))))
 
-(defcustom elg-cal-inactive-timestamp-character "⊚"
-  "Character used for inactive timestamps in the calendar")
 
-(defcustom elg-cal-scheduled-character "⬟"
-  "Character used for active timestamps in the calendar")
+  (defcustom elg-cal-deadline-character "▲"
+    "Character used for deadlines in the calendar.")
 
-(defcustom elg-cal-multiple-entry-character "☰"
-  "Character used for cells which have multiple entries")
+  (defcustom elg-cal-active-timestamp-character "●"
+    "Character used for active timestamps in the calendar")
 
-(defvar elg:cell-entry-re (concat "["
-				      elg-cal-deadline-character
-				      elg-cal-active-timestamp-character
-				      elg-cal-inactive-timestamp-character
-				      elg-cal-scheduled-character
-				      "]"))
+  (defcustom elg-cal-inactive-timestamp-character "⊚"
+    "Character used for inactive timestamps in the calendar")
+
+  (defcustom elg-cal-scheduled-character "⬟"
+    "Character used for active timestamps in the calendar")
+
+  (defcustom elg-cal-multiple-entry-character "☰"
+    "Character used for cells which have multiple entries")
+
+  (setq elg:cell-entry-re (concat "["
+                                        elg-cal-deadline-character
+                                        elg-cal-active-timestamp-character
+                                        elg-cal-inactive-timestamp-character
+                                        elg-cal-scheduled-character
+                                        elg-cal-multiple-entry-character
+                                        "]"))
 #+end_src 
 ** Agenda file customization
 #+begin_src emacs-lisp :results silent
 (defcustom elg:agenda-files (org-agenda-files)
   "Source files. Default: `org-agenda-files'.")
+(setq elg:agenda-files "~/.emacs.d/lisp/elgantt/TEST/sample-work.org")
 (setq elg:agenda-files "~/.emacs.d/lisp/elgantt/TEST/sample.org")
 ;;(setq elg:agenda-files "~/Dropbox/DropsyncFiles/taskmaster.org")
 
@@ -115,12 +128,39 @@
   (defvar elg--parsing-functions nil
     "List of functions for parsing org files.")
 #+end_src
-** overlay rules
+** display rules
 #+begin_src emacs-lisp :results silent
-  (defvar elg--overlay-rules nil
+  (defvar elg--display-rules nil
     "List of functions for drawing overlays in the buffer based on underlying text properties.")
 #+end_src
 * Utility functions
+** List utilities
+*** elg-zip
+#+begin_src emacs-lisp
+  (defun elg:zip (args)
+    "Zips multiple lists together. Example:
+    (elg:zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
+     => '((1 2 3 4) (5 6 7 8) (9 10 11 12)).
+    All lists must be the same length."
+    (if (catch 'match
+          (dotimes (x (1- (length args)))
+            (when (/= (length (nth x args))
+                      (length (nth (1+ x) args)))
+              (throw 'match nil)))
+          (throw 'match t))
+        (let (zip subzip)
+          (dotimes (_ (length (car args)))
+            (setq subzip nil)
+            (dotimes (x (length args))
+              (push (pop (nth x args)) subzip))
+            (push (reverse subzip) zip))
+          (reverse zip))
+      (user-error "Lists are not all the same length.")))
+#+end_src
+
+#+RESULTS:
+: elg:zip
+
 ** Getters
 *** Get header at point
 #+begin_src emacs-lisp :results silent
@@ -363,14 +403,24 @@ If it is not provided, the default is `all'."
   If PROP is `all', then return the list of all props at point."
     (when-let ((prop-list (elg:get-prop-at-point)))
       (cond ((eq prop-or-all 'all)
+             ;; If user wants all entries, return them
              prop-list)
             ((= (length prop-list) 1)
+             ;; If there is only one entry, return it,
+             ;; but flatten the list.
+             ;; If there are two entries, it will return
+             ;; a nested list; if there is one entry,
+             ;; the list is not nested. 
              (car prop-list))
-            (t (let ((selection (completing-read "Select entry: "
-                                                 (elg:get-prop-at-point :raw-value)
-                                                 nil
-                                                 'require-match)))
-                 (-first (lambda (x) (-contains? x selection)) prop-list))))))
+            (t
+             ;; Otherwise, there are more than one entry
+             ;; and the user only wants one of them.
+             ;; Prompt the user to select which one. 
+             (let ((selection (completing-read "Select entry: "
+                                               (elg:get-prop-at-point :raw-value)
+                                               nil
+                                               'require-match)))
+               (-first (lambda (x) (-contains? x selection)) prop-list))))))
 #+end_src
 ** Refreshing
 *** Run org-ql for date at point
@@ -394,34 +444,35 @@ If it is not provided, the default is `all'."
 #+end_src
 *** Update this cell
 #+begin_src emacs-lisp :results silent
-(defun elg:update-this-cell ()
-  "Gets data for a specific cell by looking for any headings
-which occur on the operative date."
-  (when (elg::on-vertical-line)
-    (user-error "Error in elg:update-this-cell: Not on a calendar cell."))
-  ;; I don't know why I am saving this excursion.
-  (save-excursion 
-    (delete-char 1)
-    (insert " ")
-    (backward-char)
-    (when-let* ((date (elg:get-date-at-point))
-		(type (pcase elg:header-type
-			('root 'ancestors)
-			('category 'category)
-			('hashtag 'tags-inherited)))
-		(header (elg:get-header-at-point))
-		(item (pcase type
-			('category header)
-			('hashtag header)
-			('ancestors `(regexp ,header)))))
-      (mapc #'elg::insert-entry
-	    (-non-nil
-	     ;;-non-nil is necessary because elg--parser
-	     ;;returns nil if the entry does not match
-	     (org-ql-select elg:agenda-files
-	       `(and (ts :on ,date)
-		     (,type ,item))
-	       :action #'(elg--parser)))))))
+  (defun elg:update-this-cell ()
+    "Gets data for a specific cell by looking for any headings
+  which occur on the operative date."
+    (when (elg::on-vertical-line)
+      (user-error "Error in elg:update-this-cell: Not on a calendar cell."))
+    ;; I don't know why I am saving this excursion.
+    (save-excursion 
+      (delete-char 1)
+      (insert " ")
+      (backward-char)
+      (when-let* ((date (elg:get-date-at-point))
+                  (type (pcase elg:header-type
+                          ('root 'ancestors)
+                          ('category 'category)
+                          ('hashtag 'tags-inherited)))
+                  (header (elg:get-header-at-point))
+                  (item (pcase type
+                          ('category header)
+                          ('hashtag header)
+                          ('ancestors `(regexp ,header)))))
+        (mapc #'elg::insert-entry
+              (-non-nil
+               ;; -non-nil is necessary because elg--parser
+               ;; returns nil if the entry does not match.
+               ;; Probably should fix this. 
+               (org-ql-select elg:agenda-files
+                 `(and (ts :on ,date)
+                       (,type ,item))
+                 :action #'(elg--parser)))))))
 #+end_src
 ** Normalize date strings
 #+begin_src emacs-lisp :results silent
@@ -443,10 +494,9 @@ which occur on the operative date."
       (error "elg::shift-date: Invalid argument. N must be 1 or -1."))
     (let ((props (or properties
                      (elg::select-entry))))
-      (elg:with-point-at-orig-entry
-       props
-       (when (re-search-forward (org-re-timestamp 'all))
-         (org-timestamp-change n 'day)))
+      (elg:with-point-at-orig-entry props
+          (when (re-search-forward (org-re-timestamp 'all))
+            (org-timestamp-change n 'day)))
       (elg:update-this-cell)
       (pcase n
         (1  (elg::move-horizontally 1)
@@ -466,32 +516,33 @@ which occur on the operative date."
 #+end_src
 *** Shift date and dependents
 #+begin_src emacs-lisp :results silent
-(defun elg::move-date-and-dependents (&optional backward props)
-  "Move the current date and all anchored dates (and their dependents) forward by one days
-If BACKWARD is non-nil, move backward. PROPS is a plist of cell data; otherwise,
-use the cell at point and prompt the user if there are multiple entries in the cell."
-  (interactive)
-  (when-let* ((props (if backward
-			 (elg::shift-date -1 props)
-		       (elg::shift-date 1 props)))
-	      (dependent-ids (elg::get-dependents props)))
-    (mapc (lambda (dependent-id)
-	    (save-excursion
-	      (elg::goto-id dependent-id)
-	      (let ((new-props (-first (lambda (x)
-					 (-contains? x dependent-id))
-				       (elg:get-prop-at-point))))
-		(if backward
-		    (elg::move-date-and-dependents 'backward new-props)
-		  (elg::move-date-and-dependents nil new-props)))))
-	  dependent-ids)))
-(defsubst elg:move-date-and-dependents-forward ()
-  (interactive)
-  (elg::move-date-and-dependents))
+  (defun elg::move-date-and-dependents (&optional backward props)
+    "Move the current date and all anchored dates (and their dependents) forward by one days
+  If BACKWARD is non-nil, move backward. PROPS is a plist of cell data; otherwise,
+  use the cell at point and prompt the user if there are multiple entries in the cell."
+    (interactive)
+    (when-let* ((props (if backward
+                           (elg::shift-date -1 props)
+                         (elg::shift-date 1 props)))
+                (dependent-ids (elg::get-dependents props)))
+      (mapc (lambda (dependent-id)
+              (save-excursion
+                (elg::goto-id dependent-id)
+                (let ((new-props (-first (lambda (x)
+                                           (-contains? x dependent-id))
+                                         (elg:get-prop-at-point))))
+                  (if backward
+                      (elg::move-date-and-dependents 'backward new-props)
+                    (elg::move-date-and-dependents nil new-props)))))
+            dependent-ids)))
 
-(defsubst elg:move-date-and-dependents-backward ()
-  (interactive)
-  (elg::move-date-and-dependents 'backward))
+  (defsubst elg:move-date-and-dependents-forward ()
+    (interactive)
+    (elg::move-date-and-dependents))
+
+  (defsubst elg:move-date-and-dependents-backward ()
+    (interactive)
+    (elg::move-date-and-dependents 'backward))
 
 
 #+end_src
@@ -537,91 +588,156 @@ Otherwise, the values are based on the supplied property list."
 #+end_src
 * Insertion functions
 #+begin_src emacs-lisp :results silent
-(defun elg::change-char (char)
-  "Replace the character at point with CHAR, preserving all 
-existing text properties."
-  (let ((props (elg:select-entry)))
-    (delete-char 1)
-    (insert char)
-    (set-text-properties (point) (1+ (point) props))))
+  (defun elg::change-char (char)
+    "Replace the character at point with CHAR, preserving all 
+  existing text properties."
+    (let ((props (elg:get-prop-at-point)))
+      (delete-char 1)
+      (insert char)
+      (backward-char)
+      (set-text-properties (point) (1+ (point)) `(:elg ,props))))
+    
 
-(defun elg::insert-entry (props)
-  (elg::get-header-create (plist-get props :elg-header))
-  (forward-char (elg::convert-date-to-column-number (plist-get props :elg-date)))
-  (let ((old-props (plist-get (text-properties-at (point)) :elg)))
-    (delete-char 1)
-    (insert (elg::get-display-char (plist-get props :elg-type)))
-    (backward-char)
-    (if old-props
-	;; This is where you should convert the display character property 
-	(set-text-properties (point) (1+ (point)) `(:elg ,(append old-props
-								  (list props))))
-      (set-text-properties (point) (1+ (point)) `(:elg ,(list props))))
-    (add-text-properties (point) (1+ (point)) '(face (:background "red")))))
-(defun elg::get-header-create (header)
-  "Put point at the first char in the HEADER line, creating a new line
-if necessary."
-  (goto-char (point-min))
-  (let ((new-header (concat (s-truncate elg:header-column-offset header))))
-    ;; Concat is necessary for reasons I do not understand. Without it,
-    ;; the text properties are not set propertly. 
-    (if (search-forward new-header nil t)
-	(beginning-of-line)
-      (put-text-property 0 (length new-header) 'elg-header header new-header)
-      (elg::insert-new-header-line new-header)
-      (beginning-of-line))))
+  (defun elg::insert-entry (props)
+    (elg::get-header-create (plist-get props :elg-header))
+    (forward-char (elg::convert-date-to-column-number (plist-get props :elg-date)))
+    (let ((old-props (plist-get (text-properties-at (point)) :elg)))
+      (if old-props
+          (progn
+            (delete-char 1)
+            (insert elg-cal-multiple-entry-character)
+            (backward-char)
+            (set-text-properties (point) (1+ (point)) `(:elg ,(append old-props
+                                                                      (list props)))))
+        (delete-char 1)
+        (insert (elg::get-display-char (plist-get props :elg-type)))
+        (backward-char)
+        (set-text-properties (point) (1+ (point)) `(:elg ,(list props))))
+      (add-text-properties (point) (1+ (point)) '(face (:background "red")))))
 
-(defun elg::insert-new-header-line (header)
-  "Inserts a new header."
-  ;; This could probably be put in a `cl-flet' inside `elg::get-header-create'. 
-  (goto-char (point-max))
-  (insert "\n"
-	  (substring 
-	   (concat header (make-string elg:header-column-offset ? ))
-	   0 elg:header-column-offset))
-  (cl-loop for year in (elg::get-years)
-	   do (if (elg::leap-year-p year)
-		  (insert elg:leap-year-blank-line)
-		(insert elg:normal-year-blank-line))))
+  (defun elg::get-header-create (header)
+    "Put point at the first char in the HEADER line, creating a new header
+  line if one does not exist."
+    (goto-char (point-min))
+    (let ((new-header (concat (s-truncate elg:header-column-offset header))))
+      ;; Concat is necessary for reasons I do not understand. Without it,
+      ;; the text properties are not set propertly. 
+      (if (search-forward new-header nil t)
+          (beginning-of-line)
+        (put-text-property 0 (length new-header) 'elg-header header new-header)
+        (elg::insert-new-header-line new-header)
+        (beginning-of-line))))
 
-(defun elg::draw-month-line ()
-  (let ((calendar-line ""))
-    (dolist (year (elg::get-years))
-      (if (elg::leap-year-p year)
-	  (setq calendar-line (concat calendar-line 
-				      (replace-regexp-in-string "xxxx" (number-to-string year) 
-								elg:leap-year-month-line)))
-	(setq calendar-line (concat calendar-line
-				    (replace-regexp-in-string "xxxx" (number-to-string year) 
-							      elg:normal-year-month-line)))))
-    (insert 
-     (concat (make-string elg:header-column-offset ? ) calendar-line))))
+  (defun elg::insert-new-header-line (header)
+    "Inserts a new header."
+    ;; This could probably be put in a `cl-flet' inside `elg::get-header-create'. 
+    (goto-char (point-max))
+    (insert "\n"
+            (substring 
+             (concat header (make-string elg:header-column-offset ? ))
+             0 elg:header-column-offset))
+    (cl-loop for year in (elg::get-years)
+             do (if (elg::leap-year-p year)
+                    (insert elg:leap-year-blank-line)
+                  (insert elg:normal-year-blank-line))))
 
-(defun elg::draw-number-line ()
-  (let ((number-line ""))
-    (dolist (year (elg::get-years))
-      (if (elg::leap-year-p year)
-	  (setq number-line (concat number-line elg:leap-year-date-line))
-	(setq number-line (concat number-line elg:normal-year-date-line))))
-    (insert 
-     (concat (make-string elg:header-column-offset ? ) number-line))))
+  (defun elg::draw-month-line ()
+    (let ((calendar-line ""))
+      (dolist (year (elg::get-years))
+        (if (elg::leap-year-p year)
+            (setq calendar-line (concat calendar-line 
+                                        (replace-regexp-in-string "xxxx" (number-to-string year) 
+                                                                  elg:leap-year-month-line)))
+          (setq calendar-line (concat calendar-line
+                                      (replace-regexp-in-string "xxxx" (number-to-string year) 
+                                                                elg:normal-year-month-line)))))
+      (insert 
+       (concat (make-string elg:header-column-offset ? ) calendar-line))))
 
-(defun elg::draw-horizontal-line ()
-  (let* ((length
-	  (+ (cl-loop for year in elg::date-range
-		      sum (if (elg::leap-year-p year)
-			      (+ 366 12)
-			    (+ 365 12)))
-	     elg:header-column-offset))
-	 (string (make-string length ? )))
-    (put-text-property 0 length
-		       'face
-		       'elg:horizontal-line-face
-		       string)
-    (insert string)))
+  (defun elg::draw-number-line ()
+    (let ((number-line ""))
+      (dolist (year (elg::get-years))
+        (if (elg::leap-year-p year)
+            (setq number-line (concat number-line elg:leap-year-date-line))
+          (setq number-line (concat number-line elg:normal-year-date-line))))
+      (insert 
+       (concat (make-string elg:header-column-offset ? ) number-line))))
+
+  (defun elg::draw-horizontal-line ()
+    (let* ((length
+            (+ (cl-loop for year in elg::date-range
+                        sum (if (elg::leap-year-p year)
+                                (+ 366 12)
+                              (+ 365 12)))
+               elg:header-column-offset))
+           (string (make-string length ? )))
+      (put-text-property 0 length
+                         'face
+                         'elg:horizontal-line-face
+                         string)
+      (insert string)))
 
 #+end_src
 * User movement functions
+** Scrolling
+#+begin_src emacs-lisp :results silent
+  (defsubst elg-scroll-forward ()
+    (interactive)
+    (elg-scroll 'forward))
+
+  (defsubst elg-scroll-backward ()
+    (interactive)
+    (elg-scroll 'backward))
+
+  (defun elg-scroll (direction)
+    ;; HACK - This his horrible code. Please fix me. 
+    "Place, or move, an overlay on each line, hiding (or showing)
+  the month immediately after the headers.
+
+  DIRECTION must be a symbol: `forward' or `backard'."
+    (let ((column (current-column))
+          (line (line-number-at-pos)))
+      (cond ((and (not elg--hidden-overlays)
+                  (eq direction 'forward))
+             (progn
+               (goto-char (point-min))
+               (setq elg--hidden-overlays 
+                     (cl-loop with num-lines = (count-lines (point-min) (point-max))
+                              for line from 1 to num-lines
+                              collect (make-overlay (progn (move-to-column (1+ elg:header-column-offset)) (point))
+                                                    (elg--next-line))
+                              until (= (line-number-at-pos) num-lines)
+                              do (next-line)))
+               (cl-loop for overlay in elg--hidden-overlays
+                        do (overlay-put overlay 'invisible t))))
+            (elg--hidden-overlays
+             (let ((end (pcase direction
+                          (`forward
+                           (lambda (overlay)
+                             (save-excursion
+                               (goto-char (overlay-end overlay))
+                               (search-forward "|" (point-at-eol) t))))
+                          (`backward
+                           (lambda (overlay)
+                             (goto-char (overlay-end overlay))
+                             (search-backward "|" (point-at-bol) t)
+                             (let ((x (search-backward "|" (point-at-bol) t)))
+                               (when x
+                                 (1+ x))))))))
+               (if (funcall end (car elg--hidden-overlays))
+                   (cl-loop for overlay in elg--hidden-overlays
+                            do (move-overlay overlay
+                                             (overlay-start overlay)
+                                             (funcall end overlay)))
+                 (when (eq direction 'backward)
+                   (setq elg--hidden-overlays nil))))))
+      (goto-char (point-min))
+      (goto-line line)
+      (move-to-column column)))
+
+
+
+#+end_src
 ** Move selection bar
 #+begin_src emacs-lisp :results silent
 (defun elg::move-selection-bar-forward ()
@@ -679,8 +795,6 @@ next line if it is at the last entry on the line."
 		 (goto-char (1- next))
 	       (goto-char previous))))))
 
-
-
 (defun elg::move-horizontally (n)
   "Ensures that the point is not on a vertical line."
   (forward-char n)
@@ -691,36 +805,117 @@ next line if it is at the last entry on the line."
 
 #+end_src
 * Customizing
-** Parsing and overlay functions
-#+begin_src emacs-lisp :results silent  
-  (cl-defun elg--create-rule (&key name parser overlay-rules)
-    "NAME is used to store text and overlay properties. It is
-  converted to `:elg-NAME'. 
+** create overlay rule 
+#+begin_src emacs-lisp :results silent
+  (defun elg--run-parsing-functions ()
+    (-flatten-n 1
+     (cl-loop for (prop . function) in elg--parsing-functions
+              collect `(,prop ,(funcall function)))))
 
-    PARSER is a function that is run with the point at the first
-    point of each  org headline. The return value is stored as a
-    text-property in the form '(:elg-NAME value). 
+  (defun elg--draw-display ()
+    (ov-clear)
+    (save-excursion
+      (goto-char (point-min))
+      (while (next-single-property-change (point) :elg)
+        (goto-char (next-single-property-change (point) :elg))
+        (when (get-text-property (point) :elg)
+          (cl-loop for func in elg--display-rules
+                   do (funcall func))))))
 
-    OVERLAY-RULES is an alist which contains a list of values
-    paired with either (1) properties to be assign to the overlay; 
-    or, (2) a function which accepts START and END, which are the 
-    points which contain the text property.
+  (cl-defmacro elg--add-rule (&key name args body parser docstring)
+    "NAME is used to name the function or property value.
 
-    Any overlay placed will also contain a property named
-    `:elg-NAME' set to t, which is useful for tracking/
-    removing the overlay after it is placed.
+  ARGS is a list of the properties that will be used by the function. 
+  Any poperties supplied here will be automatically fetched from 
+  the cell at point and let-bound for use within BODY. Any argument
+  listed here may be listed with or without a preceding colon. 
 
-    PARSER or OVERLAY-RULES can be omitted if the data is already 
-    stored in a text property or if the purpose is only to add
-    a parsing function.
+  BODY is the body of the function, which will be spliced into 
+  the function being created. BODY should generally do one of the following: 
+  change the display character of a cell by using `elg::change-char', laying
+  an overlay, or setting text-properties. The return value of BODY is ignored and
+   all changes must be made through side-effects. 
 
-    Do not rely on the return value of this function."
-    (let ((formal-name (intern (format ":elg-%s" name))))
-      (when overlay-rules 
-        (push `(,formal-name . ,overlay-rules) elg--overlay-rules))
-      (when parser
-        (push `(,formal-name . ,parser) elg--parsing-functions))))
-#+end_src 
+  DOCSTRING is the docstring of the newly-defined function.
+
+  PARSER is an optional argument used to add information to cells when the
+  calendar is generated. It must be an alist in form of ((property-name . body)).
+  You may specify a property-name which begins with a colon, or not. If none is 
+  provided, a colon will be added. Body is the body of a function that is called 
+  when the point is at the first point of each org heading. Its return value will
+  be assigned to the property-name for each cell. 
+
+  After the function is created, it is inserted into the appropriate function list
+  to be run either when parsing the org file and storing text properties or run
+  when processing the display settings of each individual cell."
+    (declare (indent defun))
+    (let ((func-name (intern (concat "elg--display-rule-" (symbol-name name)))))
+      `(progn
+         (when ',parser
+           (cl-loop for (prop . val) in (-list ',parser)
+                    do (setf (alist-get (if (s-starts-with-p ":" (symbol-name prop))
+                                            prop
+                                          (intern (concat ":" (symbol-name prop))))
+                                        elg--parsing-functions)
+                             `(lambda () ,@val))))
+         (if (and ',name ',body (or ',parser ',args))
+             (cl-pushnew
+              (defun ,func-name ()
+                ,docstring
+                (mapc
+                 (lambda (arg-list)
+                   (-let ((,(append (cl-loop for arg in args
+                                             collect (if (s-starts-with-p ":" (symbol-name arg))
+                                                         (intern (substring (symbol-name arg) 1))			
+                                                       arg))
+                                    (cl-loop for (prop . val) in parser
+                                             collect (if (s-starts-with-p ":" (symbol-name prop))
+                                                         (intern (substring (symbol-name prop) 1))			
+                                                       prop)))
+                           arg-list))
+                     ,@body))
+                 (elg:zip
+                  (mapcar #'elg:get-prop-at-point
+                          (append ',(cl-loop for arg in args
+                                             collect (if (s-starts-with-p ":" (symbol-name arg))
+                                                         arg
+                                                       (intern (concat ":" (symbol-name arg)))))
+                                  ',(cl-loop for (prop . val) in parser
+                                             collect (if (s-starts-with-p ":" (symbol-name prop))
+                                                         prop
+                                                       (intern (concat ":" (symbol-name prop))))))))))
+              elg--display-rules)
+           (cl-pushnew (defun ,func-name () ,docstring ,@body)
+                       elg--display-rules)))))
+
+#+end_src
+** User config
+#+begin_src emacs-lisp :results silent
+  (elg--add-rule
+    :name deadsync
+    :docstring "asdfasdf"
+    :parser ((org-deadsync-active . ((cdr (car (org-entry-properties (point) "ORG-DEADSYNC-ACTIVE")))))
+             (org-deadsync-link . ((cdr (car (org-entry-properties (point) "ORG-DEADSYNC-LINK"))))))
+    :body ((when (and org-deadsync-active
+                      org-deadsync-link)
+             (let ((end (point))
+                   (start (save-excursion (elg::goto-id org-deadsync-link)
+                                          (point))))
+               (elg--draw-gradient "red" "blue" start end)))))
+
+  (elg--add-rule
+    :name display-char
+    :docstring "Display the appropriate character for the cell at point."
+    :args (elg-deadline elg-timestamp elg-timestamp-ia elg-scheduled)
+    :body ((let ((elg-multi (> (length (elg:get-prop-at-point)) 1)))
+             (elg::change-char (cond (elg-multi "☰")
+                                     (elg-deadline  "▲")
+                                     (elg-timestamp "●")
+                                     (elg-timestamp-ia " ")
+                                     (elg-scheduled " "))))))
+
+
+#+end_src
 * Parsing
 ** Parsing function run at point
 #+begin_src emacs-lisp :results silent
@@ -850,32 +1045,16 @@ next line if it is at the last entry on the line."
                                  (goto-char id-point)
                                  (plist-get (elg--parser) :elg-date))))
                        (cadr (org-element-at-point))
-                       (-flatten
-                        (cl-loop for (prop . function) in elg--parsing-functions
-                                 collect `(,prop ,(funcall function))))
+                       (elg--run-parsing-functions)
                        prop-list))
       ;; only return those that have a date property 
       (when (plist-get prop-list :elg-date)
         prop-list)))
 #+end_src
-** Custom parsing functions
-*** Get dependents
-#+begin_src emacs-lisp :results silent
-(defun elg::org-get-dependents ()
-  "Return a list of dependent deadlines from an org buffer."
-  (when-let ((anchors (cdar (org-entry-properties (point) "ELG-DEPENDENTS"))))
-    (s-split " " anchors)))
-#+end_src
-*** Get anchor
-#+begin_src emacs-lisp :results silent
-(defun elg::get-anchor ()
-  "Return a list of dependent deadlines"
-  (cdar (org-entry-properties (point) "ELG-ANCHOR")))
-#+end_src
 ** Parsing loop 
 Should this handle archiving (in org-map-entries) and timestamp (in org-ql) differently? 
 #+begin_src emacs-lisp :results silent
-(defun elg--parse-iterate ()
+(defun elg--iterate ()
   "Iterate over all entries."
   ;; org-ql is much faster than org-map-entries.
   (if (fboundp 'org-ql-select)
@@ -915,40 +1094,101 @@ Should this handle archiving (in org-map-entries) and timestamp (in org-ql) diff
 (defun elg::set-face-at-point (face)
   (ov (point) (1+ (point)) 'face face 'elg-ov t))
 #+end_src
+**** Color conversion utilities
+#+begin_src emacs-lisp :results silent
+  (defun elg--color-rgb-to-hex (color)
+    "Convert an RBG tuple '(R G B) to six digit hex string \"#RRGGBB\""
+    (pcase-let ((`(,r ,g ,b) color))
+      (color-rgb-to-hex r g b 2)))
+
+  (defun elg--color-name-to-hex (color)
+    "Convert named color to six digit hex color."
+
+    (eval `(color-rgb-to-hex ,@(color-name-to-rgb color) 2)))
+
+
+
+  (defalias 'elg--color-name-to-rgb #'color-name-to-rgb)
+
+  (defun elg--color-hex-to-rgb (hex-color)
+    "Convert hex color to RGB tuple."
+    `(,(string-to-number (substring hex-color 1 3) 16)
+      ,(string-to-number (substring hex-color 3 5) 16)
+      ,(string-to-number (substring hex-color 5 7) 16)))
+
+  (defun elg--color-to-rgb (color)
+    "Convert a color name or hex color to RGB tuple."
+    (pcase color
+      ;; If it's hex...
+      ((and (pred stringp)
+            (pred (s-starts-with-p "#")))
+       (elg--color-hex-to-rgb color))
+      ;; If it's a string (trust the user that the color
+      ;; name is in `list-colors-display')...
+      ((pred stringp)
+       (elg--color-name-to-rgb color))
+      ;; If it's already an RGB tuple...
+      ((and `(,r ,g ,b)
+            (guard (numberp r))
+            (guard (numberp g))
+            (guard (numberp b)))
+       color)
+      ;; Otherwise...
+      (_ (error "Color type must be hex, e.g., \"#ffccaa\" or color name, e.g., \"red\" or an RGB tuple, e.g., '(1.0 .5 0)"))))
+#+end_src
 **** Gradients
 #+begin_src emacs-lisp :results silent
-(defun elg::set-gradient-ov (header start-date end-date start-color end-color)
-  "HEADER is a string, which will be automatically truncated as needed.
-START-COLOR and END-COLOR are hex colors formatted as a string: \"#xxxxxx\".
-START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
-  (goto-char (point-min))
-  (let ((header (s-truncate elg:header-column-offset header)))
-    (if (search-forward header nil t)
-	(progn
-	  (beginning-of-line)
-	  (let* ((start-color `(,(string-to-number (substring start-color 1 3) 16)
-				,(string-to-number (substring start-color 3 5) 16)
-				,(string-to-number (substring start-color 5 7) 16)))
-		 (end-color `(,(string-to-number (substring end-color 1 3) 16)
-			      ,(string-to-number (substring end-color 3 5) 16)
-			      ,(string-to-number (substring end-color 5 7) 16)))
-		 (start-col (elg::convert-date-to-column-number start-date))
-		 (end-col (elg::convert-date-to-column-number end-date))
-		 (start (save-excursion (forward-char start-col) (point)))
-		 (end (save-excursion (forward-char end-col) (point)))
-		 (hex ""))
-	    (beginning-of-line)
-	    (dolist (color (color-gradient start-color end-color (1+ (- end start))))
-	      (setq hex "")
-	      (dolist (c color)
-		(if (= (length (format "%x" c)) 1)
-		    (setq hex (concat hex (format "0%x" c)))
-		  (setq hex (concat hex (format "%x" c)))))
-	      (setq hex (concat "#" hex ))
-	      (ov start (+ 1 start) 'face `(:background ,hex)
-		  'elg-ov t)
-	      (setq start (+ 1 start)))))
-      (error "Error in elg:change-gradient. Header not found."))))
+  (defun elg--get-color-midpoint (color1 color2)
+    "Take two colors (any format) and return their
+  average as an RGB tuple."
+    (let ((color1 (elg--color-to-rgb color1))
+          (color2 (elg--color-to-rgb color2)))
+      (-zip-with (lambda (c1 c2)
+                   (/ (+ c1 c2) 2))
+                 color1 color2)))
+
+  (defun elg--draw-two-color-block (start-color end-color start end divider)
+    (let ((start-color (elg--color-name-to-hex start-color))
+          (end-color (elg--color-name-to-hex end-color)))
+      (save-excursion
+        (goto-char start)
+        (cl-loop for x from start to end
+                 do (goto-char x)
+                 (ov (point)
+                     (1+ (point))
+                     'face
+                     (if (<= (point) divider)
+                         `(:background ,start-color)
+                       `(:background ,end-color)))
+                 (forward-char)))))	;
+
+  (defun elg--draw-gradient (start-color end-color start end &optional mid-point)
+    (let ((color-gradient
+           (let ((start-color (elg--color-to-rgb start-color))
+                 (end-color (elg--color-to-rgb end-color)))
+             (if mid-point
+                 (let ((mid-color (elg--get-color-midpoint start-color
+                                                           end-color)))
+                   (append (color-gradient
+                            start-color
+                            mid-color
+                            (1+ (- mid-point start))
+                            (color-gradient mid-color
+                                            end-color
+                                            (- steps mid-point)))))
+               (color-gradient start-color
+                               end-color
+                               (1+ (- end start)))))))
+      (save-excursion
+        (goto-char start)
+        (mapc (lambda (color)
+                (ov (point)
+                    (1+ (point))
+                    'face
+                    `(:background ,(elg--color-rgb-to-hex color)))
+                (forward-char))
+              color-gradient))))
+
 #+end_src
 *** Highlight dependents
 #+begin_src emacs-lisp :results silent
@@ -983,70 +1223,72 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
 *** Draw overlays according to rules
 **** TODO make a "matches any value" place holder 
 #+begin_src emacs-lisp :results silent 
-  (defun elg--draw-overlays ()
-    "Draw all overlays in the buffer based on underlying text properties."
-    (cl-loop for points being the intervals of (current-buffer)
-             do (cl-loop for (key . value) in elg--overlay-rules
-                         do (when-let ((val (lax-plist-get (text-properties-at (car points)) key))
-                                       (effects (alist-get val (alist-get key elg--overlay-rules) nil nil #'equal)))
-                              (pcase effects
-                                ((pred functionp)
-                                 ;; Odds are that the function will apply an overlay...
-                                 (let ((overlay (funcall effects (car points) (cdr points))))
-                                   ;; ...if it does, also provide a name so we can find it later.
-                                   (when (ov-p overlay)
-                                     (ov-set overlay key t))))
-                                ;; If it's not a function, then assume the rule
-                                ;; is a list of properties for an overlay. Add
-                                ;; an overlay with those properties, as well as
-                                ;; a name for the overlay `:elg-NAME'
-                                (_ (ov (car points) (cdr points)
-                                       (-flatten-n 1
-                                                   (list effects
-                                                         key t)))))))))
+  ;; (defun elg--draw-overlays ()
+  ;;   "Draw all overlays in the buffer based on underlying text properties."
+  ;;   (cl-loop for points being the intervals of (current-buffer)
+  ;;            do (cl-loop for (key . value) in elg--overlay-rules
+  ;;                        do (when-let ((val (lax-plist-get (text-properties-at (car points)) key))
+  ;;                                      (effects (alist-get val (alist-get key elg--overlay-rules) nil nil #'equal)))
+  ;;                             (pcase effects
+  ;;                               ((pred functionp)
+  ;;                                ;; Odds are that the function will apply an overlay...
+  ;;                                (let ((overlay (funcall effects (car points) (cdr points))))
+  ;;                                  ;; ...if it does, also provide a name so we can find it later.
+  ;;                                  (when (ov-p overlay)
+  ;;                                    (ov-set overlay key t))))
+  ;;                               ;; If it's not a function, then assume the rule
+  ;;                               ;; is a list of properties for an overlay. Add
+  ;;                               ;; an overlay with those properties, as well as
+  ;;                               ;; a name for the overlay `:elg-NAME'
+  ;;                               (_ (ov (car points) (cdr points)
+  ;;                                      (-flatten-n 1
+  ;;                                                  (list effects
+  ;;                                                        key t)))))))))
 
 
-  (defun elg--draw-overlays* ()
-    "Draw all overlays in the buffer based on underlying text properties."
-    (cl-loop for points being the intervals of (current-buffer)
-             do (cl-loop for (name . value) in elg--overlay-rules
-                         do (when-let ((val (lax-plist-get (text-properties-at (car points)) key))
-                                       (effects (alist-get val (alist-get key elg--overlay-rules) nil nil #'equal)))
-                              (pcase effects
-                                ((pred functionp)
-                                 ;; Odds are that the function will apply an overlay...
-                                 (let ((overlay (funcall effects (car points) (cdr points))))
-                                   ;; ...if it does, also provide a name so we can find it later.
-                                   (when (ov-p overlay)
-                                     (ov-set overlay key t))))
-                                ;; If it's not a function, then assume the rule
-                                ;; is a list of properties for an overlay. Add
-                                ;; an overlay with those properties, as well as
-                                ;; a name for the overlay `:elg-NAME'
-                                (_ (ov (car points) (cdr points)
-                                       (-flatten-n 1
-                                                   (list effects
-                                                         key t)))))))))
+  ;; (defun elg--draw-overlays* ()
+  ;;   "Draw all overlays in the buffer based on underlying text properties."
+  ;;   (cl-loop for points being the intervals of (current-buffer)
+  ;;            do (cl-loop for (name . value) in elg--overlay-rules
+  ;;                        do (when-let ((val (lax-plist-get (text-properties-at (car points)) key))
+  ;;                                      (effects (alist-get val (alist-get key elg--overlay-rules) nil nil #'equal)))
+  ;;                             (pcase effects
+  ;;                               ((pred functionp)
+  ;;                                ;; Odds are that the function will apply an overlay...
+  ;;                                (let ((overlay (funcall effects (car points) (cdr points))))
+  ;;                                  ;; ...if it does, also provide a name so we can find it later.
+  ;;                                  (when (ov-p overlay)
+  ;;                                    (ov-set overlay key t))))
+  ;;                               ;; If it's not a function, then assume the rule
+  ;;                               ;; is a list of properties for an overlay. Add
+  ;;                               ;; an overlay with those properties, as well as
+  ;;                               ;; a name for the overlay `:elg-NAME'
+  ;;                               (_ (ov (car points) (cdr points)
+  ;;                                      (-flatten-n 1
+  ;;                                                  (list effects
+  ;;                                                        key t)))))))))
 #+end_src
 * Major mode
 #+begin_src emacs-lisp :results silent
-(setq elg-mode-map
-      (let ((map (make-sparse-keymap)))
-	(define-key map (kbd "x")   #'elg-interact-mode)
-	(define-key map (kbd "r")   #'elg:open)
-	(define-key map (kbd "SPC") #'elg:navigate-to-org-file)
-	(define-key map (kbd "p")   #'elg::move-up)
-	(define-key map (kbd "n")   #'elg::move-down)
-	(define-key map (kbd "f")   #'elg::move-selection-bar-forward)
-	(define-key map (kbd "b")   #'elg::move-selection-bar-backward)
-	(define-key map (kbd "RET") #'elg::open-org-agenda-at-date)
-	(define-key map (kbd "M-f") #'elg::shift-date-forward)
-	(define-key map (kbd "M-b") #'elg::shift-date-backward)
-	(define-key map (kbd "C-M-f") #'elg:move-date-and-dependents-forward)
-	(define-key map (kbd "C-M-b") #'elg:move-date-and-dependents-backward)
-	map))
+  (setq elg-mode-map
+        (let ((map (make-sparse-keymap)))
+          (define-key map (kbd "x")   #'elg-interact-mode)
+          (define-key map (kbd "r")   #'elg:open)
+          (define-key map (kbd "SPC") #'elg:navigate-to-org-file)
+          (define-key map (kbd "p")   #'elg::move-up)
+          (define-key map (kbd "n")   #'elg::move-down)
+          (define-key map (kbd "f")   #'elg::move-selection-bar-forward)
+          (define-key map (kbd "F")   #'elg-scroll-forward)
+          (define-key map (kbd "B")   #'elg-scroll-backward)
+          (define-key map (kbd "b")   #'elg::move-selection-bar-backward)
+          (define-key map (kbd "RET") #'elg::open-org-agenda-at-date)
+          (define-key map (kbd "M-f") #'elg::shift-date-forward)
+          (define-key map (kbd "M-b") #'elg::shift-date-backward)
+          (define-key map (kbd "C-M-f") #'elg:move-date-and-dependents-forward)
+          (define-key map (kbd "C-M-b") #'elg:move-date-and-dependents-backward)
+          map))
 
-(define-derived-mode elg-mode special-mode "El Gantt" "Horizontal calendar interface for orgmode. \{keymap}")
+  (define-derived-mode elg-mode special-mode "El Gantt" "Horizontal calendar interface for orgmode. \{keymap}")
 #+end_src
 
 * Open function 
@@ -1055,42 +1297,44 @@ START-DATE and END-DATE are strings: \"YYYY-MM-DD\""
     (interactive)
     (switch-to-buffer "*El Gantt Calendar*")
     (setq elg::date-range (elg::get-years))
+    (setq elg--hidden-overlays nil)
     (erase-buffer)
     (elg::draw-month-line)
     (insert "\n")
     (elg::draw-number-line)
     ;;  (elg::draw-horizontal-line)
-    (elg--parse-iterate)
+    (elg--iterate)
     (elg-mode)
     (read-only-mode -1)
     (toggle-truncate-lines 1)
     (horizontal-scroll-bar-mode 1)
+    (elg--draw-display)
     (goto-char (point-min))
     ;;  (forward-char (elg::convert-date-to-column-number (format-time-string "%Y-%m-%d")))
     ;;(add-hook 'post-command-hook #'elg::show-echo-message nil t)
-    (add-hook 'post-command-hook #'elg::highlight-dependents nil t)
-  
-    ;;(add-hook 'post-command-hook 'elg::vertical-highlight nil t)
-    (delete-other-windows))
+    ;;(add-hook 'post-command-hook #'elg::highlight-dependents nil t)
 
+    ;;(add-hook 'post-command-hook 'elg::vertical-highlight nil t)
+    ;;(delete-other-windows))
+)
 #+end_src
 * Testing
 ** Get data
 #+begin_src emacs-lisp :results silent
-(defun elg:get-data ()
-  "Testing function." 
-  (-non-nil
-   (org-map-entries #'elg--parser
-		    nil
-		    (-list elg:agenda-files)
-		    elg:skip-files)))
+  (defun elg:get-data ()
+    "Testing function." 
+    (-non-nil
+     (org-map-entries #'elg--parser
+                      nil
+                      (-list elg:agenda-files)
+                      elg:skip-files)))
 
-(defun elg:get-data-org-ql ()
-  "Testing function."
-  (-non-nil
-   (org-ql-select elg:agenda-files
-     '(ts)
-     :action #'elg--parser)))
+  (defun elg:get-data-org-ql ()
+    "Testing function."
+    (-non-nil
+     (org-ql-select elg:agenda-files
+       '(ts)
+       :action #'elg--parser)))
 
 #+end_src
 * Recycling
