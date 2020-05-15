@@ -1822,7 +1822,7 @@ of ids which are anchored to the heading."
       (elg-mode)
       (read-only-mode -1)
       (toggle-truncate-lines 1)
-      ;;(horizontal-scroll-bar-mode 1)
+      ;(;horizontal-scroll-bar-mode 1)
       (elg--draw-display)
       (elg--highlight-current-day)
       (setq header-line-format elg-header-line-format)
