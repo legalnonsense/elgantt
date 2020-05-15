@@ -896,7 +896,7 @@ supplied with the file name (string) and point (number)."
   then retrieve PROPS with `elg::select-entry’.
   If PROPS is supplied, use those props instead of the props at point."
     (declare (indent 2))
-    `(let* ((props (or ',props ',(elg::select-entry)))
+    `(let* ((props (or ,props ',(elg::select-entry)))
             (marker (plist-get props :elg-marker))
             (buffer (plist-get props :elg-org-buffer)))
          (with-current-buffer buffer
@@ -1046,8 +1046,9 @@ supplied with the file name (string) and point (number)."
           (elg--display-rule-display-char)
           (cl-loop for func in elg--display-rules
                    do (funcall func))))))
-
-
+#+end_src
+** Update cell display
+#+begin_src emacs-lisp
   (defun elg--update-cell-display ()
     (elg--display-rule-display-char)
     (cl-loop for func in elg--display-rules
@@ -1264,7 +1265,7 @@ supplied with the file name (string) and point (number)."
                (org-ql-select elg:agenda-files
                  `(and (ts :on ,date)
                        (,type ,item))
-                 :action #'(elg--parser)))))
+                 :action #'elg--parser))))
       (elg--update-cell-display)))
 #+end_src
 * Open function 
@@ -1399,7 +1400,8 @@ supplied with the file name (string) and point (number)."
                                           elg-cal-timestamp-range-start-character
                                         elg-cal-timestamp-range-end-character))
                                      (elg-timestamp-ia elg-cal-inactive-timestamp-character)
-                                     (elg-scheduled elg-cal-scheduled-character))))))
+                                     (elg-scheduled elg-cal-scheduled-character)
+                                     (t " "))))))
 #+end_src
 *** test
 #+begin_src emacs-lisp :results silent
@@ -1820,7 +1822,7 @@ of ids which are anchored to the heading."
       (elg-mode)
       (read-only-mode -1)
       (toggle-truncate-lines 1)
-      (horizontal-scroll-bar-mode 1)
+      ;;(horizontal-scroll-bar-mode 1)
       (elg--draw-display)
       (elg--highlight-current-day)
       (setq header-line-format elg-header-line-format)
