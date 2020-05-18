@@ -1031,26 +1031,25 @@ supplied with the file name (string) and point (number)."
 ** Draw top-level month and date lines
 #+begin_src emacs-lisp :results silent 
   (defun elg::draw-month-line ()
-    (let ((calendar-line ""))
-      (dolist (year elg::date-range)
-        (if (elg::leap-year-p year)
-            (setq calendar-line (concat calendar-line 
-                                        (replace-regexp-in-string "xxxx" (number-to-string year) 
-                                                                  elg:leap-year-month-line)))
-          (setq calendar-line (concat calendar-line
-                                      (replace-regexp-in-string "xxxx" (number-to-string year) 
-                                                                elg:normal-year-month-line)))))
-      (insert 
-       (concat (make-string elg:header-column-offset ? ) calendar-line))))
+    ;; (let ((calendar-line ""))
+    ;;   (dolist (year elg::date-range)
+    ;;     (if (elg::leap-year-p year)
+    ;;         (setq calendar-line (concat calendar-line 
+    ;;                                     (replace-regexp-in-string "xxxx" (number-to-string year) 
+    ;;                                                               elg:leap-year-month-line)))
+    ;;       (setq calendar-line (concat calendar-line
+    ;;                                   (replace-regexp-in-string "xxxx" (number-to-string year) 
+    ;;                                                             elg:normal-year-month-line)))))
+    (insert (make-string elg:header-column-offset ? )))
 
   (defun elg::draw-number-line ()
-    (let ((number-line ""))
-      (dolist (year elg::date-range)
-        (if (elg::leap-year-p year)
-            (setq number-line (concat number-line elg:leap-year-date-line))
-          (setq number-line (concat number-line elg:normal-year-date-line))))
-      (insert 
-       (concat (make-string elg:header-column-offset ? ) number-line))))
+    ;; (let ((number-line ""))
+    ;;   (dolist (year elg::date-range)
+    ;;     (if (elg::leap-year-p year)
+    ;;         (setq number-line (concat number-line elg:leap-year-date-line))
+    ;;       (setq number-line (concat number-line elg:normal-year-date-line))))
+    (insert 
+     (make-string elg:header-column-offset ? )))
 
   (defun elg::draw-month-line* (year)
     (insert 
@@ -1069,21 +1068,6 @@ supplied with the file name (string) and point (number)."
     (insert (if (elg::leap-year-p year)
                 elg:leap-year-blank-line
               elg:normal-year-blank-line)))
-
-
-  ;; (defun elg::draw-horizontal-line ()
-  ;;   (let* ((length
-  ;;           (+ (cl-loop for year in elg::date-range
-  ;;                       sum (if (elg::leap-year-p year)
-  ;;                               (+ 366 12)
-  ;;                             (+ 365 12)))
-  ;;              elg:header-column-offset))
-  ;;          (string (make-string length ? )))
-  ;;     (put-text-property 0 length
-  ;;                        'face
-  ;;                        'elg:horizontal-line-face
-  ;;                        string)
-  ;;     (insert string)))
 #+end_src
 ** Get/create calendar header lines
 #+begin_src emacs-lisp :results silent 
@@ -1126,30 +1110,33 @@ supplied with the file name (string) and point (number)."
         (end-of-line)
       (move-to-column elg:header-column-offset))
     (elg::draw-number-line* year)
-    (cl-loop do (next-line)
-             until (eobp)
-             do (progn (if append
+    (cl-loop until (progn (end-of-line)
+                          (eobp))
+             do (progn (next-line)
+                       (if append
                            (end-of-line)
                          (move-to-column elg:header-column-offset))
                        (elg::draw-blank-line* year))))
 
   (defun elg--add-year (year)
-    (if elg::date-range
-        (when (not (memq year elg::date-range))
-          (cond ((< year (first elg::date-range))
-                 (let ((dif (- (first elg::date-range) year)))
-                   (setq year (first elg::date-range))
-                   (dotimes (_ dif)
-                     (setq year (1- year))
-                     (cl-pushnew year elg::date-range)
-                     (elg--insert-year year))))
-                ((> year (car (last elg::date-range)))
-                 (let ((dif (- year (car (last elg::date-range)))))
-                   (setq year (car (last elg::date-range)))
-                   (dotimes (_ dif)
-                     (setq year (1+ year))
-                     (cl-pushnew year elg::date-range)
-                     (elg--insert-year year t))))))
+    (when (not (memq year elg::date-range))
+      (cond ((not elg::date-range)
+             (cl-pushnew year elg::date-range)
+             (elg--insert-year year))
+            ((< year (first elg::date-range))
+             (let ((dif (- (first elg::date-range) year)))
+               (setq year (first elg::date-range))
+               (dotimes (_ dif)
+                 (setq year (1- year))
+                 (cl-pushnew year elg::date-range)
+                 (elg--insert-year year))))
+            ((> year (car (last elg::date-range)))
+             (let ((dif (- year (car (last elg::date-range)))))
+               (setq year (car (last elg::date-range)))
+               (dotimes (_ dif)
+                 (setq year (1+ year))
+                 (cl-pushnew year elg::date-range)
+                 (elg--insert-year year t)))))
       (setq elg::date-range (sort elg::date-range #'<))))
 #+end_src
 
@@ -1161,10 +1148,8 @@ supplied with the file name (string) and point (number)."
   are already present. Updates the cell's display."
     (mapc (lambda (date) 
             (elg::get-header-create (plist-get props :elg-header))
-            (let ((year (string-to-number (plist-get props :elg-date))))
-              (unless (memq year elg::date-range)
-                (elg--add-year year)))
-            (forward-char (elg::convert-date-to-column-number date))
+            (elg--add-year (string-to-number (substring date 0 4)))
+            (move-to-column (elg::convert-date-to-column-number date))
             (let ((old-props (plist-get (text-properties-at (point)) :elg)))
               (if old-props
                   (set-text-properties (point) (1+ (point)) `(:elg ,(append old-props
@@ -1172,6 +1157,8 @@ supplied with the file name (string) and point (number)."
                 (set-text-properties (point) (1+ (point)) `(:elg ,(list props)))))
             (elg--update-cell-display))
           (-list (plist-get props :elg-date))))
+
+
 #+end_src
 ** Change char at point
 #+begin_src emacs-lisp :results silent
@@ -1421,7 +1408,7 @@ supplied with the file name (string) and point (number)."
   ;;       :action #'elg--parser)))
 #+end_src
 ** Refresh this cell
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :results silent 
   (defun elg:update-this-cell (&optional no-redraw date header type item)
     "Gets data for a specific cell by looking for any headings
     which occur on the operative date."
@@ -1503,7 +1490,7 @@ supplied with the file name (string) and point (number)."
     (interactive)
     (switch-to-buffer "*El Gantt Calendar*")
     (let ((point (point)))
-      (setq elg::date-range (elg::get-years))
+      (setq elg::date-range nil);; (elg::get-years))
       (setq elg--hidden-overlays nil)
       (erase-buffer)
       (elg::draw-month-line)
@@ -1710,17 +1697,13 @@ supplied with the file name (string) and point (number)."
            (define-key elg-mode-map (kbd ,binding) #',action-func-name)))))
 #+end_src
 *** testing
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :results silent
   (elg-create-action turn-this-shit-red
     :docstring "turn it red when I press O"
     :args (:elg-deadline :elg-headline)
     :body ((when elg-headline (message elg-headline)))
     :binding "o")
 #+end_src
-
-#+RESULTS:
-: elg--action-rule-turn-this-shit-red
-
 * Creating rules
 #+begin_src emacs-lisp :results silent
   ;; (cl-defmacro elg--add-rule (&key name args display-body action-body action-binding parser docstring disable)
@@ -1989,7 +1972,7 @@ of ids which are anchored to the heading."
   (defun elg--convert-super-agenda ()
     (goto-char (point-min))
     (with-current-buffer "*El Gantt Calendar*"
-      (setq elg::date-range '(2019 2020 2021))
+      (setq elg::date-range nil)
       (setq elg--hidden-overlays nil)  
       (erase-buffer)
       (elg::draw-month-line)
@@ -2010,7 +1993,6 @@ of ids which are anchored to the heading."
     (elg-mode)
     (read-only-mode -1)
     (toggle-truncate-lines 1)
-    (horizontal-scroll-bar-mode 1)
     (elg--draw-display)
     (elg--highlight-current-day)
     (setq header-line-format elg-header-line-format))
@@ -2021,7 +2003,7 @@ of ids which are anchored to the heading."
     (interactive)
     (switch-to-buffer "*El Gantt Calendar*")
     (let ((point (point)))
-      (setq elg::date-range (elg::get-years))
+      (setq elg::date-range nil);;(elg::get-years))
       (setq elg--hidden-overlays nil)
       (erase-buffer)
       (elg::draw-month-line)
