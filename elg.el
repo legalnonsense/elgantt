@@ -122,7 +122,7 @@
 (defcustom elg-timestamp-range-end-character "◀"
   "Character shown at the end of a timerange.")
 
-(defcustom elg-cal-timestamp-range-ia-start-character "▷"
+(defcustom elg-timestamp-range-ia-start-character "▷"
   "Character shown at the beginning of a timerange.")
 
 (defcustom elg-timestamp-range-ia-end-character "◁"
@@ -134,9 +134,9 @@
 (defcustom elg-skip-archives t
   "Skip archived entries if non-nil.")
 
-(defcustom elg-start-date (format-time-string "%Y-%m-%d")
+(defcustom elg-start-date (concat (format-time-string "%Y-%m") "-01")
   "Beginning date for the calendar as a string YYYY-MM-DD. 
-Nothing before this date will be displayed. Defaults to the current month.")
+Nothing before this date will be parsed or display. Defaults to the current month.")
 
 (defcustom elg-header-column-offset 20
   "Width of the header column")
@@ -201,7 +201,7 @@ or a function that returns the desired header.")
 				    elg-timestamp-range-end-character
 				    elg-timestamp-range-start-character
 				    elg-timestamp-range-ia-end-character
-				    elg-cal-timestamp-range-ia-start-character
+				    elg-timestamp-range-ia-start-character
 				    "]")
   "List of display characters for use as a regexp.")
 
@@ -315,22 +315,6 @@ this works on leap years"
 
 ;; Overlay utilities
 
-;; (defun elg--create-overlay (&optional begin end &rest properties)
-;;   "Create an overlay from BEGIN to END with PROPERTIES. If BEGIN is
-;;   nil, then create the overlay at point. If END is nil, then create
-;;   the overlay only at point. Returns the new overlay."
-;;   (let ((overlay (make-overlay (or begin (point))
-;; 			       (or end (1+ (point)))))
-;; 	(len (length properties))
-;; 	(i 0))
-;;     (overlay-put overlay :elg t)
-;;     (while (< i len)
-;;       (overlay-put overlay
-;; 		   (nth i properties) (nth (setq i (1+ i)) properties))
-;;       (setq i (1+ i)))
-;;     (setq i 0)
-;;     overlay))
-
 (defun elg--create-overlay (&optional begin end properties)
   "Create an overlay from BEGIN to END with PROPERTIES. If BEGIN is
   nil, then create the overlay at point. If END is nil, then create
@@ -408,31 +392,38 @@ relevant properties to be inserted into the calendar buffer."
 						 (org-no-properties (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
 									    (s-split ":" elg-alltags)))))
 				     ('category elg-category)
+				     ('parent (save-excursion
+						(when (org-up-heading-safe)
+						  (cdar (org-entry-properties (point) "ITEM")))))
 				     ((pred functionp) (funcall elg-header-type))
 				     (_ (error "Invalid header type.")))
 		       :elg-org-buffer (current-buffer))))
-    (setq props (append props
-			;; Set the date if it contains a date type in `elg-timestamps-to-display'
-			`(:elg-date ,(plist-get props
-						(elg--change-symbol-name (--first (plist-get props
-											     (elg--change-symbol-name it ":elg-"))
-										  elg-timestamps-to-display)
-									 ":elg-")))))
-    ;; Return only if there is an :elg-date, but first add some additional properties
-    (when (plist-get props :elg-date)
-      (append props
-	      `(:elg-org-id ,(org-id-get-create))
-	      ;; Append properites from `org-element-at-point' in
-	      ;; case anyone wants to use them
-	      (cadr (org-element-at-point))
-	      ;; Run all custom parsing functions and append
-	      ;; those values
-	      (-flatten-n 1
-			  (cl-loop for (prop . function) in elg--parsing-functions
-				   collect `(,prop ,(funcall function))))))))
+
+    ;; If the header is in `elg-exclusions', then don't add it.
+    (unless (member (plist-get props :elg-header) elg-exclusions)
+      (setq props (append props
+			  ;; Set the date if it contains a date type in `elg-timestamps-to-display'
+			  `(:elg-date ,(plist-get props
+						  (elg--change-symbol-name (--first (plist-get props
+											       (elg--change-symbol-name it ":elg-"))
+										    elg-timestamps-to-display)
+									   ":elg-")))))
+      ;; Return only if there is an :elg-date
+      (when (plist-get props :elg-date)
+	(append props
+		`(:elg-org-id ,(org-id-get-create))
+		
+		;; ;; Append properites from `org-element-at-point' in
+		;; ;; case anyone wants to use them.
+		;; (cadr (org-element-at-point))
+		
+		;; Run all custom parsing functions and append
+		;; those values
+		(-flatten-n 1
+			    (cl-loop for (prop . function) in elg--parsing-functions
+				     collect `(,prop ,(funcall function)))))))))
 
 ;; Iterator 
-
 (defun elg--iterate ()
   "Iterate over all entries."
   (mapc #'elg--insert-entry
@@ -597,11 +588,14 @@ relevant properties to be inserted into the calendar buffer."
 
 (defun elg-scroll-to-current-month ()
   (interactive)
-  (dotimes (_ (+ (* (- (car (last (calendar-current-date))) 
-		       (string-to-number (substring elg-start-date 0 4)))
-		    12)
-		 (1- (string-to-number (substring elg-start-date 5 7)))))
-    (elg-scroll-forward)))
+  (when (member (string-to-number (format-time-string "%Y")) elg--date-range)
+    (cl-loop for overlay in elg--hidden-overlays
+	     do (delete-overlay overlay))
+    (dotimes (_ (+ (* (- (car (last (calendar-current-date))) 
+			 (string-to-number (substring elg-start-date 0 4)))
+		      12)
+		   (1- (string-to-number (substring (format-time-string "%Y-%m-%d") 5 7)))))
+      (elg-scroll-forward))))
 
 (defun elg--move-forward ()
   "Moves to the next filled cell on the line. Does not move to 
@@ -665,15 +659,14 @@ relevant properties to be inserted into the calendar buffer."
 
 (defun elg--goto-id (id &optional range)
   "Go to the cell for the org entry with ID. Return nil if not found."
-  ;; Note: we cannot use `text-property-any' to find the value because
-  ;; comparisons are done using `eq' which will not work for string values.
-  ;; TODO: account for the fact that time ranges appear in the calendar twice
+  ;; If the ID is part of a cell with a time range, this function
+  ;; will go to the first entry
   (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elg
 			     thereis (save-excursion
 				       (goto-char (car points))
 				       (let ((props (elg-get-prop-at-point)))
 					 (when (-first (lambda (x)
-							 (-contains? x id))
+							 (elg--plist-pair-p x :elg-org-id id))
 						       props)
 					   (car points)))))))
     (goto-char point)))
@@ -687,14 +680,14 @@ relevant properties to be inserted into the calendar buffer."
 			      (overlay-start overlay))))
       (move-to-column (elg--convert-date-to-column-number date)))))
 
-(defun elg--date-calc (date offset &optional unit)
-  "DATE is a string \"YYYY-MM-DD\"
-  OFFSET is a positive or negative integer representing
-  the number of days. UNIT should be day, month, year."
-  (->> date
-       (ts-parse)
-       (ts-adjust (or unit 'day) offset)
-       (ts-format "%Y-%m-%d")))
+;; (defun elg--date-calc (date offset &optional unit)
+;;   "DATE is a string \"YYYY-MM-DD\"
+;;   OFFSET is a positive or negative integer representing
+;;   the number of days. UNIT should be day, month, year."
+;;   (->> date
+;;        (ts-parse)
+;;        (ts-adjust (or unit 'day) offset)
+;;        (ts-format "%Y-%m-%d")))
 
 ;; Interaction functions
 
@@ -706,28 +699,28 @@ relevant properties to be inserted into the calendar buffer."
   (unless (or (= n 1)
 	      (= n -1))
     (error "elg--shift-date: Invalid argument. N must be 1 or -1."))
-  ;; HACK: This is about to get ugly to deal with timestamp ranges.
-  (let ((props (or properties
-		   (elg--select-entry)))
-	(date (elg-get-date-at-point)))
-    (elg-with-point-at-orig-entry props
-	;; This regexp is adapted from
-	;; `org-element--timestamp-regexp'
-	;; but matches a specific date
-	(when (re-search-forward (concat
-				  "[[<]\\("
-				  date
-				  " ?[^]\n>]*?\\)[]>]\\|"
-				  "\\(?:<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\\+[0-9]+"
-				  "[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)>\\)")
-				 nil t)
-	  (org-timestamp-change n 'day)))
-    ;; For some reason a normal `save-excursion' does not work here. 
-    (let ((point (point)))
-      (elg-update-this-cell)
-      (goto-char point))
-    (elg--move-horizontally n)
-    (elg-update-this-cell)))
+  (when (looking-at elg-cell-entry-re)
+    (let ((props (or properties
+		     (elg--select-entry)))
+	  (date (elg-get-date-at-point)))
+      (elg-with-point-at-orig-entry props
+	  ;; This regexp is adapted from
+	  ;; `org-element--timestamp-regexp'
+	  ;; but matches a specific date
+	  (when (re-search-forward (concat
+				    "[[<]\\("
+				    date
+				    " ?[^]\n>]*?\\)[]>]\\|"
+				    "\\(?:<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\\+[0-9]+"
+				    "[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)>\\)")
+				   nil t)
+	    (org-timestamp-change n 'day)))
+      ;; For some reason a normal `save-excursion' does not work here. 
+      (let ((point (point)))
+	(elg-update-this-cell)
+	(goto-char point))
+      (elg--move-horizontally n)
+      (elg-update-this-cell))))
 
 (defun elg--shift-date-forward ()
   (interactive)
@@ -752,8 +745,8 @@ relevant properties to be inserted into the calendar buffer."
       (progn 
 	(switch-to-buffer-other-window buffer)
 	(org-goto-marker-or-bmk marker)
-	(outline-show-children)
 	(outline-show-entry)
+	(outline-show-children)
 	(beginning-of-line))
     (message "Cannot navigate to org file: no data at point.")))
 
@@ -797,10 +790,17 @@ relevant properties to be inserted into the calendar buffer."
   "Put point at the first char in the HEADER line, creating a new header
   line if one does not exist."
   (goto-char (point-min))
+  (forward-line 2)
   (let ((new-header (concat (s-truncate elg-header-column-offset header))))
     ;; Concat is necessary for reasons I do not understand. Without it,
     ;; the text properties are not set properly. 
-    (if (search-forward new-header nil t)
+    (if (cl-loop until (eobp)
+		 do (forward-line)
+		 if (string= new-header
+			     (s-trim 
+			      (buffer-substring-no-properties (point-at-bol)
+							      (+ (point-at-bol) elg-header-column-offset))))
+		 return t)
 	(beginning-of-line)
       (put-text-property 0 (length new-header) 'elg-header header new-header)
       (elg--insert-new-header-line new-header)
@@ -895,6 +895,7 @@ relevant properties to be inserted into the calendar buffer."
 
 (defun elg--update-display-all-cells ()
   "Run functions in `elg--display-rules'"
+  (interactive)
   (remove-overlays (point-min) (point-max) :elg-user-overlay t)
   (save-excursion
     (goto-char (point-min))
@@ -1012,8 +1013,6 @@ relevant properties to be inserted into the calendar buffer."
 	      (forward-char))
 	    color-gradient))))
 
-
-
 (defun elg--change-brightness-of-background-at-point (point change)
   "if there is a background font lock color, this will change its brightness"
   (let ((overlay (make-overlay point (1+ point))))
@@ -1031,7 +1030,7 @@ relevant properties to be inserted into the calendar buffer."
 				 finally return point)
 	   until (> point (point-max))
 	   do (progn (push (make-overlay point (1+ point)) elg--vertical-bar-overlay-list)
-		     (overlay-put (car elg--vertical-bar-overlay-list) 'priority 9999)
+		     (overlay-put (car elg--vertical-bar-overlay-list) 'priority 99999)
 		     (overlay-put (car elg--vertical-bar-overlay-list) 'elg-vertical-highlight t)
 		     (overlay-put (car elg--vertical-bar-overlay-list) 'face `(:background ,(color-lighten-name
 											     (save-excursion
@@ -1043,6 +1042,7 @@ relevant properties to be inserted into the calendar buffer."
   (interactive)
   (save-excursion 
     (goto-char (point-min))
+    (forward-line 1)
     (let ((date-line (elg--convert-date-to-column-number (format-time-string "%Y-%m-%d")))
 	  (x 1)
 	  (total-lines (count-lines (point-min) (point-max))))
@@ -1054,7 +1054,6 @@ relevant properties to be inserted into the calendar buffer."
 	(setq x (1+ x))))
     (goto-char (point-min))))
 
-;; TODO: deal with overlays
 (defun elg--delete-cell-contents-at-point ()
   "Remove the character and properties at point." 
   (delete-char 1)
@@ -1097,7 +1096,7 @@ relevant properties to be inserted into the calendar buffer."
       Any poperties supplied here will be automatically fetched from 
       the cell at point and let-bound for use within BODY. ARGS should consist of only
       those properties that are stored in a calendar cell. If you need to use 
-      data that is not contained, you can add a PARSER. 
+      data that is not contained in the stored properties, you can add a PARSER. 
 
       PARSER is is used to add information to cells when the
       calendar is generated. It must be an alist in form of ((property-name . body)).
@@ -1105,7 +1104,7 @@ relevant properties to be inserted into the calendar buffer."
       provided, a colon will be added automatically. Body is the body of a function 
       that is called when the point is at the first point of each org heading. 
       Its return value will be assigned to the property-name for each cell, and 
-      stored as a text property. 
+      stored as a text property.  
 
       DOCSTRING is the docstring of the newly-defined function.
 
@@ -1125,9 +1124,11 @@ relevant properties to be inserted into the calendar buffer."
       `elg--display-functions' rather than pushed to the front.p 
 
       If POST-COMMAND-HOOK is non-nil, then the display function will be added as a post
-      command hook. If this option is used, make sure to give the overlay a custom name
-      so that it can be cleared. If it is nil, then the hook will be removed if it 
-      exists.
+      command hook. If this option is used for an overlay, make sure to give the overlay
+      a unique property value so that it can be cleared. For example addiing the property
+      '(:my-customization1 t) to the overlay properties will allow you to clear and update
+      that overlay without interfering with other overlays in the buffer. If POST-COMMAND-HOOK
+      is nil, then the hook will be removed if it exists.
 
       If DISABLE is non-nil, then the rule will be removed from the 
       `elg--display-rules', any parsing functions created by the rule will
@@ -1162,12 +1163,13 @@ relevant properties to be inserted into the calendar buffer."
 				     ',(cl-loop for (prop . val) in parser
 						collect (elg--add-remove-prop-colon prop)))))
 		    ;; If the preceding code returns `nil', then the `mapc' function, above,
-		    ;; will not run. Since `elg-get-prop-at-point' will usually return nil
+		    ;; will not run. Since `elg-get-prop-at-point' will return nil
 		    ;; if on an empty cell, it creates a problem if the user wants to run
 		    ;; the command in an empty cell. 
-		    ;; To avoid this, if `elg-zip' returns nil, this will create a list of nils to
+		    ;; Thus, if `elg-zip' returns nil, this will create a list of nils to
 		    ;; be assigned to the argument list, since nil is not `eq' to (nil),
 		    ;; `mapc' will accept the list and run.
+		    ;; NOTE: I am not sure if simply returning (nil) would suffice.
 		    (make-list (if (> 0 (length (elg-get-prop-at-point))) 
 				   (length (elg-get-prop-at-point)) 1)
 			       (make-list (+ (length ',parser) (length ',args)) nil))))))
@@ -1200,30 +1202,14 @@ relevant properties to be inserted into the calendar buffer."
 				      elg-timestamp-range-end-character))
 				   (elg-timestamp-range-ia
 				    (if (string= (elg-get-date-at-point) (car elg-timestamp-range-ia))
-					elg-cal-timestamp-range-ia-start-character
+					elg-timestamp-range-ia-start-character
 				      elg-timestamp-range-ia-end-character))
 				   (elg-timestamp-ia elg-inactive-timestamp-character)
 				   (elg-scheduled elg-scheduled-character)
 				   ;; There shouldn't be anything left over
 				   (t (error "Unrecognized date type.")))))))
 
-(elg-create-display-rule user-set-color
-  :parser ((elg-color . ((org-entry-get (point) "ELG-COLOR")))
-	   (elg-linked-to . ((org-entry-get (point) "ELG-LINKED-TO"))))
-  :append t
-  :body ((when elg-linked-to
-	   (save-excursion 
-	     (let ((point (point)))
-	       (elg--draw-gradient 
-		(progn (elg--goto-id elg-linked-to)
-		       (elg-with-point-at-orig-entry nil
-			   (or (org-entry-get (point) "ELG-COLOR")
-			       "blue")))
-		elg-color
-		(point)
-		point
-		nil
-		'(priority 99999 :elg-user-overlay t)))))))
+
 
 
 (cl-defmacro elg-create-action (name &key docstring parser args body binding)
@@ -1314,7 +1300,6 @@ relevant properties to be inserted into the calendar buffer."
   (let ((point (point)))
     (setq elg--date-range nil)
     (setq elg--hidden-overlays nil)
-    (setq header-line-format elg-header-line-format)
     (erase-buffer)
     (insert (make-string elg-header-column-offset ? )
 	    "\n"
@@ -1323,8 +1308,11 @@ relevant properties to be inserted into the calendar buffer."
     (read-only-mode -1)
     (elg--draw-even-odd-background)
     (elg--update-display-all-cells)
+    (elg--highlight-current-day)
     (elg-mode)
     (toggle-truncate-lines 1)
+    (setq header-line-format elg-header-line-format)
+    (elg-scroll-to-current-month)
     (goto-char point)))
 
 ;; Major mode
@@ -1340,11 +1328,12 @@ relevant properties to be inserted into the calendar buffer."
 	(define-key map (kbd "F")   #'elg-scroll-forward)
 	(define-key map (kbd "B")   #'elg-scroll-backward)
 	(define-key map (kbd "b")   #'elg--move-backward)
+	(define-key map (kbd "R")   #'elg--update-display-all-cells)
 	(define-key map (kbd "RET") #'elg--open-org-agenda-at-date)
-	(define-key map (kbd "M-f") #'elg--shift-date-forward)
-	(define-key map (kbd "M-b") #'elg--shift-date-backward)
-	(define-key map (kbd "C-M-f") #'elg-move-date-and-dependents-forward)
-	(define-key map (kbd "C-M-b") #'elg-move-date-and-dependents-backward)
+	;;(define-key map (kbd "M-f") #'elg--shift-date-forward)
+	;;(define-key map (kbd "M-b") #'elg--shift-date-backward)
+	;;(define-key map (kbd "C-M-f") #'elg-move-date-and-dependents-forward)
+	;;(define-key map (kbd "C-M-b") #'elg-move-date-and-dependents-backward)
 	map))
 
 (define-derived-mode elg-mode special-mode
@@ -1358,3 +1347,6 @@ relevant properties to be inserted into the calendar buffer."
 (provide 'elg)
 
 ;;; elg.el ends here
+
+;;;; MY CONFIG
+
