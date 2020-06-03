@@ -1,154 +1,98 @@
 * El Gantt – A Gantt Chart system for Orgmode files
 
-[[file:screenshots/8.png]]
-
-El Gantt creates a Gantt calendar from your orgmode files. Block entries into the calendar are set using tags, and rows are designated by either categories or tags. 
-
-** Generating the chart
-
-Once the orgmode file is set up (see below), evaluate the elgantt.el buffer and run ~elgantt-open~. The chart should appear in a new buffer.
-
-** How to use
-
-This system operatese on tags /or/ categories. 
-
-*** Using categories (default)
-
-The default to use categories, which are set in a property drawer. This approach works best if your org file is heirarchical. For example 
-
-#+begin_src org 
-* Justin 
-:PROPERTIES:
-:CATEGORY: Justin
-:END:
-** TODO Cut the grass
-<2019-01-10 Thu>
-** TODO mow the lawn
-<2019-02-12 Tue>
-** TODO submit TPS reports
-DEADLINE: <2019-04-02 Tue>
+El Gantt creates a Gantt calendar from your orgmode files. It provides a flexible customization system with the goal of being adaptable to multiple purposes. 
+** Installation
+Place =elgantt.el= in your load path. Then =(require 'elgantt)=. For a sample =use-package= configuration, see /infra/. 
+** First use
+*** Using the test file
+Set =elg-agenda-files= to the location wherever you installed =elgantt/TEST/TEST.org=. If you put packages into =~/.emacs.d/lisp/= then use:
+#+begin_src emacs-lisp :results silent
+  (setq elg-agenda-files (concat user-emacs-directory "lisp/elgantt/TEST/test.org"))
 #+end_src
+*** Setting the header type
+The headers of the calendar are defined by =elg-header-type=. There are three default values and an option to define a custom function which will be run at the first point of each org heading:
+| Value    | Behavior                                                                                  |
+|----------+-------------------------------------------------------------------------------------------|
+| parent   | Group entries by parent heading                                                           |
+| root     | Group entries under their root heading                                                    |
+| category | Group entries by their CATEGORY property, or the filename if no CATEGORY property is set. |
+| hashtag  | Group entries by tags which are prefixed by a hashtag.                                    |
+| function | Run the given function at point, grouping entries by the return value of the function     |
+*** Setting the timestamps to display
+Customize the variable =elg-timestamps-to-display=. This variable is a list which can contain any of:
+- deadline
+- timestamp
+- timestamp-ia
+- scheduled
+- timestamp-range
+- timestamp-range-ia
+The order of the list matters determined precedence. Only the first type of entry found in a heading will be displayed. 
+** Using the calendar
+| Key binding | 
+*** Scrolling
+Scroll to the left or right with "F" or "B" (that is, =S-f= and =S-b=). 
+*** Navigating to the org file
+Press =space= to navigate to the original org heading. 
+*** Multiple entries
+If a calendar cell has multiple entries, a special character will be displayed ("☰" by default). If you try to perform any function on one of these cells (e.g., navigating to the org file; shifting a date), you will be prompted to select the entry you want to perform the operation on. 
+*** Moving dates
+=M-f= and =M-b= will shift the date at point forward or backward by one day.
+**** TODO insert note about org-ql caching. 
+*** Drawing gradients
+** Custom variables
+| Variable                                   | Default                                                                         |
+|--------------------------------------------+---------------------------------------------------------------------------------|
+| elg-timestamps-to-display                  | '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia) |
+| elg-deadline-character                     | "▲"                                                                             |
+| elg-active-timestamp-character             | "●"                                                                             |
+| elg-inactive-timestamp-character           | "⊚"                                                                             |
+| elg-scheduled-character                    | "⬟"                                                                             |
+| elg-multiple-entry-character               | "☰"                                                                             |
+| elg-timestamp-range-start-character        | "▶"                                                                             |
+| elg-timestamp-range-end-character          | "◀"                                                                             |
+| elg-cal-timestamp-range-ia-start-character | "▷"                                                                             |
+| elg-timestamp-range-ia-end-character       | "◁"                                                                             |
+| elg-agenda-files                           | (org-agenda-files)                                                              |
+| elg-skip-archives                          | t                                                                               |
+| elg-start-date                             | (concat (format-time-string "%Y-%m") "-01")                                     |
+| elg-header-column-offset                   | 20                                                                              |
+| elg-header-type                            | 'root                                                                           |
+** Customization macros
+ELG aims to provide a flexible approach to customizing calendar displays. 
+*** Macros
+The aim is to provide a robust interface to customize one’s calendar. 
+**** Display macro
+***** Basic use
+***** Examples
+****** the display-char function
+****** color coding entries by TODO state
+**** Commands macro
+***** Example: marking a tast as done 
+*** Helper functions
+**** Drawing the display
+***** Creating overlays
+***** Creating gradients
+***** Creating progress bars
+**** Navigating the buffer
+***** elg-goto-id
+***** elg-goto-date
+***** moving forward/backward
+**** Selecting from multiple entries
+**** Getting calendar data 
+***** elg-get-date-at-point
+***** elg-get-prop-at-point
+**** Editing the underlying org file
+Use the macro stolen from org-mode: =elg-with-point-at-orig-entry=
+**** Redrawing 
+***** Reloading the date at point
+***** Reloading the entire buffer
+***** Reloading displays
+**** Miscellaneous utilities
+***** Date calculator
+** Experimental - Interaction macro 
+** Example set up
+#+begin_src emacs-lisp :results silent
 
-In this example, all three tasks would be displayed in a row labeled “Justin,” since the CATEGORY property is inherited. 
-
-[[file:screenshots/1.png]]
-
-To add another row, start a new category:
-
-#+begin_src org 
-* Juanita
-:PROPERTIES:
-:CATEGORY: Juanita
-:END:
-** TODO sharpen knives
-<2019-07-25 Thu>
-** TODO submit thesis for intial review
-DEADLINE: <2019-09-08 Sun>
 #+end_src
-This will produce the following:
+** Other ideas
 
-[[file:screenshots/2.png]]
-
-*** Using hashtags instead of Categories
-
-You can also use hashtags. To to this, set ~elgantt/use-hashtag~ to non-nil. A tag that starts with a ~#~ will substitute for the category. 
-
-The benefit of hashtags is that your file need not be  hierarchical. For example, the following will pick up the ~take out the garbage~ task, and put it on the proper line for Justinia. (Note the take that is marked on July 30.)
-
-#+begin_src org
-* Justin :#Justinia:
-** TODO Cut the grass
-<2019-01-10 Thu>
-** TODO mow the lawn
-<2019-02-12 Tue>
-** TODO submit TPS reports
-DEADLINE: <2019-04-02 Tue>
-* Juanita :#Juanitan:
-** TODO sharpen knives
-<2019-07-25 Thu>
-** TODO submit thesis for intial review
-DEADLINE: <2019-09-08 Sun>
-* An unrelated heading
-** TODO take out the garbage :#Justinia:
-<2019-07-30 Tue>
-#+end_src
-
-[[file:screenshots/4.png]]
-
-** Displaying blocks of time
-
-There are two ways to display a block of time
-*** Use tags with ~x_start~ and ~x_end~, where ~x~ is an arbitrary string. 
-
-When using this method, the text of the heading of the ~start~ tag is irrelevant. If you want to keep the start date or end date from appearing in your agenda, you can use inactive timestamps. 
-
-#+begin_src org  
-* Justin 
-:PROPERTIES:
-:CATEGORY: Justin
-:END:
-** TODO Cut the grass
-<2019-01-10 Thu>
-** TODO mow the lawn
-<2019-02-12 Tue>
-** start TPS reports :TPS_start:
-<2019-02-19 Tue>
-** TODO submit TPS reports :TPS_end:
-DEADLINE: <2019-04-02 Tue>
-#+end_src 
-
-[[file:screenshots/5.png]]
-*** Using time ranges and the tag ~x_block~ and using an active time range
-
-You can also designate a block of time by adding a time range and using the ~_block~ tag:
-#+begin_src org 
-* Justin 
-:PROPERTIES:
-:CATEGORY: Justin
-:END:
-** TODO Cut the grass
-<2019-01-10 Thu>
-** TODO mow the lawn
-<2019-02-12 Tue>
-** start TPS reports :TPS_start:
-<2019-02-19 Tue>
-** TODO submit TPS reports :TPS_end:
-DEADLINE: <2019-04-02 Tue>
-* Juanita
-:PROPERTIES:
-:CATEGORY: Juanita
-:END:
-** out of town :vacation_block:
-<2019-03-01 Fri>--<2019-04-30 Tue>
-** TODO sharpen knives
-<2019-07-25 Thu>
-** TODO submit thesis for intial review
-DEADLINE: <2019-09-08 Sun>
-#+end_src 
-[[file:screenshots/6.png]]
-
-** Echo area
-
-The echo area will display the name of the heading, and the headline text at the point. For example, in the above calendar if the point was on Justin and April 2, the echo area shows:
-
-[[file:screenshots/7.png]]
-
-** Navigation
-Usual emacs keybindings, except:
-| Key    | Command                           |
-|--------+-----------------------------------|
-| space  | Jump to point in org file         |
-| Return | Open agenda for the date at point |
-| b, f   | Jump to next entry on line        |
-** Other features
-
-There are other features, but I have forgotten them due to the lag between when I stopped working on this and when I uploaded it. 
-** DANGER!!
-
-I am not a programmer. This is designed to be a PROTOTYPE. You will encounter errors and problems trying to use this package. I have written this to the point where it works for me, and I know the quirks that cause problems enough to avoid them. 
-
-The code you will encounter is awful. I learned elisp /while/ writing this package. I worked in very short bursts while doing my real job (lawyer). If it seemed to work, I used it and moved on. 
-
-This /should/ work with the ~sample.org~ file that is in the TEST directory. To use it, you’ll have change line 180 so that ~org-map-entries~ points to the sample file rather than using your ~agenda~ files. 
-
-UPDATE: I am making slow progress on making this usable to people generally. Help is welcomed!
