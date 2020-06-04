@@ -2,15 +2,34 @@
 
 El Gantt creates a Gantt calendar from your orgmode files. It provides a flexible customization system with the goal of being adaptable to multiple purposes. 
 ** Installation
-Place =elgantt.el= in your load path. Then =(require 'elgantt)=. For a sample =use-package= configuration, see /infra/. 
+ If you don't know how to install this:
+1. Install all dependencies
+- org-ql
+- ts
+- s
+- dash
+2. Clone this repository into your =lisp= directory (if you are using Emacs 27, you made need to swap =~/.emacs.d= with =~/.config/emacs=):
+#+begin_src shell :results silent 
+cd ~/.emacs.d/lisp
+git clone httpqs://github.com/legalnonsense/elgantt.git
+#+end_src
+3. Then make sure the folder is in your load path:
+#+begin_src emacs-lisp :results silent
+  (add-to-list 'load-path "~/.emacs.d/lisp/elgantt/")
+#+end_src
+4. Finally:
+#+begin_src emacs-lisp :results silent
+(require 'elgantt)
+#+end_src
 ** First use
+Run =(elg-open)=. By default, Elgantt will use your org-agenda files. 
 *** Using the test file
-Set =elg-agenda-files= to the location wherever you installed =elgantt/TEST/TEST.org=. If you put packages into =~/.emacs.d/lisp/= then use:
+Set =elg-agenda-files= to the location wherever you installed =elgantt/TEST/test.org=. If you cloned to the =/lisp/= subdirectory, then:
 #+begin_src emacs-lisp :results silent
   (setq elg-agenda-files (concat user-emacs-directory "lisp/elgantt/TEST/test.org"))
 #+end_src
 *** Setting the header type
-The headers of the calendar are defined by =elg-header-type=. There are three default values and an option to define a custom function which will be run at the first point of each org heading:
+The headers of the calendar are defined by =elg-header-type=. There are four default values and an option to define a custom function which will be run at the first point of each org heading:
 | Value    | Behavior                                                                                  |
 |----------+-------------------------------------------------------------------------------------------|
 | parent   | Group entries by parent heading                                                           |
