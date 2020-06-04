@@ -3,21 +3,21 @@
 El Gantt creates a Gantt calendar from your orgmode files. It provides a flexible customization system with the goal of being adaptable to multiple purposes. 
 ** Installation
  If you don't know how to install this:
-1. Install all dependencies
+*** Install all dependencies
 - org-ql
 - ts
 - s
 - dash
-2. Clone this repository into your =lisp= directory (if you are using Emacs 27, you made need to swap =~/.emacs.d= with =~/.config/emacs=):
+*** Clone this repository into your =lisp= directory (if you are using Emacs 27, you made need to swap =~/.emacs.d= with =~/.config/emacs=):
 #+begin_src shell :results silent 
 cd ~/.emacs.d/lisp
 git clone httpqs://github.com/legalnonsense/elgantt.git
 #+end_src
-3. Then make sure the folder is in your load path:
+*** Then make sure the folder is in your load path:
 #+begin_src emacs-lisp :results silent
   (add-to-list 'load-path "~/.emacs.d/lisp/elgantt/")
 #+end_src
-4. Finally:
+*** Finally:
 #+begin_src emacs-lisp :results silent
 (require 'elgantt)
 #+end_src
