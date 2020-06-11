@@ -87,6 +87,7 @@
 (require 'dash)
 (require 'ts)
 (require 'ov)
+(require 'elg-interaction)
 
 ;;;; Customization
 
@@ -161,6 +162,9 @@ or a function that returns the desired header.")
       string))
   "See `header-line-format'.")
 
+(defcustom elg--post-command-hooks nil
+  "Post command hooks added by user.")
+
 (defcustom elg-exclusions nil
   "Exclude headers in this list from display in the calendar.")
 
@@ -184,14 +188,12 @@ or a function that returns the desired header.")
   "Face applied to even numbered lines in the calendar.")
 
 ;;;; Constants
-
 (defconst elg-leap-year-month-line #("| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 " 0 1 (face elg-vertical-line-face) 32 33 (face elg-vertical-line-face) 62 63 (face elg-vertical-line-face) 94 95 (face elg-vertical-line-face) 125 126 (face elg-vertical-line-face) 157 158 (face elg-vertical-line-face) 188 189 (face elg-vertical-line-face) 220 221 (face elg-vertical-line-face) 252 253 (face elg-vertical-line-face) 283 284 (face elg-vertical-line-face) 315 316 (face elg-vertical-line-face) 346 347 (face elg-vertical-line-face)))
 (defconst elg-leap-year-date-line #("|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901" 0 1 (face elg-vertical-line-face) 32 33 (face elg-vertical-line-face) 62 63 (face elg-vertical-line-face) 94 95 (face elg-vertical-line-face) 125 126 (face elg-vertical-line-face) 157 158 (face elg-vertical-line-face) 188 189 (face elg-vertical-line-face) 220 221 (face elg-vertical-line-face) 252 253 (face elg-vertical-line-face) 283 284 (face elg-vertical-line-face) 315 316 (face elg-vertical-line-face) 346 347 (face elg-vertical-line-face)))
 (defconst elg-leap-year-blank-line #("|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               " 0 1 (face elg-vertical-line-face) 32 33 (face elg-vertical-line-face) 62 63 (face elg-vertical-line-face) 94 95 (face elg-vertical-line-face) 125 126 (face elg-vertical-line-face) 157 158 (face elg-vertical-line-face) 188 189 (face elg-vertical-line-face) 220 221 (face elg-vertical-line-face) 252 253 (face elg-vertical-line-face) 283 284 (face elg-vertical-line-face) 315 316 (face elg-vertical-line-face) 346 347 (face elg-vertical-line-face)))
 (defconst elg-normal-year-month-line #("| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 " 0 1 (face elg-vertical-line-face) 32 33 (face elg-vertical-line-face) 61 62 (face elg-vertical-line-face) 93 94 (face elg-vertical-line-face) 124 125 (face elg-vertical-line-face) 156 157 (face elg-vertical-line-face) 187 188 (face elg-vertical-line-face) 219 220 (face elg-vertical-line-face) 251 252 (face elg-vertical-line-face) 282 283 (face elg-vertical-line-face) 314 315 (face elg-vertical-line-face) 345 346 (face elg-vertical-line-face)))
 (defconst elg-normal-year-date-line #("|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901" 0 1 (face elg-vertical-line-face) 32 33 (face elg-vertical-line-face) 61 62 (face elg-vertical-line-face) 93 94 (face elg-vertical-line-face) 124 125 (face elg-vertical-line-face) 156 157 (face elg-vertical-line-face) 187 188 (face elg-vertical-line-face) 219 220 (face elg-vertical-line-face) 251 252 (face elg-vertical-line-face) 282 283 (face elg-vertical-line-face) 314 315 (face elg-vertical-line-face) 345 346 (face elg-vertical-line-face)))
 (defconst elg-normal-year-blank-line #("|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               " 0 1 (face elg-vertical-line-face) 32 33 (face elg-vertical-line-face) 61 62 (face elg-vertical-line-face) 93 94 (face elg-vertical-line-face) 124 125 (face elg-vertical-line-face) 156 157 (face elg-vertical-line-face) 187 188 (face elg-vertical-line-face) 219 220 (face elg-vertical-line-face) 251 252 (face elg-vertical-line-face) 282 283 (face elg-vertical-line-face) 314 315 (face elg-vertical-line-face) 345 346 (face elg-vertical-line-face)))
-
 (defconst elg-cell-entry-re (concat "["
 				    elg-deadline-character
 				    elg-active-timestamp-character
@@ -205,32 +207,27 @@ or a function that returns the desired header.")
 				    "]")
   "List of display characters for use as a regexp.")
 
-;;;; Variables
-
+;;;; Private variables
 (defvar elg--parsing-functions nil
   "List of functions for parsing org files.")
-
 (defvar elg--display-rules nil
   "List of functions for drawing overlays in the buffer based on underlying text properties.")
-
 (defvar elg--date-range nil
   "Range of years present in the agenda files.")
-
 (defvar elg--vertical-bar-overlay-list nil
   "List of overlays for the vertical selection bar.")
 
 ;; Utility functions
-
 (defun elg--change-symbol-name (symbol &optional prefix suffix)
+  "SYMBOL is any symbol name. PREFIX and SUFFIX are a string to be
+prepended or appended to the symbol name and returned as a new 
+symbol."
   (intern (concat prefix (symbol-name symbol) suffix)))
 
 (defun elg--add-remove-prop-colon (prop &optional remove)
   "PROP is a symbol with or without a colon prefix. 
   Returns a symbol with a colon prefix. If REMOVE is t, 
-  then returns a symbol without a colon prefix.
-
-  This is sometimes useful for parsing user-supplied
-  property names."
+  then returns a symbol without a colon prefix."
   (if remove
       (if (s-starts-with-p ":" (symbol-name prop))
 	  (intern (substring (symbol-name prop) 1))			
@@ -241,7 +238,7 @@ or a function that returns the desired header.")
 
 (defun elg--plist-pair-p (plist key val &optional predicate)
   "Return t if PLIST has the KEY and VAL pair. Tests using `equal'.
-Optional PREDICATE provides a function which performs equality test."
+  Optional PREDICATE provides a function which performs equality test."
   (when-let ((stored-val (plist-get plist key)))
     (cond ((not predicate)
 	   (equal stored-val val))
@@ -250,9 +247,9 @@ Optional PREDICATE provides a function which performs equality test."
 
 (defun elg-zip (args)
   "Zips multiple lists together. Example:
-    (elg-zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
-     => '((1 2 3 4) (5 6 7 8) (9 10 11 12)).
-    All lists must be the same length."
+  (elg-zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
+  => '((1 2 3 4) (5 6 7 8) (9 10 11 12)).
+  All lists must be the same length."
   ;; Seems `dash' should be able to do this. 
   ;; (Maybe it does?)
   (if (catch 'match ; Check if lists are all the same length
@@ -271,7 +268,6 @@ Optional PREDICATE provides a function which performs equality test."
     (user-error "Lists are not all the same length.")))
 
 ;; Date utilities
-
 (defsubst elg--get-days-in-year (year)
   "Return the number of days in YEAR." 
   (if (elg--leap-year-p year) 366 365))
@@ -288,7 +284,7 @@ Optional PREDICATE provides a function which performs equality test."
 
 (defun elg--convert-date-to-column-number (timestamp)
   "Accepts a date in the form of YYYY-MM-DD and returns
-the column of that date."
+  the column of that date."
   (let ((spaces 0)
 	(date timestamp))
     (cl-subseq elg--date-range
@@ -309,12 +305,20 @@ the column of that date."
 
 (defun elg--convert-date-to-column-in-current-year (date)
   "accepts a date YYYY-MM-DD and returns the position on the horizontal calendar (int)
-this works on leap years"
+  this works on leap years"
   (+ (elg--convert-date-to-day-number-in-year date)
      (- (string-to-number (substring date 5 7)) 1)))
 
-;; Overlay utilities
+(defun elg--date-calc (date offset &optional unit)
+  "DATE is a string \"YYYY-MM-DD\"
+  OFFSET is a positive or negative integer representing
+  the number of days. UNIT should be day, month, year."
+  (->> date
+       (ts-parse)
+       (ts-adjust (or unit 'day) offset)
+       (ts-format "%Y-%m-%d")))
 
+;; Overlay utilities
 (defun elg--create-overlay (&optional begin end properties)
   "Create an overlay from BEGIN to END with PROPERTIES. If BEGIN is
   nil, then create the overlay at point. If END is nil, then create
@@ -328,15 +332,13 @@ this works on leap years"
       (overlay-put overlay
 		   (nth i properties) (nth (setq i (1+ i)) properties))
       (setq i (1+ i)))
-    (setq i 0)
     overlay))
 
 
 ;; Parsing function
-
 (defun elg--parser ()
   "Runs at each org heading and returns a plist of 
-relevant properties to be inserted into the calendar buffer."
+  relevant properties to be inserted into the calendar buffer."
   (-let* (((&alist "CATEGORY" elg-category
 		   "ITEM" elg-headline
 		   "FILE" elg-file
@@ -446,7 +448,7 @@ relevant properties to be inserted into the calendar buffer."
   "Prompt the user to select from multiple entries.
   If PROP is `all', then skip the prompt and return the
   list of all props at point. (i.e., the same thing as
-  `elg-get-props-at-point')"
+				     `elg-get-props-at-point')"
   (when-let ((prop-list (elg-get-prop-at-point)))
     (cond ((eq prop-or-all 'all)
 	   ;; If user wants all entries, return them
@@ -527,6 +529,12 @@ relevant properties to be inserted into the calendar buffer."
 
 ;; User movement functions
 
+(defun elg--forward-line (n)
+  "Same as `forward-line', but preserves the current column."
+  (let ((col (current-column)))
+    (forward-line n)
+    (move-to-column col)))
+
 (defun elg-scroll (direction)
   ;; HACK: Ugly, but it works and it is reasonably fast.
   "Place, or move, an overlay on each line, hiding (or showing)
@@ -590,9 +598,10 @@ relevant properties to be inserted into the calendar buffer."
   (interactive)
   (when (member (string-to-number (format-time-string "%Y")) elg--date-range)
     (cl-loop for overlay in elg--hidden-overlays
-	     do (delete-overlay overlay))
+	     do (delete-overlay overlay)
+	     finally (setq elg--hidden-overlays nil))
     (dotimes (_ (+ (* (- (car (last (calendar-current-date))) 
-			 (string-to-number (substring elg-start-date 0 4)))
+			 (car elg--date-range))
 		      12)
 		   (1- (string-to-number (substring (format-time-string "%Y-%m-%d") 5 7)))))
       (elg-scroll-forward))))
@@ -620,14 +629,30 @@ relevant properties to be inserted into the calendar buffer."
 		      (point-at-bol)
 		      t))
 
+(defun elg--point-at-window-edge ()
+  (save-excursion
+    (move-to-column (window-body-width))
+    (point)))
+
+(defun elg--forward-char (&optional n)
+  "Move forward N chars, skipping vertical lines."
+  (interactive)
+  (forward-char n)
+  (when (looking-at "|")
+    (forward-char n)))
+  
+(defun elg--backward-char (&optional n)
+  (interactive)
+  (elg--forward-char (or n -1)))
+
 (defun elg--move-vertically (up-or-down)
   "Move up or down to the nearest calendar entry."
   (if (eq up-or-down 'up)
       (if (> (org-current-line) 3)
-	  (previous-line)
+	  (elg--forward-line -1)
 	(return-from elg--move-vertically nil))
     (if (< (org-current-line) (count-lines (point-min) (point-max)))
-	(forward-line)
+	(elg--forward-line 1)
       (return-from elg--move-vertically nil)))
   (let ((next (save-excursion (re-search-forward elg-cell-entry-re (point-at-eol) t)))
 	(previous (save-excursion (re-search-backward elg-cell-entry-re (point-at-bol) t))))
@@ -643,11 +668,13 @@ relevant properties to be inserted into the calendar buffer."
 
 (defun elg--move-up ()
   (interactive)
-  (elg--move-vertically 'up))
+  (unless (<= (line-number-at-pos) 3)
+    (elg--move-vertically 'up)))
 
 (defun elg--move-down ()
   (interactive)
-  (elg--move-vertically 'down))
+  (unless (= (line-number-at-pos) (count-lines (point-min) (point-max)))
+    (elg--move-vertically 'down)))
 
 (defun elg--move-horizontally (n)
   "Ensures that the point is not on a vertical line."
@@ -656,6 +683,15 @@ relevant properties to be inserted into the calendar buffer."
     (forward-char n)))
 
 ;; Programmatic movement functions 
+
+(defmacro elg--iterate-over-cells (&rest body)
+  `(save-excursion
+     (goto-char (point-min))
+     (cl-loop for points being the intervals of (current-buffer) property :elg
+	      do (progn (goto-char (car points))
+			(when (elg-get-prop-at-point)
+			  ,@body)))))
+
 
 (defun elg--goto-id (id &optional range)
   "Go to the cell for the org entry with ID. Return nil if not found."
@@ -673,21 +709,13 @@ relevant properties to be inserted into the calendar buffer."
 
 (defun elg--goto-date (date)
   "Go to DATE in the current header. DATE is a string in \"YYYY-MM-DD\" format."
-  (let ((overlay (car elg--hidden-overlays)))
-    (if overlay
-	(move-to-column (- (elg--convert-date-to-column-number date)
-			   (- (overlay-end overlay)
-			      (overlay-start overlay))))
-      (move-to-column (elg--convert-date-to-column-number date)))))
+  (if-let ((overlay (car elg--hidden-overlays))
+	   (start (overlay-start overlay))
+	   (end (overlay-end overlay)))
+      (move-to-column (- (elg--convert-date-to-column-number date)
+			 (- end start)))
+    (move-to-column (elg--convert-date-to-column-number date))))
 
-;; (defun elg--date-calc (date offset &optional unit)
-;;   "DATE is a string \"YYYY-MM-DD\"
-;;   OFFSET is a positive or negative integer representing
-;;   the number of days. UNIT should be day, month, year."
-;;   (->> date
-;;        (ts-parse)
-;;        (ts-adjust (or unit 'day) offset)
-;;        (ts-format "%Y-%m-%d")))
 
 ;; Interaction functions
 
@@ -718,9 +746,11 @@ relevant properties to be inserted into the calendar buffer."
       ;; For some reason a normal `save-excursion' does not work here. 
       (let ((point (point)))
 	(elg-update-this-cell)
+	(elg--update-display-this-cell)
 	(goto-char point))
       (elg--move-horizontally n)
-      (elg-update-this-cell))))
+      (elg-update-this-cell)
+      (elg--update-display-this-cell))))
 
 (defun elg--shift-date-forward ()
   (interactive)
@@ -767,7 +797,6 @@ relevant properties to be inserted into the calendar buffer."
        ,@body)))
 
 ;; Calendar drawing functions
-
 (defun elg--draw-month-line (year)
   (insert 
    (if (elg--leap-year-p year)
@@ -790,7 +819,7 @@ relevant properties to be inserted into the calendar buffer."
   "Put point at the first char in the HEADER line, creating a new header
   line if one does not exist."
   (goto-char (point-min))
-  (forward-line 2)
+  (forward-line 1)
   (let ((new-header (concat (s-truncate elg-header-column-offset header))))
     ;; Concat is necessary for reasons I do not understand. Without it,
     ;; the text properties are not set properly. 
@@ -806,7 +835,6 @@ relevant properties to be inserted into the calendar buffer."
       (elg--insert-new-header-line new-header)
       (beginning-of-line))))
 
-;; TODO: move this into `elg--get-header-create'
 (defun elg--insert-new-header-line (header)
   "Inserts a new header."
   (goto-char (point-max))
@@ -887,25 +915,25 @@ relevant properties to be inserted into the calendar buffer."
 					   do (plist-put prop property (plist-get props property)))
 			       and return t)
 		(set-text-properties (point) (1+ (point)) `(:elg ,(append (list props)
-									  old-props)))))
-	    (elg--update-display-this-cell))
+									  old-props))))))
+	  ;;(elg--update-display-this-cell))
 	  (-list date))))
 
 ;; Updating overlays
-
 (defun elg--update-display-all-cells ()
   "Run functions in `elg--display-rules'"
   (interactive)
-  (remove-overlays (point-min) (point-max) :elg-user-overlay t)
+  (remove-overlays (point-min) (point-max))
   (save-excursion
-    (goto-char (point-min))
-    (while (next-single-property-change (point) :elg)
-      (goto-char (next-single-property-change (point) :elg))
-      (when (get-text-property (point) :elg)
-	(elg--update-display-this-cell)))))
+    (cl-loop for func in (append (list #'elg--display-rule-display-char) elg--display-rules)
+	     do (progn (goto-char (point-min))
+		       (while (next-single-property-change (point) :elg)
+			 (goto-char (next-single-property-change (point) :elg))
+			 (when (get-text-property (point) :elg)
+			   (funcall func)))))))
 
 (defun elg--update-display-this-cell ()
-  ;;(elg--display-rule-display-char)
+  (elg--display-rule-display-char)
   (cl-loop for func in elg--display-rules
 	   do (funcall func)))
 
@@ -916,16 +944,19 @@ relevant properties to be inserted into the calendar buffer."
   (save-excursion 
     (let ((props (text-properties-at (point))))
       (when point (goto-char point))
-      (delete-char 1)
       (insert char)
+      (delete-char 1)
       (backward-char)
       (set-text-properties (point) (1+ (point)) props))))
+
 
 ;; Color conversion functions
 (defun elg--color-rgb-to-hex (color)
   "Convert an RBG tuple '(R G B) to six digit hex string \"#RRGGBB\""
-  (pcase-let ((`(,r ,g ,b) color))
-    (color-rgb-to-hex r g b 2)))
+  (substring 
+   (pcase-let ((`(,r ,g ,b) color))
+     (color-rgb-to-hex r g b 2))
+   0 7))
 
 (defun elg--color-name-to-hex (color)
   "Convert named color to six digit hex color."
@@ -935,9 +966,13 @@ relevant properties to be inserted into the calendar buffer."
 
 (defun elg--color-hex-to-rgb (hex-color)
   "Convert hex color to RGB tuple."
-  `(,(string-to-number (substring hex-color 1 3) 16)
-    ,(string-to-number (substring hex-color 3 5) 16)
-    ,(string-to-number (substring hex-color 5 7) 16)))
+  (let ((elements (list (string-to-number (substring hex-color 1 3) 16)
+			(string-to-number (substring hex-color 3 5) 16)
+			(string-to-number (substring hex-color 5 7) 16))))
+    (cl-loop for element in elements
+	     collect (if (= element 0)
+			 0
+		       (/ element 255.0)))))
 
 (defun elg--color-to-rgb (color)
   "Convert a color name or hex color to RGB tuple."
@@ -971,7 +1006,7 @@ relevant properties to be inserted into the calendar buffer."
 		 (/ (+ c1 c2) 2))
 	       color1 color2)))
 
-(defun elg--draw-two-color-block (start-color end-color start end divider)
+(defun elg--draw-progress-bar (start-color end-color start end divider)
   (let ((start-color (elg--color-name-to-hex start-color))
 	(end-color (elg--color-name-to-hex end-color)))
     (save-excursion
@@ -985,40 +1020,50 @@ relevant properties to be inserted into the calendar buffer."
 					      `(:background ,end-color))))
 	       (forward-char)))))
 
-(defun elg--draw-gradient (start-color end-color start end &optional mid-point props)
-  (let ((color-gradient
-	 (let ((start-color (elg--color-to-rgb start-color))
-	       (end-color (elg--color-to-rgb end-color)))
-	   (if mid-point
-	       (let ((mid-color (elg--get-color-midpoint start-color
-							 end-color)))
-		 (append (color-gradient
-			  start-color
-			  mid-color
-			  (1+ (- mid-point start))
-			  (color-gradient mid-color
-					  end-color
-					  (- steps mid-point)))))
-	     (color-gradient start-color
-			     end-color
-			     (1+ (- end start)))))))
+(defun elg--create-gradient (start-color end-color steps &optional midpoint)
+  (let* ((start-color (elg--color-to-rgb start-color))
+	 (end-color (elg--color-to-rgb end-color))
+	 (color-gradient (if midpoint
+			     (let ((mid-color (elg--get-color-midpoint start-color
+								       end-color)))
+			       (append (color-gradient start-color mid-color midpoint)
+				       (color-gradient mid-color end-color (- steps midpoint))))
+			   (color-gradient start-color end-color steps))))
+    color-gradient))
+
+(defun elg--draw-gradient (start-color end-color start end &optional midpoint props)
+  (let ((color-gradient (elg--create-gradient start-color end-color
+					      (1+ (- end start)) midpoint)))
     (save-excursion
       (goto-char start)
       (mapc (lambda (color)
-	      (elg--create-overlay (point)
-				   (1+ (point))
-				   (-flatten-n 1 (append 
-						  `(face ((:background ,(elg--color-rgb-to-hex color))))
-						  props)))
+	      (if-let ((overlay (--first (--> (overlay-properties it)
+	      				      (plist-get it :elg-user-overlay))
+	      				 (overlays-at (point)))))
+	      	  (overlay-put overlay 'face `(:background ,(elg--color-rgb-to-hex
+	      						     (elg--get-color-midpoint (background-color-at-point)
+	      									      color))))
+		(elg--create-overlay (point)
+				     (1+ (point))
+				     (-flatten-n 1 (append 
+						    `(face ((:background ,(elg--color-rgb-to-hex color))))
+						    props))))
 	      (forward-char))
-	    color-gradient))))
+	    color-gradient)))) 
 
-(defun elg--change-brightness-of-background-at-point (point change)
+(defun elg--change-brightness-of-background-at-point (point change &optional props)
   "if there is a background font lock color, this will change its brightness"
   (let ((overlay (make-overlay point (1+ point))))
-    (overlay-put overlay 'priority 999)
     (overlay-put overlay 'face `(:background ,(color-lighten-name
-					       (background-color-at-point) change)))))
+					       (background-color-at-point) change)))
+    (when props
+      (let ((i 0)
+	    (len (length props)))
+	(while (< i len)
+	  (overlay-put overlay
+		       (nth i props) (nth (setq i (1+ i)) props))
+	  (setq i (1+ i)))))
+    overlay))
 
 (defun elg--vertical-highlight ()
   (remove-overlays (point-min) (point-max) 'elg-vertical-highlight t)
@@ -1030,7 +1075,7 @@ relevant properties to be inserted into the calendar buffer."
 				 finally return point)
 	   until (> point (point-max))
 	   do (progn (push (make-overlay point (1+ point)) elg--vertical-bar-overlay-list)
-		     (overlay-put (car elg--vertical-bar-overlay-list) 'priority 99999)
+		     (overlay-put (car elg--vertical-bar-overlay-list) 'priority 999999)
 		     (overlay-put (car elg--vertical-bar-overlay-list) 'elg-vertical-highlight t)
 		     (overlay-put (car elg--vertical-bar-overlay-list) 'face `(:background ,(color-lighten-name
 											     (save-excursion
@@ -1046,10 +1091,10 @@ relevant properties to be inserted into the calendar buffer."
     (let ((date-line (elg--convert-date-to-column-number (format-time-string "%Y-%m-%d")))
 	  (x 1)
 	  (total-lines (count-lines (point-min) (point-max))))
-      (while (<= x total-lines)
+      (while (< x total-lines)
 	(move-beginning-of-line 1)
 	(forward-char date-line)
-	(elg--change-brightness-of-background-at-point (point) +30)
+	(elg--change-brightness-of-background-at-point (point) +30 '(priority 99999999))
 	(forward-line)
 	(setq x (1+ x))))
     (goto-char (point-min))))
@@ -1088,7 +1133,11 @@ relevant properties to be inserted into the calendar buffer."
 							    org-archive-tag))))
 					:action #'elg--parser)))))))
 
-;; Creating display rules
+(defun elg--post-command-hook ()
+  "Runs `post-command-hook' functions created with `elg-create-display-rule'."
+  (cl-loop for command in elg--post-command-hooks
+	   do (funcall command)))
+
 (cl-defmacro elg-create-display-rule (name &key docstring args parser body append disable post-command-hook)
   "NAME is a symbol used to name new functions that are created. 
 
@@ -1181,36 +1230,39 @@ relevant properties to be inserted into the calendar buffer."
 	 (setq elg--display-rules (remq ',display-func-name elg--display-rules))
 	 (cl-pushnew #',display-func-name elg--display-rules))
        (if ',post-command-hook
-	   (add-hook 'post-command-hook #',display-func-name t t)
-	 (remove-hook 'post-command-hook #',display-func-name t))
+	   (progn
+	     (setq elg--display-rules (remq ',display-func-name elg--display-rules))
+	     (cl-pushnew ',display-func-name elg--post-command-hooks))
+	 (setq elg--post-command-hooks (remq ',display-func-name elg--post-command-hooks)))
+       ;;(setq elg--display-rules (remq ',display-func-name elg--display-rules)))
        (when ',disable
 	 (cl-loop for (name . func) in ',parser
 		  do (setq elg--parsing-functions
 			   (assq-delete-all name elg--parsing-functions)))
-	 (remove-hook 'post-command-hook #',display-func-name t)
+	 (setq elg--post-command-hooks (remq ',display-func-name elg--post-command-hooks))
 	 (setq elg--display-rules (remq ',display-func-name elg--display-rules))))))
 
 (elg-create-display-rule display-char
+  :docstring "Display the appropriate character in each cell."
   :args (elg-deadline elg-timestamp elg-timestamp-ia elg-scheduled elg-timestamp-range elg-timestamp-range-ia)
-  :body ((let ((elg-multi (> (length (elg-get-prop-at-point)) 1)))
-	   (elg--change-char (cond (elg-multi elg-multiple-entry-character)
-				   (elg-deadline elg-deadline-character)
-				   (elg-timestamp elg-active-timestamp-character)
-				   (elg-timestamp-range
-				    (if (string= (elg-get-date-at-point) (car elg-timestamp-range))
-					elg-timestamp-range-start-character
-				      elg-timestamp-range-end-character))
-				   (elg-timestamp-range-ia
-				    (if (string= (elg-get-date-at-point) (car elg-timestamp-range-ia))
-					elg-timestamp-range-ia-start-character
-				      elg-timestamp-range-ia-end-character))
-				   (elg-timestamp-ia elg-inactive-timestamp-character)
-				   (elg-scheduled elg-scheduled-character)
-				   ;; There shouldn't be anything left over
-				   (t (error "Unrecognized date type.")))))))
-
-
-
+  :disable t
+  :body ((when (elg-get-prop-at-point)
+	   (let ((elg-multi (> (length (elg-get-prop-at-point)) 1)))
+	     (elg--change-char (cond (elg-multi elg-multiple-entry-character)
+				     (elg-deadline elg-deadline-character)
+				     (elg-timestamp elg-active-timestamp-character)
+				     (elg-timestamp-range
+				      (if (string= (elg-get-date-at-point) (car elg-timestamp-range))
+					  elg-timestamp-range-start-character
+					elg-timestamp-range-end-character))
+				     (elg-timestamp-range-ia
+				      (if (string= (elg-get-date-at-point) (car elg-timestamp-range-ia))
+					  elg-timestamp-range-ia-start-character
+					elg-timestamp-range-ia-end-character))
+				     (elg-timestamp-ia elg-inactive-timestamp-character)
+				     (elg-scheduled elg-scheduled-character)
+				     ;; There shouldn't be anything left over
+				     (t (error "Unrecognized date type."))))))))
 
 (cl-defmacro elg-create-action (name &key docstring parser args body binding)
   "NAME is a symbol used to name new functions that are created. 
@@ -1267,19 +1319,11 @@ relevant properties to be inserted into the calendar buffer."
 						collect (elg--add-remove-prop-colon arg))
 				     ',(cl-loop for (prop . val) in parser
 						collect (elg--add-remove-prop-colon prop)))))
-		    ;; If the preceding code returns `nil', then the `mapc' function, above,
-		    ;; will not run. Since `elg-get-prop-at-point' will usually return nil
-		    ;; if on an empty cell, it creates a problem if the user wants to run
-		    ;; the command in an empty cell. 
-		    ;; To avoid this, if `elg-zip' returns nil, this will create a list of nils to
-		    ;; be assigned to the argument list, since nil is not `eq' to (nil),
-		    ;; `mapc' will accept the list and run.
 		    (make-list (+ (length ',parser) (length ',args)) nil)))))
 	 (defun ,action-func-name () ,docstring (interactive) ,@body))
        (when ',binding 
 	 (define-key elg-mode-map (kbd ,binding) #',action-func-name)))))
 
-;; Open function
 (defun elg--draw-even-odd-background ()
   "Set the background for even and odd lines."
   (save-excursion 
@@ -1297,10 +1341,37 @@ relevant properties to be inserted into the calendar buffer."
   "Open gantt calendar."
   (interactive)
   (switch-to-buffer "*El Gantt Calendar*")
-  (let ((point (point)))
+  (elg-mode))
+
+;; Major mode
+(defvar elg-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "r")   #'elg-open)
+    (define-key map (kbd "SPC") #'elg-navigate-to-org-file)
+    (define-key map (kbd "p")   #'elg--move-up)
+    (define-key map (kbd "a")   #'elg-interaction::start-action)
+    (define-key map (kbd "c")   #'elg-scroll-to-current-month)
+    (define-key map (kbd "n")   #'elg--move-down)
+    (define-key map (kbd "f")   #'elg--move-forward)
+    (define-key map (kbd "b")   #'elg--move-backward)
+    (define-key map (kbd "F")   #'elg--forward-char)
+    (define-key map (kbd "B")   #'elg--backward-char)
+    (define-key map (kbd "C-f")   #'elg-scroll-forward)
+    (define-key map (kbd "C-b")   #'elg-scroll-backward)
+    (define-key map (kbd "R")   #'elg--update-display-all-cells)
+    (define-key map (kbd "RET") #'elg--open-org-agenda-at-date)
+    (define-key map (kbd "M-f") #'elg--shift-date-forward)
+    (define-key map (kbd "M-b") #'elg--shift-date-backward)
+    map))
+
+(define-derived-mode elg-mode special-mode
+  "El Gantt"
+  "Horizontal calendar interface for orgmode. \{keymap}"
+  (let ((point (point))
+	(inhibit-read-only t))
+    (erase-buffer)
     (setq elg--date-range nil)
     (setq elg--hidden-overlays nil)
-    (erase-buffer)
     (insert (make-string elg-header-column-offset ? )
 	    "\n"
 	    (make-string elg-header-column-offset ? ))
@@ -1309,44 +1380,16 @@ relevant properties to be inserted into the calendar buffer."
     (elg--draw-even-odd-background)
     (elg--update-display-all-cells)
     (elg--highlight-current-day)
-    (elg-mode)
     (toggle-truncate-lines 1)
     (setq header-line-format elg-header-line-format)
     (elg-scroll-to-current-month)
-    (goto-char point)))
-
-;; Major mode
-(setq elg-mode-map
-      (let ((map (make-sparse-keymap)))
-	(define-key map (kbd "r")   #'elg-open)
-	(define-key map (kbd "SPC") #'elg-navigate-to-org-file)
-	(define-key map (kbd "p")   #'elg--move-up)
-	(define-key map (kbd "a")   #'elg-interaction::start-action)
-	(define-key map (kbd "c")   #'elg-scroll-to-current-month)
-	(define-key map (kbd "n")   #'elg--move-down)
-	(define-key map (kbd "f")   #'elg--move-forward)
-	(define-key map (kbd "F")   #'elg-scroll-forward)
-	(define-key map (kbd "B")   #'elg-scroll-backward)
-	(define-key map (kbd "b")   #'elg--move-backward)
-	(define-key map (kbd "R")   #'elg--update-display-all-cells)
-	(define-key map (kbd "RET") #'elg--open-org-agenda-at-date)
-	;;(define-key map (kbd "M-f") #'elg--shift-date-forward)
-	;;(define-key map (kbd "M-b") #'elg--shift-date-backward)
-	;;(define-key map (kbd "C-M-f") #'elg-move-date-and-dependents-forward)
-	;;(define-key map (kbd "C-M-b") #'elg-move-date-and-dependents-backward)
-	map))
-
-(define-derived-mode elg-mode special-mode
-  "El Gantt"
-  "Horizontal calendar interface for orgmode. \{keymap}"
-  (read-only-mode -1)
-  (add-hook 'post-command-hook #'elg--vertical-highlight nil t))
+    (goto-char point)
+    (read-only-mode -1)
+    (add-hook 'post-command-hook #'elg--post-command-hook nil t)
+    (add-hook 'post-command-hook #'elg--vertical-highlight nil t)))
 
 ;;;; Footer
 
 (provide 'elg)
 
 ;;; elg.el ends here
-
-;;;; MY CONFIG
-

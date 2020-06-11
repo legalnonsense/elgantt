@@ -2,29 +2,27 @@
 
 El Gantt creates a Gantt calendar from your orgmode files. It provides a flexible customization system with the goal of being adaptable to multiple purposes. 
 ** Installation
- If you don't know how to install this:
-Install all dependencies
-- org-ql
-- ts
-- s
-- dash
+Install the dependencies:
+- [[https://github.com/alphapapa/org-ql][org-ql]]
+- [[https://github.com/alphapapa/ts.el][ts.el]]
+- [[https://github.com/magnars/s.el][s.el]]
+- [[https://github.com/magnars/dash.el][dash.el]]
 Clone this repository into your =lisp= directory (if you are using Emacs 27, you made need to swap =~/.emacs.d= with =~/.config/emacs=):
 #+begin_src shell :results silent 
 cd ~/.emacs.d/lisp
 git clone httpqs://github.com/legalnonsense/elgantt.git
 #+end_src
-Make sure the folder is in your load path:
+Then:
 #+begin_src emacs-lisp :results silent
-  (add-to-list 'load-path "~/.emacs.d/lisp/elgantt/")
-#+end_src
-Finally:
-#+begin_src emacs-lisp :results silent
+(add-to-list 'load-path (concat user-emacs-directory "lisp/elgantt/"))
 (require 'elgantt)
 #+end_src
 ** First use
 Run =(elg-open)=. By default, Elgantt will use your org-agenda files. 
+
+Before running this on your org-agenda files, you may want to experiment with the test file. 
 *** Using the test file
-Set =elg-agenda-files= to the location wherever you installed =elgantt/TEST/test.org=. If you cloned to the =/lisp/= subdirectory, then:
+Set =elg-agenda-files= to the location wherever you installed =elgantt=. If you cloned to the =/lisp/= subdirectory, then:
 #+begin_src emacs-lisp :results silent
   (setq elg-agenda-files (concat user-emacs-directory "lisp/elgantt/TEST/test.org"))
 #+end_src
@@ -46,48 +44,190 @@ Customize the variable =elg-timestamps-to-display=. This variable is a list whic
 - timestamp-range
 - timestamp-range-ia
 The order of the list matters determined precedence. Only the first type of entry found in a heading will be displayed. 
-** Using the calendar
-| Key binding | 
-*** Scrolling
-Scroll to the left or right with "F" or "B" (that is, =S-f= and =S-b=). 
-*** Navigating to the org file
-Press =space= to navigate to the original org heading. 
-*** Multiple entries
-If a calendar cell has multiple entries, a special character will be displayed ("☰" by default). If you try to perform any function on one of these cells (e.g., navigating to the org file; shifting a date), you will be prompted to select the entry you want to perform the operation on. 
-*** Moving dates
-=M-f= and =M-b= will shift the date at point forward or backward by one day.
-**** TODO insert note about org-ql caching. 
-*** Drawing gradients
+** Navigation commands
+| Key binding | Command                                        |
+|-------------+------------------------------------------------|
+| f           | Move forward to next entry                     |
+| b           | Move backward to previous entry                |
+| n           | Move to the closest entry on the next line     |
+| p           | Move to the closest entry on the previous line |
+| F           | Move forward one day                           |
+| B           | Move backward one day                          |
+| M-f         | Shift date at point forward one day            |
+| M-b         | Shift date at point backward one day           |
+| C-f         | Scroll calendar forward one month              |
+| C-b         | Scroll calendar backward one month             |
+| c           | Move calendar to current date                  |
+| space       | Navigate to org heading at point               |
+| Return      | Show agenda for date at point                  |
+
+Note about cells with multiple entries: If a calendar cell has multiple entries, a special character will be displayed ("☰" by default). If you try to perform a function on one of these cells (e.g., navigating to the org file, shifting a date, etc.), you will be prompted to select the entry you want to perform the operation on. 
 ** Custom variables
-| Variable                                   | Default                                                                         |
-|--------------------------------------------+---------------------------------------------------------------------------------|
-| elg-timestamps-to-display                  | '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia) |
-| elg-deadline-character                     | "▲"                                                                             |
-| elg-active-timestamp-character             | "●"                                                                             |
-| elg-inactive-timestamp-character           | "⊚"                                                                             |
-| elg-scheduled-character                    | "⬟"                                                                             |
-| elg-multiple-entry-character               | "☰"                                                                             |
-| elg-timestamp-range-start-character        | "▶"                                                                             |
-| elg-timestamp-range-end-character          | "◀"                                                                             |
-| elg-cal-timestamp-range-ia-start-character | "▷"                                                                             |
-| elg-timestamp-range-ia-end-character       | "◁"                                                                             |
-| elg-agenda-files                           | (org-agenda-files)                                                              |
-| elg-skip-archives                          | t                                                                               |
-| elg-start-date                             | (concat (format-time-string "%Y-%m") "-01")                                     |
-| elg-header-column-offset                   | 20                                                                              |
-| elg-header-type                            | 'root                                                                           |
+| Variable                                   | Default                                                                                                         |
+|--------------------------------------------+-----------------------------------------------------------------------------------------------------------------|
+| elg-timestamps-to-display                  | '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia) (i.e., all possible timestamps) |
+| elg-deadline-character                     | "▲"                                                                                                             |
+| elg-active-timestamp-character             | "●"                                                                                                             |
+| elg-inactive-timestamp-character           | "⊚"                                                                                                             |
+| elg-scheduled-character                    | "⬟"                                                                                                             |
+| elg-multiple-entry-character               | "☰"                                                                                                             |
+| elg-timestamp-range-start-character        | "▶"                                                                                                             |
+| elg-timestamp-range-end-character          | "◀"                                                                                                             |
+| elg-cal-timestamp-range-ia-start-character | "▷"                                                                                                             |
+| elg-timestamp-range-ia-end-character       | "◁"                                                                                                             |
+| elg-agenda-files                           | (org-agenda-files)                                                                                              |
+| elg-skip-archives                          | t                                                                                                               |
+| elg-start-date                             | (concat (format-time-string "%Y-%m") "-01") (i.e., the current month)                                           |
+| elg-header-column-offset                   | 20                                                                                                              |
+| elg-header-type                            | 'root                                                                                                           |
+| elg-elg-header-line-format                 | See =header-line-format= for more information                                                                     |
 ** Customization macros
-ELG aims to provide a flexible approach to customizing calendar displays. 
-*** Macros
-The aim is to provide a robust interface to customize one’s calendar. 
-**** Display macro
-***** Basic use
+ELG aims to provide a flexible approach to customizing calendar displays. With some customization, this package is adaptable to different workflows. To that end, these macros are designed to facilitate customization of the calendar display. 
+*** The =elg-create-display-rule= macro
+This macro is used to customize the display of the calendar. It defines functions that are run at each cell after the calendar is generated. If a cell contains multiple entries, it will be run for each entry in the cell. 
+
+
+
+*** Accessing and adding properties
+**** The following properties are included in each cell by default:
+| Property                | Value                                                                                             |
+|-------------------------+---------------------------------------------------------------------------------------------------|
+| :elg-headline           | Text of the org headline (no text properties)                                                     |
+| :elg-deadline           | Deadline as a string YYYY-MM-DD, or nil                                                           |
+| :elg-scheduled          | Scheduled timestamp, or nil                                                                       |
+| :elg-timestamp          | First active timestamp (date only) or nil                                                         |
+| :elg-timestamp-ia       | First inactive timestamp (date only) or nil                                                       |
+| :elg-timestamp-range    | Active timestamp range, as a list of two strings '("YYYY-MM-DD" "YYYY-MM-DD") or nil              |
+| :elg-timestamp-range-ia | Same, but inactive timestamp range                                                                |
+| :elg-category           | Category property of the heading, or the filename if no category property is supplied             |
+| :elg-todo               | TODO type, no properties, or nil                                                                  |
+| :elg-marker             | Marker pointing to the location of the heading in the org buffer                                  |
+| :elg-file               | Filename of the underlying org file                                                               |
+| :elg-org-buffer         | Buffer for the underlying org heading                                                             |
+| :elg-alltags            | A list of all tags, including inherited tags, associated with the heading                         |
+| :elg-header             | Header used for insertion into the calendar buffer. Depends on the value of =elg-header-type=       |
+| :elg-date               | Date used for insertion into the calendar. Uses the first date found in =elg-timestamps-to-display= |
+**** Adding properties
+The =:parser= argument is used to parse and add text properties to the calendar. 
 ***** Examples
-****** the display-char function
-****** color coding entries by TODO state
+****** Changing the color of certain cells
+Suppose we want to change the background color of any cell with a "TODO" state to red:
+#+begin_src emacs-lisp :results silent
+  (elg-create-display-rule turn-todo-red
+    :args (elg-todo) ;; Any argument in this list is available in the body
+    :body ((when (string= "TODO" elg-todo)
+             ;; `elg--create-overlay' is generally the easiest way to create an overlay
+             (elg--create-overlay (point) (1+ (point))
+                                  '(face (:background "red"))))))
+#+end_src
+Some caveats: If there is already an overlay on the cell, you have to manage the overlay priority. For example, here we will choose an arbitrarily large priority to make sure this overlay is displayed over any others:
+#+begin_src emacs-lisp :results silent
+  (elg-create-display-rule turn-todo-red
+    :args (elg-todo) ;; Any argument listed here is available in the body
+    :body ((when (string= "TODO" elg-todo)
+             ;; `elg--create-overlay' is generally the easiest way to create an overlay
+             (elg--create-overlay (point) (1+ (point))
+                                  '(face (:background "red")
+                                         priority 99999)))))
+#+end_src
+If you want to make a dynamic display (i.e., one that updates every time you move), then you need to give the overlay a unique ID, and clear those overlay each time the cursor moves. 
+
+The =post-command-hook= keyword will add the function as a post-command-hook and run it each time the cursor moves. For example, suppose you want to make each cell red that matches the TODO state of the cell at point. We'll use the the macro =elg--iterate-over-cells= to run the expression for each cell. 
+#+begin_src emacs-lisp :results silent
+  (elg-create-display-rule turn-matching-todos-red
+    :args (elg-todo)
+    :post-command-hook t
+    :body ((remove-overlays (point-min) (point-max) :turn-it-red t)
+           ;; Since this will run each time the cursor moves, we need to clear
+           ;; the overlays before redrawing them
+           (when elg-todo ;; make sure there is a todo state
+             (let ((elg-todo "TODO"))
+               (elg--iterate-over-cells 
+                (when (member elg-todo (elg-get-prop-at-point :elg-todo))
+                  (elg--create-overlay (point) (1+ (point))
+                                       '(face (:background "red")
+                                              priority 9999
+                                              ;; arbitrary identifier
+                                              ;; so we know what overlays to clear
+                                              :turn-it-red t))))))))
+#+end_src
+If, during your experimentation, you want to disable a display rule, add =:disable t= and it will be removed from the function stack (or the post-command hook, if appropriate). 
+
+****** Adding new properties from org files
+Suppose you want to change the color of a cell based on a property that is not present by default. For example, you want to change the color if the cell has a certain priority, but that property is not included by default. In that case, use the =:parser= keyword to add a property. The expression is run at the first point of each org heading. The syntax is:
+#+begin_src emacs-lisp :results silent
+  :parser ((property-name1 . ((expression)))
+           (property-name2 . ((expression))))
+#+end_src 
+So, to add the property to get the priority of an org heading:
+#+begin_src emacs-lisp :results silent
+    (elg-create-display-rule priority-display
+      :parser ((elg-priority . ((org-entry-get (point) "PRIORITY")))))
+      ;; Include other code here.
+#+end_src
+Then, reload the calendar and =:elg-priority= will be added to each cell's text properties. 
+****** Example: the display-char function
+You may be thinking, okay, I get it, but how about a useful example? Turning matching todos red doesn't come close to functionality I can use. 
+
+Point taken. This is the function that is run to determine what character should be displayed at each cell. (It is disabled for reasons beyond the scope of this discussion.) 
+#+begin_src emacs-lisp :results silent
+(elg-create-display-rule display-char
+  :docstring "Display the appropriate character in each cell."
+  :args (elg-deadline elg-timestamp elg-timestamp-ia elg-scheduled elg-timestamp-range elg-timestamp-range-ia)
+  :disable t
+  :body ((let ((elg-multi (> (length (elg-get-prop-at-point)) 1)))
+	     (elg--change-char (cond (elg-multi elg-multiple-entry-character)
+				     (elg-deadline elg-deadline-character)
+				     (elg-timestamp elg-active-timestamp-character)
+				     (elg-timestamp-range
+				      (if (string= (elg-get-date-at-point) (car elg-timestamp-range))
+					  elg-timestamp-range-start-character
+					elg-timestamp-range-end-character))
+				     (elg-timestamp-range-ia
+				      (if (string= (elg-get-date-at-point) (car elg-timestamp-range-ia))
+					  elg-timestamp-range-ia-start-character
+					elg-timestamp-range-ia-end-character))
+				     (elg-timestamp-ia elg-inactive-timestamp-character)
+				     (elg-scheduled elg-scheduled-character)
+				     ;; There shouldn't be anything left over
+				     (t (error "Unrecognized date type.")))))))
+#+end_src
+****** Another example
+Here is how I colorize blocks of time. It depends on two org properties: =ELG-COLOR= and =ELG-LINKED-TO=. =ELG-COLOR= is an org property that contains two color names, which will represent the start and end of a gradient. =ELG-LINKED-TO= contains the ID of an org heading. 
+#+begin_src emacs-lisp :results silent
+  (setq elg-user-set-color-priority-counter 0) ;; There must be a counter to ensure that overlapping overlays are handled properly
+  (elg-create-display-rule user-set-color
+    :parser ((elg-color . ((when-let ((colors (org-entry-get (point) "ELG-COLOR")))
+                             (s-split " " colors))))
+             (elg-linked-to . ((org-entry-get (point) "ELG-LINKED-TO"))))
+    :args (elg-org-id)
+    :body ((when elg-linked-to
+             (save-excursion
+               (when-let ((point1 (point))
+                          (point2 (let (date)
+                                    (save-excursion (elg--goto-id elg-linked-to)
+                                                    (setq date (elg-get-date-at-point)))
+                                    (elg--goto-date date)
+                                    (point)))
+                          (color1 (car elg-color))
+                          (color2 (cadr elg-color)))
+                 (when (/= point1 point2)
+                   (elg--draw-gradient 
+                    color1
+                    color2
+                    (if (< point1 point2) point1 point2)
+                    (if (< point1 point2) point2 point1)
+                    nil
+                    `(priority ,(setq elg-user-set-color-priority-counter
+                                      (1- elg-user-set-color-priority-counter))
+                               :elg-user-overlay ,elg-org-id))))))))
+#+end_src
+**** Iteracting with the calendar 
+There are two ways to interact with the calender: the command macro and the separate module, =elg-interaction=.
 **** Commands macro
 ***** Example: marking a tast as done 
 *** Helper functions
+The following functions are included to ease customization:
 **** Drawing the display
 ***** Creating overlays
 ***** Creating gradients
@@ -113,5 +253,8 @@ Use the macro stolen from org-mode: =elg-with-point-at-orig-entry=
 #+begin_src emacs-lisp :results silent
 
 #+end_src
-** Other ideas
+
+** TODOs 
+*** TODO Remove =ts.el= dependency, as it is used more for convenience than anything. 
+*** 
 
