@@ -217,12 +217,14 @@ or a function that returns the desired header.")
 (defvar elg--vertical-bar-overlay-list nil
   "List of overlays for the vertical selection bar.")
 
+
+
 ;; Utility functions
-(defun elg--change-symbol-name (symbol &optional prefix suffix)
+(defun elg--change-symbol-name (symbol &optional prefix suffix substring-start substring-end)
   "SYMBOL is any symbol name. PREFIX and SUFFIX are a string to be
-prepended or appended to the symbol name and returned as a new 
-symbol."
-  (intern (concat prefix (symbol-name symbol) suffix)))
+  prepended or appended to the symbol name and returned as a new 
+  symbol."
+  (intern (concat prefix (substring (symbol-name symbol) substring-start substring-end) suffix)))
 
 (defun elg--add-remove-prop-colon (prop &optional remove)
   "PROP is a symbol with or without a colon prefix. 
@@ -797,6 +799,12 @@ symbol."
        ,@body)))
 
 ;; Calendar drawing functions
+(defun elg-change-header-column-offset (&optional offset)
+  (interactive)
+  (setq elg-header-column-offset (or offset
+				     (read-number "Enter new header column offset: ")))
+  (elg-open))
+
 (defun elg--draw-month-line (year)
   (insert 
    (if (elg--leap-year-p year)
@@ -1241,6 +1249,40 @@ symbol."
 			   (assq-delete-all name elg--parsing-functions)))
 	 (setq elg--post-command-hooks (remq ',display-func-name elg--post-command-hooks))
 	 (setq elg--display-rules (remq ',display-func-name elg--display-rules))))))
+
+
+elg-timestamps-to-display
+(setq elg-timestamps-to-display '(deadline timestamp timestamp-range))
+
+
+
+;; (elg-create-display-rule display-char
+;;   :docstring "Display the appropriate character in each cell."
+;;   :args (elg-deadline elg-timestamp elg-timestamp-ia elg-scheduled elg-timestamp-range elg-timestamp-range-ia)
+;;   :disable t
+;;   :body ((when (elg-get-prop-at-point)
+;; 	   (if (> (length (elg-get-prop-at-point)) 1)
+;; 	       elg-multiple-entry-character
+;; 	     (cl-loop for type in elg-timestamps-to-display
+;; 		      do (cond ((and elg-deadline (eq type 'deadline))
+;; 				elg-deadline-character)
+;; 			       ((and elg-timestamp (eq type 'timestamp))
+;; 				elg-active-timestamp-character)
+;; 			       ((and elg-timestamp-range (eq type 'timestamp-range))
+;; 				(if (string= (elg-get-date-at-point) (car elg-timestamp-range))
+;; 				    elg-timestamp-range-start-character
+;; 				  elg-timestamp-range-end-character))
+;; 			       ((and elg-timestamp-range-ia (eq type 'timestamp-range-ia))
+;; 				(if (string= (elg-get-date-at-point) (car elg-timestamp-range-ia))
+;; 				    elg-timestamp-range-ia-start-character
+;; 				  elg-timestamp-range-ia-end-character))
+;; 			       ((and elg-timestamp-ia (eq type 'timestamp-ia))
+;; 				elg-inactive-timestamp-character)
+;; 			       ((and elg-scheduled (eq type 'scheduled))
+;; 				elg-scheduled-character)
+;; 			       ;; There shouldn't be anything left over
+;; 			       (t (error "Unrecognized date type.")))))))) 
+
 
 (elg-create-display-rule display-char
   :docstring "Display the appropriate character in each cell."
