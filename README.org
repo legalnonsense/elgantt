@@ -285,21 +285,32 @@ This was previously accompanied by code that allowed the user to move the date o
 The following functions are included to ease customization:
 **** Drawing the display
 Create overlays with =elg--create-overlay=
+
 Draw gradients with =elg--draw-gradient=
+
 Draw a progress bar with =elg--draw-progress-bar=
+
 **** Navigating the buffer
 Move to a cell by org-id with =elg--goto-id=
+
 Move to a date on the current line with =elg--goto-date=
+
 **** Selecting from multiple entries
 Since some cells have multiple entries, you may need to prompt the user to pick which one should be used: =elg--select-entry=
+
 **** Getting calendar data 
 To get the date at point: =elg-get-date-at-point=
+
 To get the properties of a cell: =elg-get-prop-at-point=
+
 **** Editing the underlying org file
 Use the macro =elg-with-point-at-orig-entry= to execute code at the underlying org heading. 
+
 **** Redrawing 
 You can't reload a single cell because doing so invites catastrophe. But you can update all cells for the date at point: =elg-update-this-cell=
+
 The display (i.e., overlays) of a single cell can be redrawn with =elg--update-display-this-cell= or all cells with =elg--update-display-all-cells=. 
+
 If all else fails, reload everything with =elg-open=.
 
 
