@@ -95,8 +95,10 @@
   :group 'org
   :group 'elg)
 
-(defcustom elgantt-timestamps-to-display '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia)
-  "List of the types of timestamps to display in the calendar. Order matters. If an entry has two types of 
+(defcustom elgantt-scroll-to-current-month-at-startup t
+  "Scroll the calendar to the current month at startup.")
+  (defcustom elgantt-timestamps-to-display '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia)
+    "List of the types of timestamps to display in the calendar. Order matters. If an entry has two types of 
   timestamps, then the first found will be used to determine where it appears in the calendar.
   The following types are accepted: deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia.")
 
@@ -741,7 +743,8 @@ or a function that returns the desired header.")
 				    "[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)>\\)")
 				   nil t)
 	    (org-timestamp-change n 'day)))
-      ;; For some reason a normal `save-excursion' does not work here. 
+      ;; For some reason a normal `save-excursion' does not work here.
+      ;; Some weird bug made me do it this way. 
       (let ((point (point)))
 	(elgantt-update-this-cell)
 	(elgantt--update-display-this-cell)
@@ -817,9 +820,10 @@ or a function that returns the desired header.")
 	      elgantt-normal-year-date-line))))
 
 (defun elgantt--draw-blank-line (year)
-  (insert (if (elgantt--leap-year-p year)
-	      elgantt-leap-year-blank-line
-	    elgantt-normal-year-blank-line)))
+  (let ((inhibit-read-only t))
+    (insert (if (elgantt--leap-year-p year)
+		elgantt-leap-year-blank-line
+	      elgantt-normal-year-blank-line))))
 
 (defun elgantt--get-header-create (header)
   "Put point at the first char in the HEADER line, creating a new header
@@ -843,15 +847,16 @@ or a function that returns the desired header.")
 
 (defun elgantt--insert-new-header-line (header)
   "Inserts a new header."
-  (goto-char (point-max))
-  (insert "\n"
-	  (substring 
-	   (concat header (make-string elgantt-header-column-offset ? ))
-	   0 elgantt-header-column-offset))
-  (cl-loop for year in elgantt--date-range
-	   do (if (elgantt--leap-year-p year)
-		  (insert elgantt-leap-year-blank-line)
-		(insert elgantt-normal-year-blank-line))))
+  (let ((inhibit-read-only t))
+    (goto-char (point-max))
+    (insert "\n"
+	    (substring 
+	     (concat header (make-string elgantt-header-column-offset ? ))
+	     0 elgantt-header-column-offset))
+    (cl-loop for year in elgantt--date-range
+	     do (if (elgantt--leap-year-p year)
+		    (insert elgantt-leap-year-blank-line)
+		  (insert elgantt-normal-year-blank-line)))))
 
 (defun elgantt--insert-year (year &optional append)
   "For each line in the calendar, insert the appropriate
@@ -908,12 +913,14 @@ or a function that returns the desired header.")
   ;; It is necessary to `mapc' over the date because date ranges
   ;; are stored as a list. If there is a date range the
   ;; properties are stored both at the first entry and the last entry.
-  (let ((date (plist-get props :elgantt-date)))
+  (let ((inhibit-read-only t)
+	(face (get-text-property (point) 'face))
+	(date (plist-get props :elgantt-date)))
     (mapc (lambda (date)
 	    (elgantt--get-header-create (plist-get props :elgantt-header))
 	    (elgantt--add-year (string-to-number (substring date 0 4)))
 	    (elgantt--goto-date date)
-	    (let ((old-props (plist-get (text-properties-at (point)) :elg)))
+	    (let ((old-props (plist-get (text-properties-at (point)) :elgant)))
 	      (unless (cl-loop for prop in old-props
 			       if (equal (plist-get prop :elgantt-org-id)
 					 (plist-get props :elgantt-org-id))
@@ -921,7 +928,8 @@ or a function that returns the desired header.")
 					   do (plist-put prop property (plist-get props property)))
 			       and return t)
 		(set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
-									      old-props))))))
+									      old-props))))
+	      (add-face-text-property (point) (1+ (point)) face )))
 	  ;;(elgantt--update-display-this-cell))
 	  (-list date))))
 
@@ -947,13 +955,14 @@ or a function that returns the desired header.")
 (defun elgantt--change-char (char &optional point)
   "Replace the character at point with CHAR, preserving all 
   existing text properties."
-  (save-excursion 
-    (let ((props (text-properties-at (point))))
-      (when point (goto-char point))
-      (insert char)
-      (delete-char 1)
-      (backward-char)
-      (set-text-properties (point) (1+ (point)) props))))
+  (let ((inhibit-read-only t))
+    (save-excursion 
+      (let ((props (text-properties-at (point))))
+	(when point (goto-char point))
+	(insert char)
+	(delete-char 1)
+	(backward-char)
+	(set-text-properties (point) (1+ (point)) props)))))
 
 
 ;; Color conversion functions
@@ -1004,8 +1013,7 @@ or a function that returns the desired header.")
 
 ;; Gradients
 (defun elgantt--get-color-midpoint (color1 color2)
-  "Take two colors (any format) and return their
-  average as an RGB tuple."
+  "Take two colors and return their  average as an RGB tuple."
   (let ((color1 (elgantt--color-to-rgb color1))
 	(color2 (elgantt--color-to-rgb color2)))
     (-zip-with (lambda (c1 c2)
@@ -1013,6 +1021,8 @@ or a function that returns the desired header.")
 	       color1 color2)))
 
 (defun elgantt--draw-progress-bar (start-color end-color start end divider)
+  "Draws an overlay from the points START to END starting with START-COLOR
+and ending with END-COLOR, with the transition occurring at the point DIVIDER."
   (let ((start-color (elgantt--color-name-to-hex start-color))
 	(end-color (elgantt--color-name-to-hex end-color)))
     (save-excursion
@@ -1021,17 +1031,21 @@ or a function that returns the desired header.")
 	       do (goto-char x)
 	       (remove-overlays (point) (1+ (point)))
 	       (elgantt--create-overlay (point) (1+ (point))
-				    `(face ,(if (<= (point) divider)
-						`(:background ,start-color)
-					      `(:background ,end-color))))
+					`(face ,(if (<= (point) divider)
+						    `(:background ,start-color)
+						  `(:background ,end-color))))
 	       (forward-char)))))
 
 (defun elgantt--create-gradient (start-color end-color steps &optional midpoint)
+  "Returns a list gradient from START-COLOR to END-COLOR with STEPS number of steps.
+Much like `color-gradient' except that you can specify MIDPOINT, which will set the 
+location of the midpoint between the color transition. The colors can be color names, 
+i.e., a string, or a hex color, i.e., \"#xxxxxx\""
   (let* ((start-color (elgantt--color-to-rgb start-color))
 	 (end-color (elgantt--color-to-rgb end-color))
 	 (color-gradient (if midpoint
 			     (let ((mid-color (elgantt--get-color-midpoint start-color
-								       end-color)))
+									   end-color)))
 			       (append (color-gradient start-color mid-color midpoint)
 				       (color-gradient mid-color end-color (- steps midpoint))))
 			   (color-gradient start-color end-color steps))))
@@ -1039,7 +1053,7 @@ or a function that returns the desired header.")
 
 (defun elgantt--draw-gradient (start-color end-color start end &optional midpoint props)
   (let ((color-gradient (elgantt--create-gradient start-color end-color
-					      (1+ (- end start)) midpoint)))
+						  (1+ (- end start)) midpoint)))
     (save-excursion
       (goto-char start)
       (mapc (lambda (color)
@@ -1048,12 +1062,12 @@ or a function that returns the desired header.")
 	      				 (overlays-at (point)))))
 	      	  (overlay-put overlay 'face `(:background ,(elgantt--color-rgb-to-hex
 	      						     (elgantt--get-color-midpoint (background-color-at-point)
-	      									      color))))
+											  color))))
 		(elgantt--create-overlay (point)
-				     (1+ (point))
-				     (-flatten-n 1 (append 
-						    `(face ((:background ,(elgantt--color-rgb-to-hex color))))
-						    props))))
+					 (1+ (point))
+					 (-flatten-n 1 (append 
+							`(face ((:background ,(elgantt--color-rgb-to-hex color))))
+							props))))
 	      (forward-char))
 	    color-gradient)))) 
 
@@ -1072,6 +1086,7 @@ or a function that returns the desired header.")
     overlay))
 
 (defun elgantt--vertical-highlight ()
+  "Draws an vertical line of the overlay at point."
   (remove-overlays (point-min) (point-max) 'elgantt-vertical-highlight t)
   (cl-loop with overlay = nil
 	   with line-length = (- (point-at-eol) (point-at-bol))
@@ -1084,12 +1099,13 @@ or a function that returns the desired header.")
 		     (overlay-put (car elgantt--vertical-bar-overlay-list) 'priority 999999)
 		     (overlay-put (car elgantt--vertical-bar-overlay-list) 'elgantt-vertical-highlight t)
 		     (overlay-put (car elgantt--vertical-bar-overlay-list) 'face `(:background ,(color-lighten-name
-											     (save-excursion
-											       (goto-char point)
-											       (background-color-at-point)) 15)))
+												 (save-excursion
+												   (goto-char point)
+												   (background-color-at-point)) 15)))
 		     (setq point (+ point line-length 1)))))
 
 (defun elgantt--highlight-current-day ()
+  "Draws an overlay highlighting the current date."
   (interactive)
   (save-excursion 
     (goto-char (point-min))
@@ -1106,15 +1122,17 @@ or a function that returns the desired header.")
     (goto-char (point-min))))
 
 (defun elgantt--delete-cell-contents-at-point ()
-  "Remove the character and properties at point." 
-  (delete-char 1)
-  (insert " ")
-  (backward-char)
-  (add-face-text-property (point)
-			  (1+ (point))
-			  (if (= (% (line-number-at-pos) 2) 0)
-			      'elgantt-even-numbered-line
-			    'elgantt-odd-numbered-line)))
+  "Remove the character and properties at point, but keep the 
+horizontal line coloring." 
+  (let ((inhibit-read-only t))
+    (insert " ") 
+    (delete-char 1)
+    (backward-char)
+    (add-face-text-property (point)
+    			    (1+ (point))
+    			    (if (= (% (line-number-at-pos) 2) 0)
+    				'elgantt-even-numbered-line
+    			      'elgantt-odd-numbered-line))))
 
 (defun elgantt-update-this-cell (&optional date)
   "Gets data for a specific cell by looking for any headings
@@ -1249,6 +1267,8 @@ or a function that returns the desired header.")
 	 (setq elgantt--display-rules (remq ',display-func-name elgantt--display-rules))))))
 
 (elgantt-create-display-rule display-char
+  ;; FIXME: This should consider which character to insert in the order of
+  ;; `elgantt-timestamps-to-display', rather than the order of the cond, below. 
   :docstring "Display the appropriate character in each cell."
   :args (elgantt-deadline elgantt-timestamp elgantt-timestamp-ia elgantt-scheduled elgantt-timestamp-range elgantt-timestamp-range-ia)
   :disable t
@@ -1381,15 +1401,15 @@ or a function that returns the desired header.")
 	    "\n"
 	    (make-string elgantt-header-column-offset ? ))
     (elgantt--iterate)
-    (read-only-mode -1)
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
     (elgantt--highlight-current-day)
     (toggle-truncate-lines 1)
     (setq header-line-format elgantt-header-line-format)
-    (elgantt-scroll-to-current-month)
+    (when elgantt-scroll-to-current-month-at-startup
+      (elgantt-scroll-to-current-month))
     (goto-char point))
-  (read-only-mode -1)
+  (read-only-mode 1)
   (add-hook 'post-command-hook #'elgantt--post-command-hook nil t)
   (add-hook 'post-command-hook #'elgantt--vertical-highlight nil t))
 
