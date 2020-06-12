@@ -93,7 +93,7 @@
   "Options about gantt-org."
   :tag "Elgantt"
   :group 'org
-  :group 'elg)
+  :group 'elgantt)
 
 (defcustom elgantt-scroll-to-current-month-at-startup t
   "Scroll the calendar to the current month at startup.")
@@ -217,7 +217,7 @@ or a function that returns the desired header.")
 (defvar elgantt--vertical-bar-overlay-list nil
   "List of overlays for the vertical selection bar.")
 
-;; Utility functions
+;;;; Functions
 (defun elgantt--change-symbol-name (symbol &optional prefix suffix substring-start substring-end)
   "SYMBOL is any symbol name. PREFIX and SUFFIX are a string to be
   prepended or appended to the symbol name and returned as a new 
@@ -267,7 +267,6 @@ or a function that returns the desired header.")
 	(reverse zip))
     (user-error "Lists are not all the same length.")))
 
-;; Date utilities
 (defsubst elgantt--get-days-in-year (year)
   "Return the number of days in YEAR." 
   (if (elgantt--leap-year-p year) 366 365))
@@ -318,7 +317,6 @@ or a function that returns the desired header.")
        (ts-adjust (or unit 'day) offset)
        (ts-format "%Y-%m-%d")))
 
-;; Overlay utilities
 (defun elgantt--create-overlay (&optional begin end properties)
   "Create an overlay from BEGIN to END with PROPERTIES. If BEGIN is
   nil, then create the overlay at point. If END is nil, then create
@@ -334,8 +332,6 @@ or a function that returns the desired header.")
       (setq i (1+ i)))
     overlay))
 
-
-;; Parsing function
 (defun elgantt--parser ()
   "Runs at each org heading and returns a plist of 
   relevant properties to be inserted into the calendar buffer."
@@ -358,47 +354,47 @@ or a function that returns the desired header.")
 		       :elgantt-headline elgantt-headline
 		       :elgantt-file elgantt-file
 		       :elgantt-deadline (when elgantt-deadline
-				       (elgantt--convert-date-string elgantt-deadline))
+					   (elgantt--convert-date-string elgantt-deadline))
 		       :elgantt-scheduled (when elgantt-scheduled
-					(elgantt--convert-date-string elgantt-scheduled))
+					    (elgantt--convert-date-string elgantt-scheduled))
 		       :elgantt-todo elgantt-todo
 		       :elgantt-marker (point-marker)
 		       ;; Don't get the timestamps if they are ranges.
 		       :elgantt-timestamp (when (and elgantt-timestamp
-						 (not (s-match "--" elgantt-timestamp)))
-					(elgantt--convert-date-string elgantt-timestamp))
+						     (not (s-match "--" elgantt-timestamp)))
+					    (elgantt--convert-date-string elgantt-timestamp))
 		       :elgantt-timestamp-ia (when (and elgantt-timestamp-ia
-						    (not (s-match "--" elgantt-timestamp-ia)))
-					   (elgantt--convert-date-string elgantt-timestamp-ia))
+							(not (s-match "--" elgantt-timestamp-ia)))
+					       (elgantt--convert-date-string elgantt-timestamp-ia))
 		       ;; Don't get the ranges if they are single dates.
 		       :elgantt-timestamp-range (when elgantt-timestamp
-					      (if (not (s-match "--" elgantt-timestamp))
-						  nil
-						(let ((dates (s-split "--" elgantt-timestamp)))
-						  (list (elgantt--convert-date-string (car dates))
-							(elgantt--convert-date-string (cadr dates))))))
+						  (if (not (s-match "--" elgantt-timestamp))
+						      nil
+						    (let ((dates (s-split "--" elgantt-timestamp)))
+						      (list (elgantt--convert-date-string (car dates))
+							    (elgantt--convert-date-string (cadr dates))))))
 		       :elgantt-timestamp-range-ia (when elgantt-timestamp-ia
-						 (if (not (s-match "--" elgantt-timestamp-ia))
-						     nil
-						   (let ((dates (s-split "--" elgantt-timestamp-ia)))
-						     (list (elgantt--convert-date-string (car dates))
-							   (elgantt--convert-date-string (cadr dates))))))
+						     (if (not (s-match "--" elgantt-timestamp-ia))
+							 nil
+						       (let ((dates (s-split "--" elgantt-timestamp-ia)))
+							 (list (elgantt--convert-date-string (car dates))
+							       (elgantt--convert-date-string (cadr dates))))))
 		       ;; Clean up the tags
 		       :elgantt-alltags (when-let ((tag-string elgantt-alltags))
-				      (mapcar #'org-no-properties (s-split ":" tag-string t)))
+					  (mapcar #'org-no-properties (s-split ":" tag-string t)))
 		       :elgantt-header (pcase elgantt-header-type
-				     ('root (save-excursion 
-					      (while (org-up-heading-safe))
-					      (cdar (org-entry-properties (point) "ITEM"))))
-				     ('hashtag (when elgantt-alltags
-						 (org-no-properties (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
-									    (s-split ":" elgantt-alltags)))))
-				     ('category elgantt-category)
-				     ('parent (save-excursion
-						(when (org-up-heading-safe)
-						  (cdar (org-entry-properties (point) "ITEM")))))
-				     ((pred functionp) (funcall elgantt-header-type))
-				     (_ (error "Invalid header type.")))
+					 ('root (save-excursion 
+						  (while (org-up-heading-safe))
+						  (cdar (org-entry-properties (point) "ITEM"))))
+					 ('hashtag (when elgantt-alltags
+						     (org-no-properties (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
+										(s-split ":" elgantt-alltags)))))
+					 ('category elgantt-category)
+					 ('parent (save-excursion
+						    (when (org-up-heading-safe)
+						      (cdar (org-entry-properties (point) "ITEM")))))
+					 ((pred functionp) (funcall elgantt-header-type))
+					 (_ (error "Invalid header type.")))
 		       :elgantt-org-buffer (current-buffer))))
 
     ;; If the header is in `elgantt-exclusions', then don't add it.
@@ -406,10 +402,10 @@ or a function that returns the desired header.")
       (setq props (append props
 			  ;; Set the date if it contains a date type in `elgantt-timestamps-to-display'
 			  `(:elgantt-date ,(plist-get props
-						  (elgantt--change-symbol-name (--first (plist-get props
-											       (elgantt--change-symbol-name it ":elgantt-"))
-										    elgantt-timestamps-to-display)
-									   ":elgantt-")))))
+						      (elgantt--change-symbol-name (--first (plist-get props
+												       (elgantt--change-symbol-name it ":elgantt-"))
+											    elgantt-timestamps-to-display)
+										   ":elgantt-")))))
       ;; Return only if there is an :elgantt-date
       (when (plist-get props :elgantt-date)
 	(append props
@@ -425,9 +421,8 @@ or a function that returns the desired header.")
 			    (cl-loop for (prop . function) in elgantt--parsing-functions
 				     collect `(,prop ,(funcall function)))))))))
 
-;; Iterator 
 (defun elgantt--iterate ()
-  "Iterate over all entries."
+  "Iterate over all entries in `elgantt-agenda-files'."
   (mapc #'elgantt--insert-entry
 	(-non-nil
 	 (org-ql-select elgantt-agenda-files
@@ -436,13 +431,9 @@ or a function that returns the desired header.")
 			       org-archive-tag))))
 	   :action #'elgantt--parser))))
 
-;; Calendar buffer functions
-
 (defun elgantt--on-vertical-line ()
   "Is the cursor on a vertical line?"
   (looking-at "|"))
-
-;; Getting data from the calendar buffer
 
 (defun elgantt--select-entry (&optional prop-or-all val)
   "Prompt the user to select from multiple entries.
@@ -629,11 +620,6 @@ or a function that returns the desired header.")
 		      (point-at-bol)
 		      t))
 
-(defun elgantt--point-at-window-edge ()
-  (save-excursion
-    (move-to-column (window-body-width))
-    (point)))
-
 (defun elgantt--forward-char (&optional n)
   "Move forward N chars, skipping vertical lines."
   (interactive)
@@ -642,11 +628,12 @@ or a function that returns the desired header.")
     (forward-char n)))
   
 (defun elgantt--backward-char (&optional n)
+  "Move backward one char, skipping vertical lines."
   (interactive)
   (elgantt--forward-char (or n -1)))
 
 (defun elgantt--move-vertically (up-or-down)
-  "Move up or down to the nearest calendar entry."
+  "Move up or down and then to the nearest entry."
   (if (eq up-or-down 'up)
       (if (> (org-current-line) 3)
 	  (elgantt--forward-line -1)
@@ -667,11 +654,13 @@ or a function that returns the desired header.")
 	       (goto-char previous))))))
 
 (defun elgantt--move-up ()
+  "Move the cursor up."
   (interactive)
   (unless (<= (line-number-at-pos) 3)
     (elgantt--move-vertically 'up)))
 
 (defun elgantt--move-down ()
+  "Move the cursor down."
   (interactive)
   (unless (= (line-number-at-pos) (count-lines (point-min) (point-max)))
     (elgantt--move-vertically 'down)))
@@ -685,6 +674,7 @@ or a function that returns the desired header.")
 ;; Programmatic movement functions 
 
 (defmacro elgantt--iterate-over-cells (&rest body)
+  "Executes BODY at each cell in the calendar."
   `(save-excursion
      (goto-char (point-min))
      (cl-loop for points being the intervals of (current-buffer) property :elgantt
@@ -754,14 +744,17 @@ or a function that returns the desired header.")
       (elgantt--update-display-this-cell))))
 
 (defun elgantt--shift-date-forward ()
+  "Move the entry at point forward by one day."
   (interactive)
   (elgantt--shift-date 1))
 
 (defun elgantt--shift-date-backward ()
+  "Move the entry at point backward by one day."
   (interactive)
   (elgantt--shift-date -1))
 
 (defun elgantt--open-org-agenda-at-date ()
+  "Opens `org-agenda' for the date at point."
   (interactive)
   (let ((date (ts-format "%Y-%m-%d" (ts-parse (elgantt-get-date-at-point)))))
     (org-agenda-list nil date 'day))
@@ -799,12 +792,14 @@ or a function that returns the desired header.")
 
 ;; Calendar drawing functions
 (defun elgantt-change-header-column-offset (&optional offset)
+  "Changes `elgantt-header-column-offset' and reloads the calendar."
   (interactive)
   (setq elgantt-header-column-offset (or offset
-				     (read-number "Enter new header column offset: ")))
+					 (read-number "Enter new header column offset: ")))
   (elgantt-open))
 
 (defun elgantt--draw-month-line (year)
+  "Inserts the top month line for the calendar."
   (let ((inhibit-read-only t))
     (insert 
      (if (elgantt--leap-year-p year)
@@ -814,12 +809,14 @@ or a function that returns the desired header.")
 				 elgantt-normal-year-month-line)))))
 
 (defun elgantt--draw-number-line (year)
+  "Inserts the number line for the calendar."
   (let ((inhibit-read-only t))
     (insert (if (elgantt--leap-year-p year)
 		elgantt-leap-year-date-line
 	      elgantt-normal-year-date-line))))
 
 (defun elgantt--draw-blank-line (year)
+  "Inserts a blank line for each header of the calendar."
   (let ((inhibit-read-only t))
     (insert (if (elgantt--leap-year-p year)
 		elgantt-leap-year-blank-line
@@ -929,8 +926,7 @@ or a function that returns the desired header.")
 			       and return t)
 		(set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
 									      old-props))))
-	      (add-face-text-property (point) (1+ (point)) face )))
-	  ;;(elgantt--update-display-this-cell))
+	      (add-face-text-property (point) (1+ (point)) face)))
 	  (-list date))))
 
 ;; Updating overlays
@@ -947,11 +943,11 @@ or a function that returns the desired header.")
 			   (funcall func)))))))
 
 (defun elgantt--update-display-this-cell ()
+  "Updates the overlays for the cell at point."
   (elgantt--display-rule-display-char)
   (cl-loop for func in elgantt--display-rules
 	   do (funcall func)))
 
-;; Changing the display
 (defun elgantt--change-char (char &optional point)
   "Replace the character at point with CHAR, preserving all 
   existing text properties."
@@ -1052,6 +1048,8 @@ i.e., a string, or a hex color, i.e., \"#xxxxxx\""
     color-gradient))
 
 (defun elgantt--draw-gradient (start-color end-color start end &optional midpoint props)
+  "Draws an overlay gradient from START-COLOR to END-COLOR from points START to END.
+Puts the midpoint of the gradient at MIDPOINT. Adds PROPS to the overlay."
   (let ((color-gradient (elgantt--create-gradient start-color end-color
 						  (1+ (- end start)) midpoint)))
     (save-excursion
