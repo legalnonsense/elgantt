@@ -18,16 +18,16 @@ Then:
 (require 'elgantt)
 #+end_src
 ** First use
-Run =(elg-open)=. By default, Elgantt will use your org-agenda files. 
+Run =(elgantt-open)=. By default, Elgantt will use your org-agenda files. 
 
 Before running this on your org-agenda files, you may want to experiment with the test file. 
 *** Using the test file
-Set =elg-agenda-files= to the location wherever you installed =elgantt=. If you cloned to the =/lisp/= subdirectory, then:
+Set =elgantt-agenda-files= to the location wherever you installed =elgantt=. If you cloned to the =/lisp/= subdirectory, then:
 #+begin_src emacs-lisp :results silent
-  (setq elg-agenda-files (concat user-emacs-directory "lisp/elgantt/TEST/test.org"))
+  (setq elgantt-agenda-files (concat user-emacs-directory "lisp/elgantt/TEST/test.org"))
 #+end_src
 *** Setting the header type
-The headers of the calendar are defined by =elg-header-type=. There are four default values and an option to define a custom function which will be run at the first point of each org heading:
+The headers of the calendar are defined by =elgantt-header-type=. There are four default values and an option to define a custom function which will be run at the first point of each org heading:
 | Value    | Behavior                                                                                  |
 |----------+-------------------------------------------------------------------------------------------|
 | parent   | Group entries by parent heading                                                           |
@@ -36,7 +36,7 @@ The headers of the calendar are defined by =elg-header-type=. There are four def
 | hashtag  | Group entries by tags which are prefixed by a hashtag.                                    |
 | function | Run the given function at point, grouping entries by the return value of the function     |
 *** Setting the timestamps to display
-Customize the variable =elg-timestamps-to-display=. This variable is a list which can contain any of:
+Customize the variable =elgantt-timestamps-to-display=. This variable is a list which can contain any of:
 - deadline
 - timestamp
 - timestamp-ia
@@ -65,86 +65,86 @@ Note about cells with multiple entries: If a calendar cell has multiple entries,
 ** Custom variables
 | Variable                                   | Default                                                                                                         |
 |--------------------------------------------+-----------------------------------------------------------------------------------------------------------------|
-| elg-timestamps-to-display                  | '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia) (i.e., all possible timestamps) |
-| elg-deadline-character                     | "▲"                                                                                                             |
-| elg-active-timestamp-character             | "●"                                                                                                             |
-| elg-inactive-timestamp-character           | "⊚"                                                                                                             |
-| elg-scheduled-character                    | "⬟"                                                                                                             |
-| elg-multiple-entry-character               | "☰"                                                                                                             |
-| elg-timestamp-range-start-character        | "▶"                                                                                                             |
-| elg-timestamp-range-end-character          | "◀"                                                                                                             |
-| elg-cal-timestamp-range-ia-start-character | "▷"                                                                                                             |
-| elg-timestamp-range-ia-end-character       | "◁"                                                                                                             |
-| elg-agenda-files                           | (org-agenda-files)                                                                                              |
-| elg-skip-archives                          | t                                                                                                               |
-| elg-start-date                             | (concat (format-time-string "%Y-%m") "-01") (i.e., the current month)                                           |
-| elg-header-column-offset                   | 20                                                                                                              |
-| elg-header-type                            | 'root                                                                                                           |
-| elg-elg-header-line-format                 | See =header-line-format= for more information                                                                     |
+| elgantt-timestamps-to-display                  | '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia) (i.e., all possible timestamps) |
+| elgantt-deadline-character                     | "▲"                                                                                                             |
+| elgantt-active-timestamp-character             | "●"                                                                                                             |
+| elgantt-inactive-timestamp-character           | "⊚"                                                                                                             |
+| elgantt-scheduled-character                    | "⬟"                                                                                                             |
+| elgantt-multiple-entry-character               | "☰"                                                                                                             |
+| elgantt-timestamp-range-start-character        | "▶"                                                                                                             |
+| elgantt-timestamp-range-end-character          | "◀"                                                                                                             |
+| elgantt-cal-timestamp-range-ia-start-character | "▷"                                                                                                             |
+| elgantt-timestamp-range-ia-end-character       | "◁"                                                                                                             |
+| elgantt-agenda-files                           | (org-agenda-files)                                                                                              |
+| elgantt-skip-archives                          | t                                                                                                               |
+| elgantt-start-date                             | (concat (format-time-string "%Y-%m") "-01") (i.e., the current month)                                           |
+| elgantt-header-column-offset                   | 20                                                                                                              |
+| elgantt-header-type                            | 'root                                                                                                           |
+| elgantt-elgantt-header-line-format                 | See =header-line-format= for more information                                                                     |
 ** Customization macros
 ELG aims to provide a flexible approach to customizing calendar displays. With some customization, this package is adaptable to different workflows. To that end, these macros are designed to facilitate customization of the calendar display. 
-*** The =elg-create-display-rule= macro
+*** The =elgantt-create-display-rule= macro
 This macro is used to customize the display of the calendar. It defines functions that are run at each cell after the calendar is generated. If a cell contains multiple entries, it will be run for each entry in the cell. 
 Before proceeding, here is a list of the properties that are included for each entry in the calendar:
 *** Accessing and adding properties
 **** The following properties are included in each cell by default:
 | Property                | Value                                                                                             |
 |-------------------------+---------------------------------------------------------------------------------------------------|
-| :elg-headline           | Text of the org headline (no text properties)                                                     |
-| :elg-deadline           | Deadline as a string YYYY-MM-DD, or nil                                                           |
-| :elg-scheduled          | Scheduled timestamp, or nil                                                                       |
-| :elg-timestamp          | First active timestamp (date only) or nil                                                         |
-| :elg-timestamp-ia       | First inactive timestamp (date only) or nil                                                       |
-| :elg-timestamp-range    | Active timestamp range, as a list of two strings '("YYYY-MM-DD" "YYYY-MM-DD") or nil              |
-| :elg-timestamp-range-ia | Same, but inactive timestamp range                                                                |
-| :elg-category           | Category property of the heading, or the filename if no category property is supplied             |
-| :elg-todo               | TODO type, no properties, or nil                                                                  |
-| :elg-marker             | Marker pointing to the location of the heading in the org buffer                                  |
-| :elg-file               | Filename of the underlying org file                                                               |
-| :elg-org-buffer         | Buffer for the underlying org heading                                                             |
-| :elg-alltags            | A list of all tags, including inherited tags, associated with the heading                         |
-| :elg-header             | Header used for insertion into the calendar buffer. Depends on the value of =elg-header-type=       |
-| :elg-date               | Date used for insertion into the calendar. Uses the first date found in =elg-timestamps-to-display= |
+| :elgantt-headline           | Text of the org headline (no text properties)                                                     |
+| :elgantt-deadline           | Deadline as a string YYYY-MM-DD, or nil                                                           |
+| :elgantt-scheduled          | Scheduled timestamp, or nil                                                                       |
+| :elgantt-timestamp          | First active timestamp (date only) or nil                                                         |
+| :elgantt-timestamp-ia       | First inactive timestamp (date only) or nil                                                       |
+| :elgantt-timestamp-range    | Active timestamp range, as a list of two strings '("YYYY-MM-DD" "YYYY-MM-DD") or nil              |
+| :elgantt-timestamp-range-ia | Same, but inactive timestamp range                                                                |
+| :elgantt-category           | Category property of the heading, or the filename if no category property is supplied             |
+| :elgantt-todo               | TODO type, no properties, or nil                                                                  |
+| :elgantt-marker             | Marker pointing to the location of the heading in the org buffer                                  |
+| :elgantt-file               | Filename of the underlying org file                                                               |
+| :elgantt-org-buffer         | Buffer for the underlying org heading                                                             |
+| :elgantt-alltags            | A list of all tags, including inherited tags, associated with the heading                         |
+| :elgantt-header             | Header used for insertion into the calendar buffer. Depends on the value of =elgantt-header-type=       |
+| :elgantt-date               | Date used for insertion into the calendar. Uses the first date found in =elgantt-timestamps-to-display= |
 **** Examples
 Here are some simple examples of how to use the macro. 
 ***** Changing the color of certain cells
 Suppose we want to change the background color of any cell with a "TODO" state to red:
 #+begin_src emacs-lisp :results silent
-  (elg-create-display-rule turn-todo-red
-    :args (elg-todo) ;; Any argument in this list is available in the body
-    :body ((when (string= "TODO" elg-todo)
-             ;; `elg--create-overlay' is generally the easiest way to create an overlay
+  (elgantt-create-display-rule turn-todo-red
+    :args (elgantt-todo) ;; Any argument in this list is available in the body
+    :body ((when (string= "TODO" elgantt-todo)
+             ;; `elgantt--create-overlay' is generally the easiest way to create an overlay
              ;; since `ov' is not a dependency.
-             (elg--create-overlay (point) (1+ (point))
+             (elgantt--create-overlay (point) (1+ (point))
                                   '(face (:background "red"))))))
 #+end_src
 Some caveats: If there is already an overlay on the cell, you have to manage the overlay priorities for them to display properly. The manual is serious when it warns "you should not make assumptions about which overlay will prevail" when two overlays share the same (or no) priority. 
 
 For example, here we will choose an arbitrarily large priority to make sure this overlay is displayed over any others:
 #+begin_src emacs-lisp :results silent
-  (elg-create-display-rule turn-todo-red
-    :args (elg-todo) ;; Any argument listed here is available in the body
-    :body ((when (string= "TODO" elg-todo)
-             ;; `elg--create-overlay' is generally the easiest way to create an overlay
-             (elg--create-overlay (point) (1+ (point))
+  (elgantt-create-display-rule turn-todo-red
+    :args (elgantt-todo) ;; Any argument listed here is available in the body
+    :body ((when (string= "TODO" elgantt-todo)
+             ;; `elgantt--create-overlay' is generally the easiest way to create an overlay
+             (elgantt--create-overlay (point) (1+ (point))
                                   '(face (:background "red")
                                          priority 99999)))))
 #+end_src
 If you want to make a dynamic display (i.e., one that updates every time you move), then you need to give the overlay a unique ID, and clear those overlay each time the cursor moves. 
 
-The =post-command-hook= keyword will add the function as a post-command-hook and run it each time the cursor moves. For example, suppose you want to make each cell red that matches the TODO state of the cell at point. We'll use the the macro =elg--iterate-over-cells= to run the expression for each cell. 
+The =post-command-hook= keyword will add the function as a post-command-hook and run it each time the cursor moves. For example, suppose you want to make each cell red that matches the TODO state of the cell at point. We'll use the the macro =elgantt--iterate-over-cells= to run the expression for each cell. 
 #+begin_src emacs-lisp :results silent
-  (elg-create-display-rule turn-matching-todos-red
-    :args (elg-todo)
+  (elgantt-create-display-rule turn-matching-todos-red
+    :args (elgantt-todo)
     :post-command-hook t
     :body ((remove-overlays (point-min) (point-max) :turn-it-red t)
            ;; Since this will run each time the cursor moves, we need to clear
            ;; the overlays before redrawing them
-           (when elg-todo ;; make sure there is a todo state
-             (let ((elg-todo "TODO"))
-               (elg--iterate-over-cells 
-                (when (member elg-todo (elg-get-prop-at-point :elg-todo))
-                  (elg--create-overlay (point) (1+ (point))
+           (when elgantt-todo ;; make sure there is a todo state
+             (let ((elgantt-todo "TODO"))
+               (elgantt--iterate-over-cells 
+                (when (member elgantt-todo (elgantt-get-prop-at-point :elgantt-todo))
+                  (elgantt--create-overlay (point) (1+ (point))
                                        '(face (:background "red")
                                               priority 9999
                                               ;; arbitrary identifier
@@ -160,48 +160,48 @@ Suppose you want to change the color of a cell based on a property that is not p
 #+end_src 
 So, to add the property to get the priority of an org heading:
 #+begin_src emacs-lisp :results silent
-    (elg-create-display-rule priority-display
-      :parser ((elg-priority . ((org-entry-get (point) "PRIORITY"))))
-      :body (())) ;; insert code here, which can use elg-priority variable
+    (elgantt-create-display-rule priority-display
+      :parser ((elgantt-priority . ((org-entry-get (point) "PRIORITY"))))
+      :body (())) ;; insert code here, which can use elgantt-priority variable
 #+end_src
-You must reload the calendar after evaluating the macro so the calendar can repopulate and =:elg-priority=
+You must reload the calendar after evaluating the macro so the calendar can repopulate and =:elgantt-priority=
 and its value will be added to each cell's text properties. 
 ***** Example: the display-char function
 You may be thinking, okay, I get it, but how about a useful example? Turning matching todos red doesn't come close to functionality I can use. 
 
 This is the function that is run to determine what character should be displayed at each cell. (It is disabled for reasons beyond the scope of this discussion.) 
 #+begin_src emacs-lisp :results silent
-(elg-create-display-rule display-char
+(elgantt-create-display-rule display-char
   :docstring "Display the appropriate character in each cell."
-  :args (elg-deadline elg-timestamp elg-timestamp-ia elg-scheduled elg-timestamp-range elg-timestamp-range-ia)
+  :args (elgantt-deadline elgantt-timestamp elgantt-timestamp-ia elgantt-scheduled elgantt-timestamp-range elgantt-timestamp-range-ia)
   :disable t
-  :body ((let ((elg-multi (> (length (elg-get-prop-at-point)) 1)))
-	     (elg--change-char (cond (elg-multi elg-multiple-entry-character)
-				     (elg-deadline elg-deadline-character)
-				     (elg-timestamp elg-active-timestamp-character)
-				     (elg-timestamp-range
-				      (if (string= (elg-get-date-at-point) (car elg-timestamp-range))
-					  elg-timestamp-range-start-character
-					elg-timestamp-range-end-character))
-				     (elg-timestamp-range-ia
-				      (if (string= (elg-get-date-at-point) (car elg-timestamp-range-ia))
-					  elg-timestamp-range-ia-start-character
-					elg-timestamp-range-ia-end-character))
-				     (elg-timestamp-ia elg-inactive-timestamp-character)
-				     (elg-scheduled elg-scheduled-character)
+  :body ((let ((elgantt-multi (> (length (elgantt-get-prop-at-point)) 1)))
+	     (elgantt--change-char (cond (elgantt-multi elgantt-multiple-entry-character)
+				     (elgantt-deadline elgantt-deadline-character)
+				     (elgantt-timestamp elgantt-active-timestamp-character)
+				     (elgantt-timestamp-range
+				      (if (string= (elgantt-get-date-at-point) (car elgantt-timestamp-range))
+					  elgantt-timestamp-range-start-character
+					elgantt-timestamp-range-end-character))
+				     (elgantt-timestamp-range-ia
+				      (if (string= (elgantt-get-date-at-point) (car elgantt-timestamp-range-ia))
+					  elgantt-timestamp-range-ia-start-character
+					elgantt-timestamp-range-ia-end-character))
+				     (elgantt-timestamp-ia elgantt-inactive-timestamp-character)
+				     (elgantt-scheduled elgantt-scheduled-character)
 				     ;; There shouldn't be anything left over
 				     (t (error "Unrecognized date type.")))))))
 #+end_src
 ***** Another example
-Here is how I colorize blocks of time. It depends on two org properties: =ELG-COLOR= and =ELG-LINKED-TO=. =ELG-COLOR= is an org property that contains two color names, which will represent the start and end of a gradient. =ELG-LINKED-TO= contains the ID of an org heading. 
+Here is how I colorize blocks of time. It depends on two org properties: =ELGANTT-COLOR= and =ELGANTT-LINKED-TO=. =ELGANTT-COLOR= is an org property that contains two color names, which will represent the start and end of a gradient. =ELGANTT-LINKED-TO= contains the ID of an org heading. 
 #+begin_src emacs-lisp :results silent
-  (setq elg-user-set-color-priority-counter 0) ;; There must be a counter to ensure that overlapping overlays are handled properly
-  (elg-create-display-rule user-set-color
-    :parser ((elg-color . ((when-let ((colors (org-entry-get (point) "ELG-COLOR")))
+  (setq elgantt-user-set-color-priority-counter 0) ;; There must be a counter to ensure that overlapping overlays are handled properly
+  (elgantt-create-display-rule user-set-color
+    :parser ((elgantt-color . ((when-let ((colors (org-entry-get (point) "ELGANTT-COLOR")))
                              (s-split " " colors))))
-             (elg-linked-to . ((org-entry-get (point) "ELG-LINKED-TO"))))
-    :args (elg-org-id)
-    :body ((when elg-linked-to
+             (elgantt-linked-to . ((org-entry-get (point) "ELGANTT-LINKED-TO"))))
+    :args (elgantt-org-id)
+    :body ((when elgantt-linked-to
              (save-excursion
                (when-let ((point1 (point))
                           (point2 (let (date) 
@@ -209,109 +209,121 @@ Here is how I colorize blocks of time. It depends on two org properties: =ELG-CO
                           ;; in the same header in the calendar. Therefore, 
                           ;; we have to get the date of the linked cell, and then
                           ;; move to that date in the current header
-                                    (save-excursion (elg--goto-id elg-linked-to)
-                                                    (setq date (elg-get-date-at-point)))
-                                    (elg--goto-date date)
+                                    (save-excursion (elgantt--goto-id elgantt-linked-to)
+                                                    (setq date (elgantt-get-date-at-point)))
+                                    (elgantt--goto-date date)
                                     (point)))
-                          (color1 (car elg-color))
-                          (color2 (cadr elg-color)))
+                          (color1 (car elgantt-color))
+                          (color2 (cadr elgantt-color)))
                  (when (/= point1 point2)
-                   (elg--draw-gradient 
+                   (elgantt--draw-gradient 
                     color1
                     color2
                     (if (< point1 point2) point1 point2) ;; Since cells are not necessarily linked in 
                     (if (< point1 point2) point2 point1) ;; chronological order, make sure they are sorted
                     nil
-                    `(priority ,(setq elg-user-set-color-priority-counter
-                                      (1- elg-user-set-color-priority-counter))
-                               :elg-user-overlay ,elg-org-id))))))))
+                    `(priority ,(setq elgantt-user-set-color-priority-counter
+                                      (1- elgantt-user-set-color-priority-counter))
+                               :elgantt-user-overlay ,elgantt-org-id))))))))
 #+end_src
 **** Iteracting with the calendar 
-There are two ways to interact with the calender: the =elg-create-action=  macro and the separate module, =elg-interaction=.
-***** =elg-create-action=
-This macro works the same way as =elg-create-display-rule= except that has keywords for binding
+There are two ways to interact with the calender: the =elgantt-create-action= macro and the separate module, =elgantt-interaction=.
+***** =elgantt-create-action=
+
+This macro works the same way as =elgantt-create-display-rule= except that has keywords for binding
 commands. I don't use this macro for anything. 
-***** =elg-interaction=
+
+***** =elgantt-interaction=
+To use this, you must =(require 'elgantt-interaction)=.
+
+
 This module experimental. The code is not cleaned up. It was written in a frenzy of wondering whether I could without considering whether I should. If this inspires ideas for others to use it, I will return to it. Otherwise, unless I have a need, I plan to abandon it. 
 
-Here is an example I use to set the =:ELG-LINKED-TO= and =:ELG-COLOR= property used in the example above. In short, it is designed to allow the user to select cells and perform actions on them in a certain sequence. Here, it allows the user to make two selections, and when return is pressed, it will prompted the user to enter two colors, and then set the properties of the relevant org heading. 
 
-While this example works, the code in =elg-interaction= is generally untested. I do not know whether I will develop it further absent a need to do so. The framework should provide a robust way to interact with the calendar and perform actions on multiple org entries. 
+Here is an example I use to set the =:ELGANTT-LINKED-TO= and =:ELGANTT-COLOR= property used in the example above. In short, it is designed to allow the user to select cells and perform actions on them in a certain sequence. Here, it allows the user to make two selections, and when return is pressed, it will prompted the user to enter two colors, and then set the properties of the relevant org heading. 
+
+
+While this example works, the code in =elgantt-interaction= is generally untested. I do not know whether I will develop it further absent a need to do so. The framework should provide a robust way to interact with the calendar and perform actions on multiple org entries. 
+
 
 To invoke the interface, press =a= to be prompted to select which interface you'd like to execute. After that, a counter should appear which shows the number of cells selected. The message displayed is defined by the =:selection-messages= keyword. Once the cells are selected (by pressing =space=), the user presses =Return= to execute the command. The execution functions will be run in the order listed in =:execution-functions=. The first number refers to cells in the order in which they were selected. The variable =return-val= is the return value of the previous function. 
 
+
 So, here, the user selects two cells and presses return. Then, the program moves to the second selected cell, and runs =org-id-get-create=, and returns the value. The section function moves to the first cell that the user selected, and adds the ID of the second selection (i.e., =return-val=), and then prompts the user for two colors and sets the properties of that heading appropriatly. 
+
 
 In addition to being able to use numbers to refer to cells by the order in which they were selected, you can use =all=, =rest=, =all-but-last=, and =last= to refer to the cells and perform operations on them.
 #+begin_src emacs-lisp :results silent
-  (elg--selection-rule
+  (elgantt--selection-rule
    :name colorize
    :selection-number 2)
    :selection-messages ((1 . "Select first cell")
                         (2 . "Select second cell"))
-   :execution-functions ((2 . ((elg-with-point-at-orig-entry nil
+   :execution-functions ((2 . ((elgantt-with-point-at-orig-entry nil
                                    (org-id-get-create))))
-                         (1 . ((elg-with-point-at-orig-entry nil
-                                   (org-set-property "ELG-LINKED-TO" return-val)
-                                 (org-set-property "ELG-COLOR" (concat (s-trim (helm-colors))
+                         (1 . ((elgantt-with-point-at-orig-entry nil
+                                   (org-set-property "ELGANTT-LINKED-TO" return-val)
+                                 (org-set-property "ELGANTT-COLOR" (concat (s-trim (helm-colors))
                                                                        " "
                                                                        (s-trim (helm-colors))))))))
 #+end_src
 Here is a second example I played with previously, which provided a more advanced way to link cells/headings together
 #+begin_src emacs-lisp :results silent
-(elg--selection-rule :name set-anchor
-		     :parser ((:elg-dependents . ((when-let ((dependents (cdar (org-entry-properties (point)
-												     "ELG-DEPENDENTS"))))
+(elgantt--selection-rule :name set-anchor
+		     :parser ((:elgantt-dependents . ((when-let ((dependents (cdar (org-entry-properties (point)
+												     "ELGANTT-DEPENDENTS"))))
 						    (s-split " " dependents)))))
 		     :execution-functions ((2 . ((elg:with-point-at-orig-entry nil
 									       (org-id-get-create))))
 					   (1 . ((elg:with-point-at-orig-entry nil
 									       (let ((current-heading-id (org-id-get-create)))
-										 (org-set-property "ELG-DEPENDENTS"
+										 (org-set-property "ELGANTT-DEPENDENTS"
 												   (format "%s"
 													   (substring 
-													    (if (member return-val elg-dependents)
-														elg-dependents
-													      (push return-val elg-dependents))
+													    (if (member return-val elgantt-dependents)
+														elgantt-dependents
+													      (push return-val elgantt-dependents))
 													    1 -1)))))))
 					   (2 . ((elg:with-point-at-orig-entry nil
-									       (org-set-property "ELG-ANCHOR" return-val)))))
+									       (org-set-property "ELGANTT-ANCHOR" return-val)))))
 		     :selection-messages ((1 . "Select the anchor.")
 					  (rest . "Select the dependents."))
 		     :selection-number 0)
 #+end_src
 This was previously accompanied by code that allowed the user to move the date of dependent cells by moving the anchor cell, and which highlighted all dependent cells when the point was on an anchor. I abandoned this for various reasons. Again, if there is interest in this level of interface I can clean it up and get it working. Otherwise, whatever. 
 *** Helper functions
-The following functions are included to ease customization:
+The following functions are included to ease customization. See the code for more details. 
 **** Drawing the display
-Create overlays with =elg--create-overlay=
+Create overlays with =elgantt--create-overlay=
 
-Draw gradients with =elg--draw-gradient=
+Draw gradients with =elgantt--draw-gradient=
 
-Draw a progress bar with =elg--draw-progress-bar=
+Draw a progress bar with =elgantt--draw-progress-bar=
+
+Change the character of a cell with =elgantt--change-char=
 
 **** Navigating the buffer
-Move to a cell by org-id with =elg--goto-id=
+Move to a cell by org-id with =elgantt--goto-id=
 
-Move to a date on the current line with =elg--goto-date=
+Move to a date on the current line with =elgantt--goto-date=
 
 **** Selecting from multiple entries
-Since some cells have multiple entries, you may need to prompt the user to pick which one should be used: =elg--select-entry=
+Some cells will have multiple entries. To prompt the user to pick which one should be used: =elgantt--select-entry=
 
 **** Getting calendar data 
-To get the date at point: =elg-get-date-at-point=
+To get the date at point: =elgantt-get-date-at-point=
 
-To get the properties of a cell: =elg-get-prop-at-point=
+To get the properties of a cell: =elgantt-get-prop-at-point=
 
 **** Editing the underlying org file
-Use the macro =elg-with-point-at-orig-entry= to execute code at the underlying org heading. 
+Use the macro =elgantt-with-point-at-orig-entry= to execute code at the underlying org heading. 
 
 **** Redrawing 
-You can't reload a single cell because doing so invites catastrophe. But you can update all cells for the date at point: =elg-update-this-cell=
+You can't reload a single cell because doing so invites catastrophe. But you can update all cells for the date at point: =elgantt-update-this-cell=.
 
-The display (i.e., overlays) of a single cell can be redrawn with =elg--update-display-this-cell= or all cells with =elg--update-display-all-cells=. 
+The display (i.e., overlays) of a single cell can be redrawn with =elgantt--update-display-this-cell= or all cells with =elgantt--update-display-all-cells=. 
 
-If all else fails, reload everything with =elg-open=.
+If all else fails, reload everything with =elgantt-open=.
 
 
 
