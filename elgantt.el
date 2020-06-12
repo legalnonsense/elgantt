@@ -519,7 +519,7 @@ or a function that returns the desired header.")
 
   If there is only one entry, the value will be returned as a list of 
   one item."
-  (let ((prop-list (plist-get (text-properties-at (point)) :elg)))
+  (let ((prop-list (plist-get (text-properties-at (point)) :elgantt)))
     (if prop
 	(mapcar (lambda (props) (plist-get props prop))
 		prop-list)
@@ -685,7 +685,7 @@ or a function that returns the desired header.")
 (defmacro elgantt--iterate-over-cells (&rest body)
   `(save-excursion
      (goto-char (point-min))
-     (cl-loop for points being the intervals of (current-buffer) property :elg
+     (cl-loop for points being the intervals of (current-buffer) property :elgantt
 	      do (progn (goto-char (car points))
 			(when (elgantt-get-prop-at-point)
 			  ,@body)))))
@@ -695,7 +695,7 @@ or a function that returns the desired header.")
   "Go to the cell for the org entry with ID. Return nil if not found."
   ;; If the ID is part of a cell with a time range, this function
   ;; will go to the first entry
-  (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elg
+  (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elgantt
 			     thereis (save-excursion
 				       (goto-char (car points))
 				       (let ((props (elgantt-get-prop-at-point)))
@@ -802,17 +802,19 @@ or a function that returns the desired header.")
   (elgantt-open))
 
 (defun elgantt--draw-month-line (year)
-  (insert 
-   (if (elgantt--leap-year-p year)
+  (let ((inhibit-read-only t))
+    (insert 
+     (if (elgantt--leap-year-p year)
+	 (replace-regexp-in-string "xxxx" (number-to-string year) 
+				   elgantt-leap-year-month-line)
        (replace-regexp-in-string "xxxx" (number-to-string year) 
-				 elgantt-leap-year-month-line)
-     (replace-regexp-in-string "xxxx" (number-to-string year) 
-			       elgantt-normal-year-month-line))))
+				 elgantt-normal-year-month-line)))))
 
 (defun elgantt--draw-number-line (year)
-  (insert (if (elgantt--leap-year-p year)
-	      elgantt-leap-year-date-line
-	    elgantt-normal-year-date-line)))
+  (let ((inhibit-read-only t))
+    (insert (if (elgantt--leap-year-p year)
+		elgantt-leap-year-date-line
+	      elgantt-normal-year-date-line))))
 
 (defun elgantt--draw-blank-line (year)
   (insert (if (elgantt--leap-year-p year)
@@ -931,9 +933,9 @@ or a function that returns the desired header.")
   (save-excursion
     (cl-loop for func in (append (list #'elgantt--display-rule-display-char) elgantt--display-rules)
 	     do (progn (goto-char (point-min))
-		       (while (next-single-property-change (point) :elg)
-			 (goto-char (next-single-property-change (point) :elg))
-			 (when (get-text-property (point) :elg)
+		       (while (next-single-property-change (point) :elgantt)
+			 (goto-char (next-single-property-change (point) :elgantt))
+			 (when (get-text-property (point) :elgantt)
 			   (funcall func)))))))
 
 (defun elgantt--update-display-this-cell ()
