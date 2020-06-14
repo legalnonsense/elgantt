@@ -917,7 +917,7 @@ or a function that returns the desired header.")
 	    (elgantt--get-header-create (plist-get props :elgantt-header))
 	    (elgantt--add-year (string-to-number (substring date 0 4)))
 	    (elgantt--goto-date date)
-	    (let ((old-props (plist-get (text-properties-at (point)) :elgant)))
+	    (let ((old-props (plist-get (text-properties-at (point)) :elgantt)))
 	      (unless (cl-loop for prop in old-props
 			       if (equal (plist-get prop :elgantt-org-id)
 					 (plist-get props :elgantt-org-id))
@@ -1407,7 +1407,7 @@ horizontal line coloring."
     (when elgantt-scroll-to-current-month-at-startup
       (elgantt-scroll-to-current-month))
     (goto-char point))
-  (read-only-mode 1)
+  (read-only-mode -1)
   (add-hook 'post-command-hook #'elgantt--post-command-hook nil t)
   (add-hook 'post-command-hook #'elgantt--vertical-highlight nil t))
 
