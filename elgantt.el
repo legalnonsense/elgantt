@@ -217,6 +217,13 @@ or a function that returns the desired header.")
 (defvar elgantt--vertical-bar-overlay-list nil
   "List of overlays for the vertical selection bar.")
 
+(setq elgantt-draw--top-left "╭"
+      elgantt-draw--top-right "╮"
+      elgantt-draw--bottom-left "╰"
+      elgantt-draw--bottom-right "╯"
+      elgantt-draw--horizontal-line "─"
+      elgantt-draw--vertical-line "│")
+
 ;;;; Functions
 (defun elgantt--change-symbol-name (symbol &optional prefix suffix substring-start substring-end)
   "SYMBOL is any symbol name. PREFIX and SUFFIX are a string to be
@@ -387,8 +394,10 @@ or a function that returns the desired header.")
 						  (while (org-up-heading-safe))
 						  (cdar (org-entry-properties (point) "ITEM"))))
 					 ('hashtag (when elgantt-alltags
-						     (org-no-properties (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
-										(s-split ":" elgantt-alltags)))))
+						     (when-let ((string (org-no-properties (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
+												   (s-split ":" elgantt-alltags)))))
+						       (substring string 1))))
+					 ('heading elgantt-headline)
 					 ('category elgantt-category)
 					 ('parent (save-excursion
 						    (when (org-up-heading-safe)
@@ -398,7 +407,9 @@ or a function that returns the desired header.")
 		       :elgantt-org-buffer (current-buffer))))
 
     ;; If the header is in `elgantt-exclusions', then don't add it.
-    (unless (member (plist-get props :elgantt-header) elgantt-exclusions)
+    ;; If :elgantt-header is nil, don't add it
+    (unless (or (member (plist-get props :elgantt-header) elgantt-exclusions)
+		(not (plist-get props :elgantt-header)))
       (setq props (append props
 			  ;; Set the date if it contains a date type in `elgantt-timestamps-to-display'
 			  `(:elgantt-date ,(plist-get props
@@ -929,11 +940,14 @@ or a function that returns the desired header.")
 	      (add-face-text-property (point) (1+ (point)) face)))
 	  (-list date))))
 
+
+
 ;; Updating overlays
 (defun elgantt--update-display-all-cells ()
   "Run functions in `elgantt--display-rules'"
   (interactive)
   (remove-overlays (point-min) (point-max))
+  (elgantt--clear-juxtapositions)
   (save-excursion
     (cl-loop for func in (append (list #'elgantt--display-rule-display-char) elgantt--display-rules)
 	     do (progn (goto-char (point-min))
@@ -1006,6 +1020,28 @@ or a function that returns the desired header.")
     (_ (error (concat "Color type must be hex, e.g., \"#ffccaa\", "
 		      "or color name, e.g., \"red\", or an RGB tuple, "
 		      "e.g., '(1.0 .5 0)")))))
+
+;; Juxtapositions
+(defun elgantt--clear-juxtapositions (&optional start end)
+  (cl-loop for points being the intervals of (current-buffer) property 'display
+	   from (or start (point-min))
+	   to (or end (point-max))
+	   do (cl-loop for point in points
+		       if (get-text-property point 'juxtapose)
+		       do (remove-text-properties point (1+ point) '(display t juxtapose t)))))
+
+(defun elgantt--insert-juxtaposition (char &optional replace hide-buffer-char)
+  (let ((char (if (characterp char) (char-to-string char) char))
+	(buffer-char (unless hide-buffer-char
+		       (buffer-substring-no-properties (point) (1+ (point)))))
+	(old-juxtaposition (unless replace
+			     (when (get-text-property (point) 'juxtapose)
+			       (get-text-property (point) 'display)))))
+    (put-text-property (point) (1+ (point)) 'display
+		       (compose-string (concat char
+					       buffer-char
+					       old-juxtaposition)))
+    (put-text-property (point) (1+ (point)) 'juxtapose t)))
 
 ;; Gradients
 (defun elgantt--get-color-midpoint (color1 color2)
@@ -1160,6 +1196,8 @@ horizontal line coloring."
   (cl-loop for command in elgantt--post-command-hooks
 	   do (funcall command)))
 
+
+
 (cl-defmacro elgantt-create-display-rule (name &key docstring args parser body append disable post-command-hook)
   "NAME is a symbol used to name new functions that are created. 
 
@@ -1240,7 +1278,7 @@ horizontal line coloring."
 		    ;; Thus, if `elgantt-zip' returns nil, this will create a list of nils to
 		    ;; be assigned to the argument list, since nil is not `eq' to (nil),
 		    ;; `mapc' will accept the list and run.
-		    ;; NOTE: I am not sure if simply returning (nil) would suffice.
+		    ;; NOTE: I am not sure if simply returning a lis (nil) would suffice.
 		    (make-list (if (> 0 (length (elgantt-get-prop-at-point))) 
 				   (length (elgantt-get-prop-at-point)) 1)
 			       (make-list (+ (length ',parser) (length ',args)) nil))))))
