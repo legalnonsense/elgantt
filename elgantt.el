@@ -97,54 +97,69 @@
 
 (defcustom elgantt-scroll-to-current-month-at-startup t
   "Scroll the calendar to the current month at startup.")
-  (defcustom elgantt-timestamps-to-display '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia)
-    "List of the types of timestamps to display in the calendar. Order matters. If an entry has two types of 
+
+(defcustom elgantt-timestamps-to-display '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia)
+  "List of the types of timestamps to display in the calendar. Order matters. If an entry has two types of 
   timestamps, then the first found will be used to determine where it appears in the calendar.
   The following types are accepted: deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia.")
 
 (defcustom elgantt-deadline-character "▲"
-  "Character used for deadlines in the calendar.")
+  "Character used for deadlines in the calendar.
+Default: ▲")
 
 (defcustom elgantt-active-timestamp-character "●"
-  "Character used for active timestamps in the calendar")
+  "Character used for active timestamps in the calendar.
+Default: ●")
 
 (defcustom elgantt-inactive-timestamp-character "⊚"
-  "Character used for inactive timestamps in the calendar")
+  "Character used for inactive timestamps in the calendar. 
+Default: ⊚")
 
 (defcustom elgantt-scheduled-character "⬟"
-  "Character used for active timestamps in the calendar")
+  "Character used for active timestamps in the calendar.
+Default: ⬟")
 
 (defcustom elgantt-multiple-entry-character "☰"
-  "Character used for cells which have multiple entries")
+  "Character used for cells which have multiple entries.
+Default: ☰")
 
 (defcustom elgantt-timestamp-range-start-character "▶"
-  "Character shown at the beginning of a timerange.")
+  "Character shown at the beginning of a timerange.
+Default: ▶")
 
 (defcustom elgantt-timestamp-range-end-character "◀"
-  "Character shown at the end of a timerange.")
+  "Character shown at the end of a timerange.
+Default: ◀")
 
 (defcustom elgantt-timestamp-range-ia-start-character "▷"
-  "Character shown at the beginning of a timerange.")
+  "Character shown at the beginning of a timerange.
+Default: ▷")
 
 (defcustom elgantt-timestamp-range-ia-end-character "◁"
-  "Character shown at the end of a timerange.")
+  "Character shown at the end of a timerange.
+Default: ◁")
 
 (defcustom elgantt-agenda-files (org-agenda-files)
-  "Default: `org-agenda-files'.")
+  "A file, list of files, or function returning a list of files
+Default: `org-agenda-files'.")
 
 (defcustom elgantt-skip-archives t
-  "Skip archived entries if non-nil.")
+  "Skip archived entries if non-nil.
+Default: t")
 
 (defcustom elgantt-start-date (concat (format-time-string "%Y-%m") "-01")
   "Beginning date for the calendar as a string YYYY-MM-DD. 
-Nothing before this date will be parsed or display. Defaults to the current month.")
+Nothing before this date will be parsed or display. 
+Default: the current month.")
 
 (defcustom elgantt-header-column-offset 20
-  "Width of the header column")
+  "Width of the header column.
+Default: 20.")
 
 (defcustom elgantt-header-type 'root
-  "Define how to gather the headers. Values are root, category, hashtag, 
-or a function that returns the desired header.")
+  "Define how to gather the headers. Values are root, category, hashtag, heading
+or a function that returns the desired header.
+Default: 'root")
 
 (defcustom elgantt-header-line-format
   '(:eval
@@ -166,10 +181,14 @@ or a function that returns the desired header.")
   "Post command hooks added by user.")
 
 (defcustom elgantt-exclusions nil
-  "Exclude headers in this list from display in the calendar.")
+  "Exclude headings mathing these strings or regexps
+ in this list from display in the calendar.
+Default: nil")
 
 ;;;; Faces
 
+;; I know faces aren't supposed to end with -face, but I
+;; don't like that rule! 
 (defface elgantt-vertical-line-face
   '((t :background "white" :foreground "white" :height .1))
   "Vertical line face")
@@ -194,18 +213,19 @@ or a function that returns the desired header.")
 (defconst elgantt-normal-year-month-line #("| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 " 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 61 62 (face elgantt-vertical-line-face) 93 94 (face elgantt-vertical-line-face) 124 125 (face elgantt-vertical-line-face) 156 157 (face elgantt-vertical-line-face) 187 188 (face elgantt-vertical-line-face) 219 220 (face elgantt-vertical-line-face) 251 252 (face elgantt-vertical-line-face) 282 283 (face elgantt-vertical-line-face) 314 315 (face elgantt-vertical-line-face) 345 346 (face elgantt-vertical-line-face)))
 (defconst elgantt-normal-year-date-line #("|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901" 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 61 62 (face elgantt-vertical-line-face) 93 94 (face elgantt-vertical-line-face) 124 125 (face elgantt-vertical-line-face) 156 157 (face elgantt-vertical-line-face) 187 188 (face elgantt-vertical-line-face) 219 220 (face elgantt-vertical-line-face) 251 252 (face elgantt-vertical-line-face) 282 283 (face elgantt-vertical-line-face) 314 315 (face elgantt-vertical-line-face) 345 346 (face elgantt-vertical-line-face)))
 (defconst elgantt-normal-year-blank-line #("|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               " 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 61 62 (face elgantt-vertical-line-face) 93 94 (face elgantt-vertical-line-face) 124 125 (face elgantt-vertical-line-face) 156 157 (face elgantt-vertical-line-face) 187 188 (face elgantt-vertical-line-face) 219 220 (face elgantt-vertical-line-face) 251 252 (face elgantt-vertical-line-face) 282 283 (face elgantt-vertical-line-face) 314 315 (face elgantt-vertical-line-face) 345 346 (face elgantt-vertical-line-face)))
+
 (defconst elgantt-cell-entry-re (concat "["
-				    elgantt-deadline-character
-				    elgantt-active-timestamp-character
-				    elgantt-inactive-timestamp-character
-				    elgantt-scheduled-character
-				    elgantt-multiple-entry-character
-				    elgantt-timestamp-range-end-character
-				    elgantt-timestamp-range-start-character
-				    elgantt-timestamp-range-ia-end-character
-				    elgantt-timestamp-range-ia-start-character
-				    "]")
-  "List of display characters for use as a regexp.")
+					elgantt-deadline-character
+					elgantt-active-timestamp-character
+					elgantt-inactive-timestamp-character
+					elgantt-scheduled-character
+					elgantt-multiple-entry-character
+					elgantt-timestamp-range-end-character
+					elgantt-timestamp-range-start-character
+					elgantt-timestamp-range-ia-end-character
+					elgantt-timestamp-range-ia-start-character
+					"]")
+  "List of display characters for use as a regexp for finding entries.")
 
 ;;;; Private variables
 (defvar elgantt--parsing-functions nil
@@ -217,14 +237,12 @@ or a function that returns the desired header.")
 (defvar elgantt--vertical-bar-overlay-list nil
   "List of overlays for the vertical selection bar.")
 
-(setq elgantt-draw--top-left "╭"
-      elgantt-draw--top-right "╮"
-      elgantt-draw--bottom-left "╰"
-      elgantt-draw--bottom-right "╯"
-      elgantt-draw--horizontal-line "─"
-      elgantt-draw--vertical-line "│")
-
 ;;;; Functions
+
+
+;;; Miscellaneous macro utilities
+
+;; These functions are used in some of the macros.
 (defun elgantt--change-symbol-name (symbol &optional prefix suffix substring-start substring-end)
   "SYMBOL is any symbol name. PREFIX and SUFFIX are a string to be
   prepended or appended to the symbol name and returned as a new 
@@ -252,13 +270,11 @@ or a function that returns the desired header.")
 	  ((functionp predicate)
 	   (funcall predicate stored-val val)))))
 
-(defun elgantt-zip (args)
+(defun elgantt--zip (args)
   "Zips multiple lists together. Example:
-  (elgantt-zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
+  (elgantt--zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
   => '((1 2 3 4) (5 6 7 8) (9 10 11 12)).
   All lists must be the same length."
-  ;; Seems `dash' should be able to do this. 
-  ;; (Maybe it does?)
   (if (catch 'match ; Check if lists are all the same length
 	(dotimes (x (1- (length args)))
 	  (when (/= (length (nth x args))
@@ -483,8 +499,10 @@ or a function that returns the desired header.")
     (get-text-property (point) 'elgantt-header)))
 
 (defun elgantt-get-date-at-point (&optional column)
-  "Get the date at point in YYYY-MM-DD format."
-  ;; HACK: It works, so I am not touching it.
+  "Get the date at point in YYYY-MM-DD format. NOTE: this gets this date 
+from the location in the calendar, and does not rely on the text properties. 
+It works on empty cells, and does not rely on the :elgantt-date property." 
+  ;; HACK: It works, but...
   (let ((deactivate-mark t)) 
     (if (not (char-equal (char-after) ?|))
 	(progn
@@ -517,12 +535,13 @@ or a function that returns the desired header.")
       "")))
 
 (defun elgantt-get-prop-at-point (&optional prop)
-  "Returns all text properties at point. If a property is 
-  specified, then return that property for each entry at point if 
-  there are multiple entries.
+  "Returns the :elgantt text property value. 
+This will be a list of plists with the values stored by
+`elgantt--parser'. 
 
-  If there is only one entry, the value will be returned as a list of 
-  one item."
+If PROP is specified, return the value of that property in a list.
+If there is more than one entry in the cell, the list will contain
+the value of each entry."
   (let ((prop-list (plist-get (text-properties-at (point)) :elgantt)))
     (if prop
 	(mapcar (lambda (props) (plist-get props prop))
@@ -530,18 +549,19 @@ or a function that returns the desired header.")
       prop-list)))
 
 ;; User movement functions
-
 (defun elgantt--forward-line (n)
   "Same as `forward-line', but preserves the current column."
+  ;; `next-line' would work, but the compiler complains if we
+  ;; use that function.
   (let ((col (current-column)))
     (forward-line n)
     (move-to-column col)))
 
 (defun elgantt-scroll (direction)
-  ;; HACK: Ugly, but it works and it is reasonably fast.
   "Place, or move, an overlay on each line, hiding (or showing)
   the month immediately after the headers.
   DIRECTION must be a symbol: `forward' or `backard'."
+  ;; HACK: This was a first draft, but it works well enough. 
   (let ((column (current-column))
 	(line (line-number-at-pos))
 	(date (elgantt-get-date-at-point)))
@@ -586,17 +606,8 @@ or a function that returns the desired header.")
 	(elgantt--goto-date date)
       (move-to-column column))))
 
-(defun elgantt-scroll-forward ()
-  "Interactive function to scroll forward by one month."
-  (interactive)
-  (elgantt-scroll 'forward))
-
-(defun elgantt-scroll-backward ()
-  "Interactive function to scroll forward by one month."
-  (interactive)
-  (elgantt-scroll 'backward))
-
 (defun elgantt-scroll-to-current-month ()
+  "Scroll the calendar to the current month."
   (interactive)
   (when (member (string-to-number (format-time-string "%Y")) elgantt--date-range)
     (cl-loop for overlay in elgantt--hidden-overlays
@@ -608,43 +619,9 @@ or a function that returns the desired header.")
 		   (1- (string-to-number (substring (format-time-string "%Y-%m-%d") 5 7)))))
       (elgantt-scroll-forward))))
 
-(defun elgantt--move-forward ()
-  "Moves to the next filled cell on the line. Does not move to 
-  next line if it is at the last entry on the line."
-  (interactive)
-  (when (<= (line-number-at-pos) 2)
-    (goto-line 3))
-  (when (<= (current-column) elgantt-header-column-offset)
-    (forward-char elgantt-header-column-offset))
-  (when-let ((point (save-excursion 
-		      (forward-char 1)
-		      (re-search-forward elgantt-cell-entry-re
-					 (point-at-eol)
-					 t))))
-    (goto-char (1- point))))
-
-(defun elgantt--move-backward ()
-  "Moves to the previous filled cell on the line. Does not move to 
-  next line if it is at the last entry on the line."
-  (interactive)
-  (re-search-backward elgantt-cell-entry-re
-		      (point-at-bol)
-		      t))
-
-(defun elgantt--forward-char (&optional n)
-  "Move forward N chars, skipping vertical lines."
-  (interactive)
-  (forward-char n)
-  (when (looking-at "|")
-    (forward-char n)))
-  
-(defun elgantt--backward-char (&optional n)
-  "Move backward one char, skipping vertical lines."
-  (interactive)
-  (elgantt--forward-char (or n -1)))
-
 (defun elgantt--move-vertically (up-or-down)
-  "Move up or down and then to the nearest entry."
+  "Move up or down one line, and then move to the nearest
+entry. UP-OR-DOWN must be 'up or 'down."
   (if (eq up-or-down 'up)
       (if (> (org-current-line) 3)
 	  (elgantt--forward-line -1)
@@ -664,18 +641,6 @@ or a function that returns the desired header.")
 		 (goto-char (1- next))
 	       (goto-char previous))))))
 
-(defun elgantt--move-up ()
-  "Move the cursor up."
-  (interactive)
-  (unless (<= (line-number-at-pos) 3)
-    (elgantt--move-vertically 'up)))
-
-(defun elgantt--move-down ()
-  "Move the cursor down."
-  (interactive)
-  (unless (= (line-number-at-pos) (count-lines (point-min) (point-max)))
-    (elgantt--move-vertically 'down)))
-
 (defun elgantt--move-horizontally (n)
   "Ensures that the point is not on a vertical line."
   (forward-char n)
@@ -683,7 +648,6 @@ or a function that returns the desired header.")
     (forward-char n)))
 
 ;; Programmatic movement functions 
-
 (defmacro elgantt--iterate-over-cells (&rest body)
   "Executes BODY at each cell in the calendar."
   `(save-excursion
@@ -693,11 +657,10 @@ or a function that returns the desired header.")
 			(when (elgantt-get-prop-at-point)
 			  ,@body)))))
 
-
 (defun elgantt--goto-id (id &optional range)
-  "Go to the cell for the org entry with ID. Return nil if not found."
-  ;; If the ID is part of a cell with a time range, this function
-  ;; will go to the first entry
+  "Go to the cell containing the org-id ID. Return nil if not found.
+If ID represents an entry that is a time range, go do the first 
+cell in that range."
   (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elgantt
 			     thereis (save-excursion
 				       (goto-char (car points))
@@ -709,7 +672,8 @@ or a function that returns the desired header.")
     (goto-char point)))
 
 (defun elgantt--goto-date (date)
-  "Go to DATE in the current header. DATE is a string in \"YYYY-MM-DD\" format."
+  "Go to DATE in the current line. 
+DATE is a string in \"YYYY-MM-DD\" format."
   (if-let ((overlay (car elgantt--hidden-overlays))
 	   (start (overlay-start overlay))
 	   (end (overlay-end overlay)))
@@ -719,7 +683,6 @@ or a function that returns the desired header.")
 
 
 ;; Interaction functions
-
 (defun elgantt--shift-date (n &optional properties)
   "Move the timestamp up or down by one day.
   N must be 1 or -1. The return value
@@ -753,37 +716,6 @@ or a function that returns the desired header.")
       (elgantt--move-horizontally n)
       (elgantt-update-this-cell)
       (elgantt--update-display-this-cell))))
-
-(defun elgantt--shift-date-forward ()
-  "Move the entry at point forward by one day."
-  (interactive)
-  (elgantt--shift-date 1))
-
-(defun elgantt--shift-date-backward ()
-  "Move the entry at point backward by one day."
-  (interactive)
-  (elgantt--shift-date -1))
-
-(defun elgantt--open-org-agenda-at-date ()
-  "Opens `org-agenda' for the date at point."
-  (interactive)
-  (let ((date (ts-format "%Y-%m-%d" (ts-parse (elgantt-get-date-at-point)))))
-    (org-agenda-list nil date 'day))
-  (other-window 1))
-
-(defun elgantt-navigate-to-org-file ()
-  "Navigate to a location in an org file for the cell at point."
-  (interactive)
-  (if-let* ((props (elgantt--select-entry))
-	    (buffer (plist-get props :elgantt-org-buffer))
-	    (marker (plist-get props :elgantt-marker)))
-      (progn 
-	(switch-to-buffer-other-window buffer)
-	(org-goto-marker-or-bmk marker)
-	(outline-show-entry)
-	(outline-show-children)
-	(beginning-of-line))
-    (message "Cannot navigate to org file: no data at point.")))
 
 (defmacro elgantt-with-point-at-orig-entry (props &rest body)
   "Execute BODY with point at marker stored in `:elgantt-marker'.
@@ -1119,6 +1051,68 @@ Puts the midpoint of the gradient at MIDPOINT. Adds PROPS to the overlay."
 	  (setq i (1+ i)))))
     overlay))
 
+(defun elgantt--draw-line (start-point end-point)
+  "Draw a line from START-POINT to END-POINT."
+  (let* ((start (cons (progn (goto-char start-point)
+                             (current-column))
+                      (line-number-at-pos)))
+         (end (cons (progn (goto-char end-point)
+                           (current-column))
+                    (line-number-at-pos)))
+         (sorted (cond ((<= (car start) (car end))
+                        (list start end))
+                       ((> (car start) (car end))
+                        (list end start))))
+         (x-distance (- (caadr sorted)
+                        (caar sorted)))
+         (y-distance (- (cdadr sorted)
+                        (cdar sorted))))
+    (goto-char (point-min))
+    (forward-line (1- (cdar sorted)))
+    (move-to-column (caar sorted))
+    (if (= x-distance 0)
+        (cl-loop for y from 1 to (1+ (abs y-distance))
+                 do (cond ((= y 1)
+                           (if (> 0 y-distance)
+                               (progn 
+                                 (elgantt--insert-juxtaposition elgantt-draw--top-half-vertical)
+                                 (elgantt--forward-line (if (> 0 y-distance) -1 1)))
+                             (elgantt--insert-juxtaposition elgantt-draw--bottom-half-vertical)
+                             (elgantt--forward-line (if (> 0 y-distance) -1 1))))
+                          ((= y (1+ (abs y-distance)))
+                           (if (> 0 y-distance)
+                               (progn 
+                                 (elgantt--insert-juxtaposition elgantt-draw--bottom-half-vertical)
+                                 (elgantt--forward-line (if (> 0 y-distance) -1 1)))
+                             (elgantt--insert-juxtaposition elgantt-draw--top-half-vertical)
+                             (elgantt--forward-line (if (> 0 y-distance) -1 1))))
+                          (t (elgantt--insert-juxtaposition elgantt-draw--vertical-line)
+                             (elgantt--forward-line (if (> 0 y-distance) -1 1)))))
+      (cl-loop for x from 1 to (abs (/ x-distance 2))
+               do (progn (unless (= x 1)
+                           (elgantt--insert-juxtaposition elgantt-draw--horizontal-line))
+                         (forward-char (if (> 0 x-distance) -1 1))))
+      (cl-loop for y from 1 to (abs y-distance)
+               do (progn (if (= y 1)
+                             (if (= 0 x-distance)
+                                 (elgantt--insert-juxtaposition elgantt-draw--vertical-line)
+                               (elgantt--insert-juxtaposition (if (> 0 y-distance)
+                                                                  elgantt-draw--bottom-right
+                                                                elgantt-draw--top-right)))
+                           (elgantt--insert-juxtaposition elgantt-draw--vertical-line))
+                         (elgantt--forward-line (if (> 0 y-distance) -1 1))))
+      (cl-loop for x from 1 to (abs (+ (/ x-distance 2)
+                                       (% x-distance 2)))
+               do (progn (if (= x 1)
+                             (elgantt--insert-juxtaposition (cond ((> 0 y-distance)
+                                                                   elgantt-draw--top-left)
+                                                                  ((= 0 y-distance)
+                                                                   elgantt-draw--horizontal-line)
+                                                                  (t elgantt-draw--bottom-left)))
+                           (elgantt--insert-juxtaposition elgantt-draw--horizontal-line))
+                         (forward-char (if (> 0 x-distance) -1 1)))))))
+
+
 (defun elgantt--vertical-highlight ()
   "Draws an vertical line of the overlay at point."
   (remove-overlays (point-min) (point-max) 'elgantt-vertical-highlight t)
@@ -1265,7 +1259,7 @@ horizontal line coloring."
 					    collect (elgantt--add-remove-prop-colon prop t)))
 			  arg-list))
 		    ,@body))
-		(or (elgantt-zip
+		(or (elgantt--zip
 		     (mapcar #'elgantt-get-prop-at-point
 			     (append ',(cl-loop for arg in args
 						collect (elgantt--add-remove-prop-colon arg))
@@ -1275,7 +1269,7 @@ horizontal line coloring."
 		    ;; will not run. Since `elgantt-get-prop-at-point' will return nil
 		    ;; if on an empty cell, it creates a problem if the user wants to run
 		    ;; the command in an empty cell. 
-		    ;; Thus, if `elgantt-zip' returns nil, this will create a list of nils to
+		    ;; Thus, if `elgantt--zip' returns nil, this will create a list of nils to
 		    ;; be assigned to the argument list, since nil is not `eq' to (nil),
 		    ;; `mapc' will accept the list and run.
 		    ;; NOTE: I am not sure if simply returning a lis (nil) would suffice.
@@ -1375,7 +1369,7 @@ horizontal line coloring."
 					    collect (elgantt--add-remove-prop-colon prop t)))
 			  arg-list))
 		    ,@body))
-		(or (elgantt-zip
+		(or (elgantt--zip
 		     (mapcar #'elgantt-get-prop-at-point
 			     (append ',(cl-loop for arg in args
 						collect (elgantt--add-remove-prop-colon arg))
@@ -1399,12 +1393,95 @@ horizontal line coloring."
 		       (forward-line))
 	     until (eobp))))
 
-(defun elgantt-open ()
-  "Open gantt calendar."
+;;; Interactive functions
+(defun elgantt--shift-date-forward ()
+  "Move the entry at point forward by one day."
   (interactive)
-  (switch-to-buffer "*El Gantt Calendar*")
-  (elgantt-mode))
+  (elgantt--shift-date 1))
 
+(defun elgantt--shift-date-backward ()
+  "Move the entry at point backward by one day."
+  (interactive)
+  (elgantt--shift-date -1))
+
+(defun elgantt--open-org-agenda-at-date ()
+  "Opens `org-agenda' for the date at point."
+  (interactive)
+  (let ((date (ts-format "%Y-%m-%d" (ts-parse (elgantt-get-date-at-point)))))
+    (org-agenda-list nil date 'day))
+  (other-window 1))
+
+(defun elgantt-navigate-to-org-file ()
+  "Navigate to a location in an org file for the cell at point."
+  (interactive)
+  (if-let* ((props (elgantt--select-entry))
+	    (buffer (plist-get props :elgantt-org-buffer))
+	    (marker (plist-get props :elgantt-marker)))
+      (progn 
+	(switch-to-buffer-other-window buffer)
+	(org-goto-marker-or-bmk marker)
+	(outline-show-entry)
+	(outline-show-children)
+	(beginning-of-line))
+    (message "Cannot navigate to org file: no data at point.")))
+
+(defun elgantt-scroll-forward ()
+  "Interactive function to scroll forward by one month."
+  (interactive)
+  (elgantt-scroll 'forward))
+
+(defun elgantt-scroll-backward ()
+  "Interactive function to scroll forward by one month."
+  (interactive)
+  (elgantt-scroll 'backward))
+
+(defun elgantt--move-forward ()
+  "Moves to the next entry on the line."
+  (interactive)
+  (when (<= (line-number-at-pos) 2)
+    (goto-line 3))
+  (when (<= (current-column) elgantt-header-column-offset)
+    (forward-char elgantt-header-column-offset))
+  (when-let ((point (save-excursion 
+		      (forward-char 1)
+		      (re-search-forward elgantt-cell-entry-re
+					 (point-at-eol)
+					 t))))
+    (goto-char (1- point))))
+
+(defun elgantt--move-backward ()
+  "Move to the previous entry on the line."
+  (interactive)
+  (re-search-backward elgantt-cell-entry-re
+		      (point-at-bol)
+		      t))
+
+(defun elgantt--forward-char (&optional n)
+  "Move forward N chars, skipping vertical lines."
+  (interactive)
+  (forward-char n)
+  (when (looking-at "|")
+    (forward-char n)))
+
+(defun elgantt--backward-char (&optional n)
+  "Move backward N char, skipping vertical lines."
+  (interactive)
+  (elgantt--forward-char (or n -1)))
+
+(defun elgantt--move-up ()
+  "Move the cursor up with `elgantt--move-vertically'."
+  (interactive)
+  (unless (<= (line-number-at-pos) 3)
+    (elgantt--move-vertically 'up)))
+
+(defun elgantt--move-down ()
+  "Move the cursor down with `elgantt--move-vertically'."
+  (interactive)
+  (unless (= (line-number-at-pos) (count-lines (point-min) (point-max)))
+    (elgantt--move-vertically 'down)))
+
+
+;;; Major mode
 (defvar elgantt-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "r")   #'elgantt-open)
@@ -1439,7 +1516,10 @@ horizontal line coloring."
     (elgantt--iterate)
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
-    (elgantt--highlight-current-day)
+    (when (member (string-to-number
+		   (format-time-string "%Y"))
+		  elgantt--date-range)
+      (elgantt--highlight-current-day))
     (toggle-truncate-lines 1)
     (setq header-line-format elgantt-header-line-format)
     (when elgantt-scroll-to-current-month-at-startup
@@ -1448,6 +1528,15 @@ horizontal line coloring."
   (read-only-mode -1)
   (add-hook 'post-command-hook #'elgantt--post-command-hook nil t)
   (add-hook 'post-command-hook #'elgantt--vertical-highlight nil t))
+
+
+;;;###autoload 
+(defun elgantt-open ()
+  "Open gantt calendar."
+  (interactive)
+  (switch-to-buffer "*El Gantt Calendar*")
+  (elgantt-mode))
+
 
 ;;;; Footer
 
