@@ -98,6 +98,9 @@
 (defcustom elgantt-scroll-to-current-month-at-startup t
   "Scroll the calendar to the current month at startup.")
 
+(defcustom elgantt-show-header-depth nil
+  "Add a prefix to the headers showing the depth of the outline")
+
 (defcustom elgantt-timestamps-to-display '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia)
   "List of the types of timestamps to display in the calendar. Order matters. If an entry has two types of 
   timestamps, then the first found will be used to determine where it appears in the calendar.
@@ -185,6 +188,27 @@ Default: 'root")
  in this list from display in the calendar.
 Default: nil")
 
+
+
+(defcustom elgantt-insert-header-even-if-no-timestamp nil
+  "Insert a header even if there is no timestamp.")
+(defcustom elgantt-draw--top-left "╭"
+  "Line drawing char: top left.")
+(defcustom elgantt-draw--top-right "╮"
+  "Line drawing char: top right.")
+(defcustom elgantt-draw--bottom-left "╰"
+  "Line drawing char: bottom left.")
+(defcustom elgantt-draw--bottom-right "╯"
+  "Line drawing char: bottom right.")
+(defcustom elgantt-draw--horizontal-line "─"
+  "Line drawing char: horizontal line.")
+(defcustom elgantt-draw--vertical-line "│"
+  "Line drawing char: vertical line.")
+(defcustom elgantt-draw--top-half-vertical "╵"
+  "Line drawing char: top half vertical line.")
+(defcustom elgantt-draw--bottom-half-vertical "╷"
+  "Line drawing char: bottom half vertical line.")
+
 ;;;; Faces
 
 ;; I know faces aren't supposed to end with -face, but I
@@ -203,7 +227,10 @@ Default: nil")
 (defface elgantt-odd-numbered-line '((t (:inherit default)))
   "Face applied to odd numbered lines in the calendar.")
 
-(defface elgantt-even-numbered-line '((t (:inherit default :background "gray17")))
+(defface elgantt-even-numbered-line `((t (:inherit default :background
+						   ,(if (> 130 (elgantt--hexcolor-luminance (face-background 'default)))
+							(color-lighten-name (face-background 'default) 15)
+						      (color-lighten-name (face-background 'default) -15)))))
   "Face applied to even numbered lines in the calendar.")
 
 ;;;; Constants
@@ -298,6 +325,10 @@ Default: nil")
   "Return t if YEAR is a leap year. Otherwise, nil."
   (= (% year 4) 0))
 
+(defun elgantt--sort-dates (dates)
+  "Put DATES in order."
+  (sort (-non-nil dates) #'string<))
+
 (defun elgantt--convert-date-string (date)
   "Converts an org date string to YYYY-MM-DD."
   (->> date
@@ -375,6 +406,7 @@ Default: nil")
 	  ;; match proerties from `org-entry-properties'.
 	  (props (list :elgantt-category elgantt-category
 		       :elgantt-headline elgantt-headline
+		       :elgantt-level (org-outline-level)
 		       :elgantt-file elgantt-file
 		       :elgantt-deadline (when elgantt-deadline
 					   (elgantt--convert-date-string elgantt-deadline))
@@ -433,30 +465,42 @@ Default: nil")
 												       (elgantt--change-symbol-name it ":elgantt-"))
 											    elgantt-timestamps-to-display)
 										   ":elgantt-")))))
-      ;; Return only if there is an :elgantt-date
-      (when (plist-get props :elgantt-date)
-	(append props
-		`(:elgantt-org-id ,(org-id-get-create))
-		
-		;; ;; Append properites from `org-element-at-point' in
-		;; ;; case anyone wants to use them.
-		;; (cadr (org-element-at-point))
-		
-		;; Run all custom parsing functions and append
-		;; those values
-		(-flatten-n 1
-			    (cl-loop for (prop . function) in elgantt--parsing-functions
-				     collect `(,prop ,(funcall function)))))))))
+      (if (or (and (not elgantt-insert-header-even-if-no-timestamp)
+		   (plist-get props :elgantt-date))
+	      elgantt-insert-header-even-if-no-timestamp)
+	  (append props
+		  `(:elgantt-org-id ,(org-id-get-create))
+		  
+		  ;; ;; Append properites from `org-element-at-point' in
+		  ;; ;; case anyone wants to use them.
+		  ;; (cadr (org-element-at-point))
+		  
+		  ;; Run all custom parsing functions and append
+		  ;; those values
+		  (-flatten-n 1
+			      (cl-loop for (prop . function) in elgantt--parsing-functions
+				       collect `(,prop ,(funcall function)))))))))
 
+;; NEW--INCLUDE BLANK HEADERS
 (defun elgantt--iterate ()
   "Iterate over all entries in `elgantt-agenda-files'."
-  (mapc #'elgantt--insert-entry
-	(-non-nil
-	 (org-ql-select elgantt-agenda-files
-	   `(and (ts :from ,elgantt-start-date)
-		 (not (tags ,(when elgantt-skip-archives
-			       org-archive-tag))))
-	   :action #'elgantt--parser))))
+  (if elgantt-insert-header-even-if-no-timestamp
+      (mapc #'elgantt--insert-entry
+	    (-non-nil
+	     (org-ql-select elgantt-agenda-files
+	       `(not (tags ,(when elgantt-skip-archives
+			      org-archive-tag)))
+	       :action #'elgantt--parser)))
+    (mapc #'elgantt--insert-entry
+	  (-non-nil
+	   (org-ql-select elgantt-agenda-files
+	     `(and (ts :from ,elgantt-start-date)
+		   (not (tags ,(when elgantt-skip-archives
+				 org-archive-tag))))
+	     :action #'elgantt--parser)))))
+
+
+
 
 (defun elgantt--on-vertical-line ()
   "Is the cursor on a vertical line?"
@@ -500,8 +544,8 @@ Default: nil")
 
 (defun elgantt-get-date-at-point (&optional column)
   "Get the date at point in YYYY-MM-DD format. NOTE: this gets this date 
-from the location in the calendar, and does not rely on the text properties. 
-It works on empty cells, and does not rely on the :elgantt-date property." 
+  from the location in the calendar, and does not rely on the text properties. 
+  It works on empty cells, and does not rely on the :elgantt-date property." 
   ;; HACK: It works, but...
   (let ((deactivate-mark t)) 
     (if (not (char-equal (char-after) ?|))
@@ -536,12 +580,12 @@ It works on empty cells, and does not rely on the :elgantt-date property."
 
 (defun elgantt-get-prop-at-point (&optional prop)
   "Returns the :elgantt text property value. 
-This will be a list of plists with the values stored by
-`elgantt--parser'. 
+  This will be a list of plists with the values stored by
+  `elgantt--parser'. 
 
-If PROP is specified, return the value of that property in a list.
-If there is more than one entry in the cell, the list will contain
-the value of each entry."
+  If PROP is specified, return the value of that property in a list.
+  If there is more than one entry in the cell, the list will contain
+  the value of each entry."
   (let ((prop-list (plist-get (text-properties-at (point)) :elgantt)))
     (if prop
 	(mapcar (lambda (props) (plist-get props prop))
@@ -621,7 +665,7 @@ the value of each entry."
 
 (defun elgantt--move-vertically (up-or-down)
   "Move up or down one line, and then move to the nearest
-entry. UP-OR-DOWN must be 'up or 'down."
+  entry. UP-OR-DOWN must be 'up or 'down."
   (if (eq up-or-down 'up)
       (if (> (org-current-line) 3)
 	  (elgantt--forward-line -1)
@@ -659,8 +703,8 @@ entry. UP-OR-DOWN must be 'up or 'down."
 
 (defun elgantt--goto-id (id &optional range)
   "Go to the cell containing the org-id ID. Return nil if not found.
-If ID represents an entry that is a time range, go do the first 
-cell in that range."
+  If ID represents an entry that is a time range, go do the first 
+  cell in that range."
   (when-let ((point (cl-loop for points being the intervals of (current-buffer) property :elgantt
 			     thereis (save-excursion
 				       (goto-char (car points))
@@ -673,13 +717,15 @@ cell in that range."
 
 (defun elgantt--goto-date (date)
   "Go to DATE in the current line. 
-DATE is a string in \"YYYY-MM-DD\" format."
+  DATE is a string in \"YYYY-MM-DD\" format."
   (if-let ((overlay (car elgantt--hidden-overlays))
 	   (start (overlay-start overlay))
 	   (end (overlay-end overlay)))
       (move-to-column (- (elgantt--convert-date-to-column-number date)
 			 (- end start)))
-    (move-to-column (elgantt--convert-date-to-column-number date))))
+    (move-to-column (elgantt--convert-date-to-column-number date)))
+  (point))
+
 
 
 ;; Interaction functions
@@ -765,12 +811,20 @@ DATE is a string in \"YYYY-MM-DD\" format."
 		elgantt-leap-year-blank-line
 	      elgantt-normal-year-blank-line))))
 
-(defun elgantt--get-header-create (header)
+
+;;;xxx 
+(defun elgantt--get-header-create (header &optional level)
   "Put point at the first char in the HEADER line, creating a new header
   line if one does not exist."
   (goto-char (point-min))
   (forward-line 1)
-  (let ((new-header (concat (s-truncate elgantt-header-column-offset header))))
+  (let ((new-header (concat
+		     (when (and elgantt-show-header-depth
+				(eq elgantt-header-type 'heading ))
+		       (make-string level (pcase elgantt-level-prefix-char
+					    ((pred characterp) elgantt-level-prefix-char)
+					    ((pred stringp) (string-to-char elgantt-level-prefix-char)))))
+		     (s-truncate elgantt-header-column-offset header))))
     ;; Concat is necessary for reasons I do not understand. Without it,
     ;; the text properties are not set properly. 
     (if (cl-loop until (eobp)
@@ -782,8 +836,17 @@ DATE is a string in \"YYYY-MM-DD\" format."
 		 return t)
 	(beginning-of-line)
       (put-text-property 0 (length new-header) 'elgantt-header header new-header)
+      (when (eq elgantt-header-type 'heading)
+	(put-text-property 0 (length new-header) 'elgantt-level level new-header))
       (elgantt--insert-new-header-line new-header)
       (beginning-of-line))))
+
+(defun elgantt--get-level-at-point ()
+  "If using the 'heading option of `elgantt-header-type', 
+then get the level of the current header."
+  (when (eq elgantt-header-type 'heading)
+    (get-text-property (point-at-bol) 'elgantt-level)))
+    
 
 (defun elgantt--insert-new-header-line (header)
   "Inserts a new header."
@@ -857,20 +920,32 @@ DATE is a string in \"YYYY-MM-DD\" format."
 	(face (get-text-property (point) 'face))
 	(date (plist-get props :elgantt-date)))
     (mapc (lambda (date)
-	    (elgantt--get-header-create (plist-get props :elgantt-header))
-	    (elgantt--add-year (string-to-number (substring date 0 4)))
-	    (elgantt--goto-date date)
-	    (let ((old-props (plist-get (text-properties-at (point)) :elgantt)))
-	      (unless (cl-loop for prop in old-props
-			       if (equal (plist-get prop :elgantt-org-id)
-					 (plist-get props :elgantt-org-id))
-			       do (cl-loop for property in (-slice props 0 nil 2)
-					   do (plist-put prop property (plist-get props property)))
-			       and return t)
-		(set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
-									      old-props))))
-	      (add-face-text-property (point) (1+ (point)) face)))
-	  (-list date))))
+	    (elgantt--get-header-create (plist-get props :elgantt-header) (plist-get props :elgantt-level))
+	    (when date
+	      (elgantt--add-year (string-to-number (substring date 0 4)))
+	      (elgantt--goto-date date)
+	      (let ((old-props (plist-get (text-properties-at (point)) :elgantt)))
+		(unless (cl-loop for prop in old-props
+				 if (equal (plist-get prop :elgantt-org-id)
+					   (plist-get props :elgantt-org-id))
+				 do (cl-loop for property in (-slice props 0 nil 2)
+					     do (plist-put prop property (plist-get props property)))
+				 and return t)
+		  (set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
+										old-props))))
+		(add-face-text-property (point) (1+ (point)) face))))
+	  (or (-list date)
+	      '(nil)))))
+
+(defun elgantt--blank-header-line-p ()
+  "Does this header contain any entries?"
+  (save-excursion
+  (goto-char (point-at-bol))
+  (not (re-search-forward elgantt-cell-entry-re (point-at-eol) t))))
+
+
+
+
 
 
 
@@ -881,7 +956,7 @@ DATE is a string in \"YYYY-MM-DD\" format."
   (remove-overlays (point-min) (point-max))
   (elgantt--clear-juxtapositions)
   (save-excursion
-    (cl-loop for func in (append (list #'elgantt--display-rule-display-char) elgantt--display-rules)
+  (cl-loop for func in (append (list #'elgantt--display-rule-display-char) elgantt--display-rules)
 	     do (progn (goto-char (point-min))
 		       (while (next-single-property-change (point) :elgantt)
 			 (goto-char (next-single-property-change (point) :elgantt))
@@ -907,7 +982,17 @@ DATE is a string in \"YYYY-MM-DD\" format."
 	(set-text-properties (point) (1+ (point)) props)))))
 
 
-;; Color conversion functions
+;; Color functions
+(defun elgantt--hexcolor-luminance (color)
+  "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\").
+  This is 0.3 red + 0.59 green + 0.11 blue and always between 0 and 255."
+  ;; from https://www.emacswiki.org/emacs/HexColour
+  (let* ((values (x-color-values color))
+         (r (car values))
+         (g (cadr values))
+         (b (caddr values)))
+    (floor (+ (* .3 r) (* .59 g) (* .11 b)) 256)))
+
 (defun elgantt--color-rgb-to-hex (color)
   "Convert an RBG tuple '(R G B) to six digit hex string \"#RRGGBB\""
   (substring 
@@ -930,6 +1015,20 @@ DATE is a string in \"YYYY-MM-DD\" format."
 	     collect (if (= element 0)
 			 0
 		       (/ element 255.0)))))
+
+(defun elgantt--color-to-hex (color)
+  "Conver a color (name, RGB tuple, or hex) to hex."
+  (pcase color
+    ((and (pred stringp)
+	  (pred (s-starts-with-p "#")))
+     color)
+    ((and `(,r ,g ,b)
+	  (guard (numberp r))
+	  (guard (numberp g))
+	  (guard (numberp b)))
+     (list r g b))
+    ((pred stringp)
+     (elgantt--color-name-to-hex color))))
 
 (defun elgantt--color-to-rgb (color)
   "Convert a color name or hex color to RGB tuple."
@@ -1543,3 +1642,7 @@ horizontal line coloring."
 (provide 'elgantt)
 
 ;;; elgantt.el ends here
+
+
+
+
