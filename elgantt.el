@@ -227,11 +227,26 @@ Default: nil")
 (defface elgantt-odd-numbered-line '((t (:inherit default)))
   "Face applied to odd numbered lines in the calendar.")
 
-(defface elgantt-even-numbered-line `((t (:inherit default :background
-						   ,(if (> 130 (elgantt--hexcolor-luminance (face-background 'default)))
-							(color-lighten-name (face-background 'default) 15)
-						      (color-lighten-name (face-background 'default) -15)))))
+
+(defface elgantt-even-numbered-line '((t (:inherit default)))
   "Face applied to even numbered lines in the calendar.")
+
+(defun elgantt--hexcolor-luminance (color)
+  "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\").
+  This is 0.3 red + 0.59 green + 0.11 blue and always between 0 and 255."
+  ;; from https://www.emacswiki.org/emacs/HexColour
+  (let* ((values (x-color-values color))
+         (r (car values))
+         (g (cadr values))
+         (b (caddr values)))
+    (floor (+ (* .3 r) (* .59 g) (* .11 b)) 256)))
+
+(defun elgantt--set-even-numbered-line-face ()
+  (face-spec-set 'elgantt-even-numbered-line `((t (:inherit default :background
+							    ,(if (> 130 (elgantt--hexcolor-luminance (face-background 'default)))
+								 (color-lighten-name (face-background 'default) 15)
+							       (color-lighten-name (face-background 'default) -15)))))))
+(elgantt--set-even-numbered-line-face)
 
 ;;;; Constants
 (defconst elgantt-leap-year-month-line #("| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 " 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 62 63 (face elgantt-vertical-line-face) 94 95 (face elgantt-vertical-line-face) 125 126 (face elgantt-vertical-line-face) 157 158 (face elgantt-vertical-line-face) 188 189 (face elgantt-vertical-line-face) 220 221 (face elgantt-vertical-line-face) 252 253 (face elgantt-vertical-line-face) 283 284 (face elgantt-vertical-line-face) 315 316 (face elgantt-vertical-line-face) 346 347 (face elgantt-vertical-line-face)))
@@ -266,8 +281,6 @@ Default: nil")
 
 ;;;; Functions
 
-
-;;; Miscellaneous macro utilities
 
 ;; These functions are used in some of the macros.
 (defun elgantt--change-symbol-name (symbol &optional prefix suffix substring-start substring-end)
@@ -464,16 +477,21 @@ Default: nil")
 						      (elgantt--change-symbol-name (--first (plist-get props
 												       (elgantt--change-symbol-name it ":elgantt-"))
 											    elgantt-timestamps-to-display)
-										   ":elgantt-")))))
+										   ":elgantt-")))
+			  `(:elgantt-date-type ,(--first (plist-get props
+								    (elgantt--change-symbol-name it ":elgantt-"))
+							 elgantt-timestamps-to-display))))
+
+
       (if (or (and (not elgantt-insert-header-even-if-no-timestamp)
 		   (plist-get props :elgantt-date))
 	      elgantt-insert-header-even-if-no-timestamp)
 	  (append props
 		  `(:elgantt-org-id ,(org-id-get-create))
 		  
-		  ;; ;; Append properites from `org-element-at-point' in
-		  ;; ;; case anyone wants to use them.
-		  ;; (cadr (org-element-at-point))
+		  ;; Append properites from `org-element-at-point' in
+		  ;; case anyone wants to use them.
+		  (cadr (org-element-at-point))
 		  
 		  ;; Run all custom parsing functions and append
 		  ;; those values
@@ -726,9 +744,8 @@ Default: nil")
     (move-to-column (elgantt--convert-date-to-column-number date)))
   (point))
 
-
-
 ;; Interaction functions
+
 (defun elgantt--shift-date (n &optional properties)
   "Move the timestamp up or down by one day.
   N must be 1 or -1. The return value
@@ -738,23 +755,36 @@ Default: nil")
 	      (= n -1))
     (error "elgantt--shift-date: Invalid argument. N must be 1 or -1."))
   (when (looking-at elgantt-cell-entry-re)
-    (let ((props (or properties
-		     (elgantt--select-entry)))
-	  (date (elgantt-get-date-at-point)))
+    (let* ((props (or properties
+		      (elgantt--select-entry)))
+	   (date (elgantt-get-date-at-point))
+	   ;; Hack: some of the symbols stored
+	   ;; in :elgantt-date-type need to be changed
+	   ;; to work with `org-re-timestamp'
+	   (type (pcase (plist-get props :elgantt-date-type)
+		   (`timestamp 'active)
+		   (`timestamp-ia 'inactive)
+		   (other other))))
       (elgantt-with-point-at-orig-entry props
-	  ;; This regexp is adapted from
-	  ;; `org-element--timestamp-regexp'
-	  ;; but matches a specific date
-	  (when (re-search-forward (concat
-				    "[[<]\\("
-				    date
-				    " ?[^]\n>]*?\\)[]>]\\|"
-				    "\\(?:<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\\+[0-9]+"
-				    "[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)>\\)")
-				   nil t)
+	  (when (re-search-forward
+		 ;; BUG: if in a timestamp range, the only way to move it
+		 ;; is to search forr the specific date; otherwise
+		 ;; we rely on `org-re-timestamp' to find the date
+		 ;; to shift. This could case an issue if there is a
+		 ;; scheduled time that has the same date as a timerange
+		 ;; because the regexp will find the scheduled date before
+		 ;; the range. 
+		 (if (or (eq type 'timestamp-range)
+			 (eq type 'timestamp-range-ia))
+		     (concat
+		      "[[<]\\("
+		      date
+		      " ?[^]\n>]*?\\)[]>]\\|"
+		      "\\(?:<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\\+[0-9]+"
+		      "[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)>\\)")
+		   (org-re-timestamp type)) nil t)
 	    (org-timestamp-change n 'day)))
-      ;; For some reason a normal `save-excursion' does not work here.
-      ;; Some weird bug made me do it this way. 
+      ;; For some reason, `save-excursion' does not work here.
       (let ((point (point)))
 	(elgantt-update-this-cell)
 	(elgantt--update-display-this-cell)
@@ -762,6 +792,41 @@ Default: nil")
       (elgantt--move-horizontally n)
       (elgantt-update-this-cell)
       (elgantt--update-display-this-cell))))
+
+;; ;; old
+;; (defun elgantt--shift-date (n &optional properties)
+;;   "Move the timestamp up or down by one day.
+;;   N must be 1 or -1. The return value
+;;   is the prop list of the entry that has been moved."
+;;   ;; Only allows moving by a single day
+;;   (unless (or (= n 1)
+;; 	      (= n -1))
+;;     (error "elgantt--shift-date: Invalid argument. N must be 1 or -1."))
+;;   (when (looking-at elgantt-cell-entry-re)
+;;     (let ((props (or properties
+;; 		     (elgantt--select-entry)))
+;; 	  (date (elgantt-get-date-at-point)))
+;;       (elgantt-with-point-at-orig-entry props
+;; 	  ;; This regexp is adapted from
+;; 	  ;; `org-element--timestamp-regexp'
+;; 	  ;; but matches a specific date
+;; 	  (when (re-search-forward (concat
+;; 				    "[[<]\\("
+;; 				    date
+;; 				    " ?[^]\n>]*?\\)[]>]\\|"
+;; 				    "\\(?:<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\\+[0-9]+"
+;; 				    "[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)>\\)")
+;; 				   nil t)
+;; 	    (org-timestamp-change n 'day)))
+;;       ;; For some reason a normal `save-excursion' does not work here.
+;;       ;; Some weird bug made me do it this way. 
+;;       (let ((point (point)))
+;; 	(elgantt-update-this-cell)
+;; 	(elgantt--update-display-this-cell)
+;; 	(goto-char point))
+;;       (elgantt--move-horizontally n)
+;;       (elgantt-update-this-cell)
+;;       (elgantt--update-display-this-cell))))
 
 (defmacro elgantt-with-point-at-orig-entry (props &rest body)
   "Execute BODY with point at marker stored in `:elgantt-marker'.
@@ -811,8 +876,6 @@ Default: nil")
 		elgantt-leap-year-blank-line
 	      elgantt-normal-year-blank-line))))
 
-
-;;;xxx 
 (defun elgantt--get-header-create (header &optional level)
   "Put point at the first char in the HEADER line, creating a new header
   line if one does not exist."
@@ -983,15 +1046,7 @@ then get the level of the current header."
 
 
 ;; Color functions
-(defun elgantt--hexcolor-luminance (color)
-  "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\").
-  This is 0.3 red + 0.59 green + 0.11 blue and always between 0 and 255."
-  ;; from https://www.emacswiki.org/emacs/HexColour
-  (let* ((values (x-color-values color))
-         (r (car values))
-         (g (cadr values))
-         (b (caddr values)))
-    (floor (+ (* .3 r) (* .59 g) (* .11 b)) 256)))
+
 
 (defun elgantt--color-rgb-to-hex (color)
   "Convert an RBG tuple '(R G B) to six digit hex string \"#RRGGBB\""
