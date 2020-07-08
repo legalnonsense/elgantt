@@ -103,8 +103,9 @@
 background default face, lighten by this percent. If using a light background 
 default face, darken by this percent.")
 
-(defcustom elgantt-show-header-depth nil
-  "Add a prefix to the headers showing the depth of the outline")
+(defcustom elgantt-show-header-depth t
+  "Add a prefix to the headers showing the depth of the outline,
+or to show sub-headings")
 
 (defcustom elgantt-timestamps-to-display '(deadline
 					   timestamp
@@ -120,37 +121,34 @@ default face, darken by this percent.")
   "Character used for deadlines in the calendar.
 Default: ▲")
 
-(defcustom elgantt-show-subentries nil
-  "Whether to group entries as subheadings.")
+(defcustom elgantt-use-inherited-hashtags nil
+  "If using 'hashtag for `elgantt-header-type' , use inherited tags.")
+
+(defcustom elgantt-level-prefix-char ?-
+  "If `elgantt-show-header-depth' is t, use this prefix character to show
+  header depth.")
 
 (defcustom elgantt-active-timestamp-character "●"
   "Character used for active timestamps in the calendar.
 Default: ●")
-
 (defcustom elgantt-inactive-timestamp-character "⊚"
   "Character used for inactive timestamps in the calendar. 
 Default: ⊚")
-
 (defcustom elgantt-scheduled-character "⬟"
   "Character used for active timestamps in the calendar.
 Default: ⬟")
-
 (defcustom elgantt-multiple-entry-character "☰"
   "Character used for cells which have multiple entries.
 Default: ☰")
-
 (defcustom elgantt-timestamp-range-start-character "▶"
   "Character shown at the beginning of a timerange.
 Default: ▶")
-
 (defcustom elgantt-timestamp-range-end-character "◀"
   "Character shown at the end of a timerange.
 Default: ◀")
-
 (defcustom elgantt-timestamp-range-ia-start-character "▷"
   "Character shown at the beginning of a timerange.
 Default: ▷")
-
 (defcustom elgantt-timestamp-range-ia-end-character "◁"
   "Character shown at the end of a timerange.
 Default: ◁")
@@ -163,7 +161,7 @@ Default: `org-agenda-files'.")
   "Skip archived entries if non-nil.
 Default: t")
 
-(defcustom elgantt-start-date (concat (format-time-string "%Y-") "01--01")
+(defcustom elgantt-start-date (concat (format-time-string "%Y-") "01-01")
   "Beginning date for the calendar as a string YYYY-MM-DD. 
 Nothing before this date will be parsed or display. 
 Default: the current year.")
@@ -172,10 +170,12 @@ Default: the current year.")
   "Width of the header column.
 Default: 20.")
 
-(defcustom elgantt-header-type 'root
-  "Define how to gather the headers. Can be: root, category, hashtag, heading, parent,
-or a function that returns the desired header.
-Default: 'root")
+(defcustom elgantt-startup-folded nil
+  "Are subheadings folded at startup?")
+
+(defcustom elgantt-header-type 'outline
+  "Define how to gather the headers. Can be: category, hashtag, root, outline,
+or a function that returns the desired header. Default: 'outline.")
 
 (defcustom elgantt-header-line-format
   '(:eval
@@ -193,17 +193,15 @@ Default: 'root")
       string))
   "Display information about the cell at point in the header line. See `header-line-format'.")
 
-(defcustom elgantt-level-prefix-char "-"
-  "If `elgantt-show-header-depth' is t, use this prefix character to show
-header depth.")
-
 (defcustom elgantt-exclusions nil
   "Exclude headings mathing these strings or regexps
- in this list from display in the calendar.
-Default: nil")
+  in this list from display in the calendar.
+  Default: nil")
 
 (defcustom elgantt-insert-header-even-if-no-timestamp nil
-  "Insert a header even if there is no timestamp.")
+  "Insert a header even if there is no timestamp. 
+Parent headings will still be inserted if a child has a timestamp, even
+if this is set to nil.")
 
 ;; The names refer to the corners of a square. 
 (defcustom elgantt-draw--top-left "╭"
@@ -431,7 +429,7 @@ Default: nil")
 	  ;; Return a new property list to be
 	  ;; assigned to the cell. The first set
 	  ;; match proerties from `org-entry-properties'.
-	  (props (list :elgantt-category elgantt-category
+	  (props (list :elgantt-category (org-entry-get-with-inheritance "CATEGORY")
 		       :elgantt-headline elgantt-headline
 		       :elgantt-level (org-outline-level)
 		       :elgantt-file elgantt-file
@@ -462,25 +460,54 @@ Default: nil")
 							 (list (elgantt--convert-date-string (car dates))
 							       (elgantt--convert-date-string (cadr dates))))))
 		       ;; Clean up the tags
+		       :elgantt-hashtag (--first (s-starts-with-p "#" it)
+						 (org-get-tags nil (not elgantt-use-inherited-hashtags)))
 		       :elgantt-alltags (when-let ((tag-string elgantt-alltags))
 					  (mapcar #'org-no-properties (s-split ":" tag-string t)))
+		       :elgantt-folded elgantt-startup-folded
 		       :elgantt-header (pcase elgantt-header-type
 					 ('root (save-excursion 
 						  (while (org-up-heading-safe))
 						  (cdar (org-entry-properties (point) "ITEM"))))
-					 ('hashtag (when elgantt-alltags
-						     (when-let ((string (org-no-properties (-first (lambda (tagstring) (s-starts-with-p "#" tagstring))
-												   (s-split ":" elgantt-alltags)))))
-						       (substring string 1))))
-					 ('heading elgantt-headline)
-					 ('category elgantt-category)
+					 ('hashtag (when-let ((hashtag (--first (s-starts-with-p "#" it)
+										(org-get-tags nil (not elgantt-use-inherited-hashtags)))))
+						     (substring hashtag 1)))
+
+
+					 ('outline elgantt-headline)
+					 ('category (org-entry-get-with-inheritance "CATEGORY"))
 					 ('parent (save-excursion
 						    (when (org-up-heading-safe)
 						      (cdar (org-entry-properties (point) "ITEM")))))
 					 ((pred functionp) (funcall elgantt-header-type))
 					 (_ (error "Invalid header type.")))
+		       :elgantt-parent (pcase elgantt-header-type
+					 ('root (save-excursion 
+						  (while (org-up-heading-safe))
+						  (cdar (org-entry-properties (point) "ITEM"))))
+					 ('hashtag
+					  (when-let ((hashtag
+						      (--first (s-starts-with-p "#" it)
+							       (org-get-tags nil
+									     (not elgantt-use-inherited-hashtags)))))
+					    (substring hashtag 1)))
+					 ('outline elgantt-headline)
+					 ('category (org-entry-get-with-inheritance "CATEGORY"))
+					 ('parent (save-excursion
+						    (when (org-up-heading-safe)
+						      (cdar (org-entry-properties (point) "ITEM")))))
+					 ((pred functionp) (funcall elgantt-header-type))
+					 (_ (error "Invalid header type.")))
+		       :elgantt-parent-level (save-excursion (while (org-up-heading-safe))
+							     (org-current-level))
 		       :elgantt-org-buffer (current-buffer)
-		       :elgantt-outline-path (org-get-outline-path))))
+		       :elgantt-org-parent (save-excursion (while (org-up-heading-safe))
+							   (cons (cdar (org-entry-properties (point) "ITEM"))
+								 (org-id-get-create)))
+		       :elgantt-outline-path (save-excursion (cl-loop while (org-up-heading-safe)
+								      collect (cons (org-no-properties
+										     (org-get-heading))
+										    (org-id-get-create)))))))
 
     ;; If the header is in `elgantt-exclusions', then don't add it.
     ;; If :elgantt-header is nil, don't add it
@@ -497,17 +524,14 @@ Default: nil")
 								    (elgantt--change-symbol-name it ":elgantt-"))
 							 elgantt-timestamps-to-display))))
 
-
-      (if (or (and (not elgantt-insert-header-even-if-no-timestamp)
-		   (plist-get props :elgantt-date))
+      (if ;;(or (and (not elgantt-insert-header-even-if-no-timestamp)
+	  (or (plist-get props :elgantt-date)
 	      elgantt-insert-header-even-if-no-timestamp)
 	  (append props
 		  `(:elgantt-org-id ,(org-id-get-create))
-		  
 		  ;; Append properites from `org-element-at-point' in
 		  ;; case anyone wants to use them.
 		  (cadr (org-element-at-point))
-		  
 		  ;; Run all custom parsing functions and append
 		  ;; those values
 		  (-flatten-n 1
@@ -725,7 +749,7 @@ Default: nil")
     (forward-char n)))
 
 ;; Programmatic movement functions 
-(defmacro elgantt--iterate-over-cells (&rest body)
+(defmacro elgantt--parse-org-files-over-cells (&rest body)
   "Executes BODY at each cell in the calendar, iterating in order
   of buffer position."
   `(save-excursion
@@ -735,7 +759,7 @@ Default: nil")
 			(when (elgantt-get-prop-at-point)
 			  ,@body)))))
 
-(defun elgantt--next-match (property value)
+(defun elgantt--next-match (property value &optional previous)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
   Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
   Returns nil if there are no additional matches. Does not mach a cell which falls on the 
@@ -747,12 +771,12 @@ Default: nil")
 	     with start-point = (point)
 	     for points being the intervals of (current-buffer) property :elgantt
 	     do (goto-char (car points))
-	     when (and (> (current-column) start-col)
+	     when (and ((when previous #'> #'<) (current-column) start-col)
 		       (--first (member value (-list it)) (elgantt-get-prop-at-point property)))
 	     do (cond ((not target-date)
 		       (setq target-date (elgantt-get-date-at-point)
 			     target-point (point)))
-		      ((elgantt--date-compare-p '< (elgantt-get-date-at-point) target-date)
+		      ((elgantt--date-compare-p (when previous #'> #'<) (elgantt-get-date-at-point) target-date)
 		       (setq target-date (elgantt-get-date-at-point)
 			     target-point (point)))
 		      ((elgantt--date-compare-p '= (elgantt-get-date-at-point) target-date)
@@ -764,24 +788,31 @@ Default: nil")
   Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
   Returns nil if there are no additional matches. Does not mach a cell which falls on the 
   same day as the current cell."
-  (save-excursion
-    (cl-loop with target-point = nil
-	     with target-date  = nil
-	     with start-col = (current-column)
-	     with start-point = (point)
-	     for points being the intervals of (current-buffer) property :elgantt
-	     do (goto-char (car points))
-	     when (and (< (current-column) start-col)
-		       (--first (member value (-list it)) (elgantt-get-prop-at-point property)))
-	     do (cond ((not target-date)
-		       (setq target-date (elgantt-get-date-at-point)
-			     target-point (point)))
-		      ((elgantt--date-compare-p '> (elgantt-get-date-at-point) target-date)
-		       (setq target-date (elgantt-get-date-at-point)
-			     target-point (point)))
-		      ((elgantt--date-compare-p '= (elgantt-get-date-at-point) target-date)
-		       (setq target-point (append (-list target-point) (-list (point))))))
-	     finally return (-list target-point))))
+  (elgantt--next-match property value t))
+
+;; (defun elgantt--previous-match (property value)
+;;   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
+;;   Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
+;;   Returns nil if there are no additional matches. Does not mach a cell which falls on the 
+;;   same day as the current cell."
+;;   (save-excursion
+;;     (cl-loop with target-point = nil
+;; 	     with target-date  = nil
+;; 	     with start-col = (current-column)
+;; 	     with start-point = (point)
+;; 	     for points being the intervals of (current-buffer) property :elgantt
+;; 	     do (goto-char (car points))
+;; 	     when (and (< (current-column) start-col)
+;; 		       (--first (member value (-list it)) (elgantt-get-prop-at-point property)))
+;; 	     do (cond ((not target-date)
+;; 		       (setq target-date (elgantt-get-date-at-point)
+;; 			     target-point (point)))
+;; 		      ((elgantt--date-compare-p '> (elgantt-get-date-at-point) target-date)
+;; 		       (setq target-date (elgantt-get-date-at-point)
+;; 			     target-point (point)))
+;; 		      ((elgantt--date-compare-p '= (elgantt-get-date-at-point) target-date)
+;; 		       (setq target-point (append (-list target-point) (-list (point))))))
+;; 	     finally return (-list target-point))))
 
 (defun elgantt--goto-id (id &optional range)
   "Go to the cell containing the org-id ID. Return nil if not found.
@@ -910,100 +941,116 @@ Default: nil")
 		elgantt-leap-year-blank-line
 	      elgantt-normal-year-blank-line))))
 
-
-
-
-
-
-;; (defun elgantt--get-header-create (props)
-;;   "Put point at the first char in the HEADER line, creating a new header
-;;   line if one does not exist."
-;;   (goto-char (point-min))
-;;   (forward-line 1)
-;;   (let* ((header (plist-get props :elgantt-header))
-;; 	 (level (plist-get props :elgantt-level))
-;; 	 (new-header (cond
-;; 		      ((and elgantt-show-header-depth
-;; 			    (eq elgantt-header-type 'heading))
-;; 		       (concat (make-string (1- level) (pcase elgantt-level-prefix-char
-;; 							 ((pred characterp) elgantt-level-prefix-char)
-;; 							 ((pred stringp) (string-to-char elgantt-level-prefix-char))))
-;; 			       (s-truncate elgantt-header-column-offset header)))
-;; 		      (elgantt-show-subentries
-;; 		       (if (string= (plist-get props :elgantt-headline)
-;; 				    (plist-get props :elgantt-header))
-;; 			   (plist-get props :elgantt-headline)
-;; 			 (concat "-" (s-truncate elgantt-header-column-offset
-;; 						 (plist-get props :elgantt-headline)))))
-;; 		      (t (s-truncate elgantt-header-column-offset header)))))
-;;     ;; Concat is necessary for reasons I do not understand. Without it,
-;;     ;; the text properties are not set properly. 
-;;     (if (and elgantt-show-subentries
-;; 	     (cl-loop initially do (goto-char (point-min))
-;; 		      until (eobp)
-;; 		      do (forward-line)
-;; 		      if (string= header
-;; 				  (s-trim 
-;; 				   (buffer-substring-no-properties (point-at-bol)
-;; 								   (+ (point-at-bol) elgantt-header-column-offset))))
-;; 		      return t))
-;; 	(beginning-of-line)
-;;       (elgantt--insert-new-header-line header))
-
-;;     (if (cl-loop until (eobp)
-;; 		 do (forward-line)
-;; 		 if (and (string= new-header
-;; 				  (s-trim 
-;; 				   (buffer-substring-no-properties (point-at-bol)
-;; 								   (+ (point-at-bol) elgantt-header-column-offset))))
-;; 			 (or (not (eq elgantt-header-type 'heading))
-;; 			     elgantt-show-subentries
-;; 			     (string= (plist-get props :elgantt-org-id)
-;; 				      (get-text-property (point-at-bol) 'elgantt-org-id))))
-;; 		 return t)
-;; 	(beginning-of-line)
-;;       (put-text-property 0 (length new-header) 'elgantt-org-id (plist-get props :elgantt-org-id) new-header)
-;;       (put-text-property 0 (length new-header) 'elgantt-header header new-header)
-;;       (when (eq elgantt-header-type 'heading)
-;; 	(put-text-property 0 (length new-header) 'elgantt-level level new-header))
-;;       (elgantt--insert-new-header-line new-header)
-;;       (beginning-of-line))))
-
-
 (defun elgantt--get-header-create (props)
   "Put point at the first char in the HEADER line, creating a new header
   line if one does not exist."
-  (goto-char (point-min))
-  (forward-line 1)
-  (let* ((header (plist-get props :elgantt-header))
+  (let* ((outlinep (eq 'outline elgantt-header-type))
 	 (level (plist-get props :elgantt-level))
-	 (new-header (concat
-		      (when (and elgantt-show-header-depth
-				 (eq elgantt-header-type 'heading ))
-			(make-string (1- level) (pcase elgantt-level-prefix-char
-						  ((pred characterp) elgantt-level-prefix-char)
-						  ((pred stringp) (string-to-char elgantt-level-prefix-char)))))
-		      (s-truncate elgantt-header-column-offset header))))
-    ;; Concat is necessary for reasons I do not understand. Without it,
-    ;; the text properties are not set properly. 
-    (if (cl-loop until (eobp)
-		 do (forward-line)
-		 if (and (string= new-header
-				  (s-trim 
-				   (buffer-substring-no-properties (point-at-bol)
-								   (+ (point-at-bol) elgantt-header-column-offset))))
-			 (or (not (eq elgantt-header-type 'heading))
-			     (string= (plist-get props :elgantt-org-id)
-				      (get-text-property (point-at-bol) 'elgantt-org-id))))
-		 return t)
-	(beginning-of-line)
-      (put-text-property 0 (length new-header) 'elgantt-org-id (plist-get props :elgantt-org-id) new-header)
-      (put-text-property 0 (length new-header) 'elgantt-header header new-header)
-      (when (eq elgantt-header-type 'heading)
-	(put-text-property 0 (length new-header) 'elgantt-level level new-header))
-      (elgantt--insert-new-header-line new-header)
-      (beginning-of-line))))
+	 (parent-level (plist-get props :elgantt-parent-level))
+	 (foldedp (plist-get props :elgantt-folded))
+	 (header-text (plist-get props :elgantt-header))
+	 (headline-text (plist-get props :elgantt-headline))
+	 (header-id (plist-get props :elgantt-org-id))
+	 (parent-text (if outlinep
+			  (car (plist-get props :elgantt-org-parent))
+			(plist-get props :elgantt-parent)))
+	 (parent-id (cdr (plist-get props :elgantt-org-parent))))
+    
+    (cl-flet* ((at-header-p (text)
+			    (string= (get-text-property (point-at-bol) 'elgantt-header)
+				     text))
+	       (at-id-p (id)
+			(string= (get-text-property (point-at-bol) 'elgantt-org-id)
+				 id))
+	       (format-header (text lev &optional no-prefix)
+			      (concat
+			       (unless (or no-prefix (not elgantt-show-header-depth))
+				 (if outlinep 
+				     (make-string (1- lev) (pcase elgantt-level-prefix-char
+							     ((pred characterp) elgantt-level-prefix-char)
+							     ((pred stringp) (string-to-char elgantt-level-prefix-char))))
+				   (pcase elgantt-level-prefix-char
+				     ((pred stringp) elgantt-level-prefix-char)
+				     ((pred characterp) (char-to-string elgantt-level-prefix-char)))))
+			       (s-truncate elgantt-header-column-offset text)))
+	       ;; (insert-hidden-parent-header ()
+	       ;; 				    (goto-char (point-min))
+	       ;; 				    (put-text-property 0 1 'elgantt-header parent-text)
+	       ;; 				    (put-text-property 0 1 'elgantt-level (if outlinep
+	       ;; 									      parent-level
+	       ;; 									    -1))
+	       ;; 				    (put-text-property 0 1 'elgantt-org-id parent-id)
+	       ;; 				    (put-text-property 0 1 'elgantt-parent t)
+	       ;; 				    (put-text-property 0 1 'elgantt-folded foldedp))
+	       (insert-parent-header ()
+				     (let ((it (format-header parent-text parent-level (not outlinep))))
+				       (put-text-property 0 (length it) 'elgantt-header parent-text it)
+				       (put-text-property 0 (length it) 'elgantt-level (if outlinep parent-level -1) it)
+				       (put-text-property 0 (length it) 'elgantt-org-id parent-id it)
+				       (put-text-property 0 (length it) 'elgantt-parent t it)
+				       (put-text-property 0 (length it) 'elgantt-folded foldedp it)
+				       ;; 			     (put-text-property 0 (length it) :elgantt (list 
+				       ;; 									:elgantt-category nil
+				       ;; 									:elgantt-headline parent-text
+				       ;; 									:elgantt-level (if outlinep parent-level -1)
+				       ;; 									:elgantt-file nil
+				       ;; 									:elgantt-deadline nil
+				       ;; 									:elgantt-scheduled nil
+				       ;; 									:elgantt-todo nil
+				       ;; 									:elgantt-marker nil
+				       ;; 									:elgantt-timestamp nil
+				       ;; 									:elgantt-timestamp-ia nil
+				       ;; 									:elgantt-timestamp-range nil
+				       ;; 									:elgantt-timestamp-range-ia nil
+				       ;; 									:elgantt-hashtag nil
+				       ;; 									:elgantt-alltags nil
+				       ;; 									:elgantt-folded foldedp
+				       ;; 									:elgantt-header parent-text
+				       ;; 									:elgantt-parent t
+				       ;; 									:elgantt-parent-level nil
+				       ;; 									:elgantt-org-buffer nil
+				       ;; 									:elgantt-org-parent nil
+				       ;; 									:elgantt-outline-path nil
+				       ;; 									:elgantt-date nil
+				       ;; 									:elgantt-date-type nil
+				       ;; 									:elgantt-org-id parent-id))
+				       (elgantt--insert-new-header-line it)))
+	       (insert-current-header ()
+				      (let ((it (format-header headline-text level)))
+					(put-text-property 0 (length it) 'elgantt-header headline-text it)
+					(put-text-property 0 (length it) 'elgantt-level level it)
+					(put-text-property 0 (length it) 'elgantt-org-id header-id it)
+					(put-text-property 0 (length it) 'elgantt-folded foldedp it)
+					;;(elgantt--insert-new-header-line it (not outlinep))))
+					;;(elgantt--insert-new-header-line it elgantt-insert-header-even-if-no-timestamp)))
+					(elgantt--insert-new-header-line it t)))
 
+	       (parent-found-p () (cl-loop initially do (goto-char (point-min))
+					   do (forward-line)
+					   until (eobp)
+					   if (and (at-header-p parent-text)
+						   (if outlinep (at-id-p parent-id) t))
+					   return (point)))
+	       (header-found-p () (cl-loop initially do (goto-char (point-min))
+					   do (forward-line)
+					   until (eobp)
+					   if (and (at-header-p headline-text)
+						   (if (not foldedp)
+						       (at-id-p header-id) t))
+					   return (point))))
+      (cond (foldedp
+	     (cond
+	      ((parent-found-p)
+	       (elgantt--move-to-next-sibling-or-parent))
+	      (t (insert-parent-header))))
+	    (t (cond ((parent-found-p)
+		      (cond
+		       ((header-found-p) nil)
+		       (t (elgantt--move-to-next-sibling-or-parent)
+			  (insert-current-header))))
+		     (t (insert-parent-header)
+			(unless (equal parent-id header-id)
+			  (insert-current-header)))))))))
 
 
 (defun elgantt--get-level-at-point ()
@@ -1011,10 +1058,93 @@ Default: nil")
 then get the level of the current header."
   (get-text-property (point-at-bol) 'elgantt-level))
 
-(defun elgantt--insert-new-header-line (header &optional at-point)
+(defun elgantt--move-to-next-sibling-or-parent ()
+  (cl-loop with point = (point)
+	   with level = (elgantt--get-level-at-point)
+	   with found = nil
+	   do (forward-line)
+	   if (eobp)
+	   return (point)
+	   else if (or (<= (elgantt--get-level-at-point) level)
+		       (= -1 (elgantt--get-level-at-point)))
+	   return (point)))
+
+(defun elgantt--move-to-previous-sibling-or-parent ()
+  (cl-loop with point = (point)
+	   with level = (elgantt--get-level-at-point)
+	   do (forward-line -1)
+	   if (= 2 (line-number-at-pos))
+	   do (goto-char point)
+	   and return nil
+	   else if (or (<= (elgantt--get-level-at-point) level)
+		       (= -1 (elgantt--get-level-at-point)))
+	   return t))
+
+(defun elgantt--get-all-entries-in-range (&optional start end)
+  (save-excursion 
+    (goto-char (or start (point-min)))
+    (cl-loop for points being the intervals of (current-buffer) property :elgantt
+	     until (>= (car points) (or end (point-max)))
+	     if (>= (car points) (or start (point-min)))
+	     do (goto-char (car points))
+	     append (elgantt-get-prop-at-point))))
+
+(defun elgantt--toggle-fold ()
+  (interactive)
+  (let ((point (point)))
+    (when (re-search-forward elgantt-cell-entry-re (save-excursion (elgantt--move-to-next-sibling-or-parent)) t)
+      (forward-char -1)
+      (if (null (car (elgantt-get-prop-at-point :elgantt-folded)))
+	  (progn (goto-char point)
+		 (elgantt--fold))
+	(goto-char point)
+	(elgantt--unfold)))))
+
+
+;; need to gather any headings that do not have associated dates 
+(defun elgantt--fold ()
+  (when (or (= 1 (elgantt--get-level-at-point))
+	    (= -1 (elgantt--get-level-at-point)))
+    (save-excursion 
+      (when-let* ((inhibit-read-only t)
+		  (start (save-excursion (forward-line) (point-at-bol)))
+		  (end (save-excursion (elgantt--move-to-next-sibling-or-parent)
+				       (point)))
+		  (entries ;;(append (elgantt--get-all-entries-in-range 0 1)
+		   (elgantt--get-all-entries-in-range start end)))
+	(if (/= end (point-max))
+	    (delete-region start end)
+	  (delete-region start end)
+	  (save-excursion 
+	    (goto-char (point-max))
+	    (delete-char -1)))
+	(mapc (lambda (props)
+		(elgantt--insert-entry
+		 (plist-put props :elgantt-folded t))) entries)
+	(elgantt--update-display-all-cells)))))
+
+(defun elgantt--unfold ()
+  (when (or (= 1 (elgantt--get-level-at-point))
+	    (= -1 (elgantt--get-level-at-point)))
+    (save-excursion 
+      (when-let ((inhibit-read-only t)
+		 (start (point-at-bol))
+		 (end (point-at-eol))
+		 (entries  (elgantt--get-all-entries-in-range start end)))
+	;; (entries (append (elgantt--get-all-entries-in-range start end)
+	;; 		  (elgantt--get-all-entries-in-range 0 1))))
+	(remove-text-properties start end '(:elgantt nil))
+	;;(remove-text-properties 1 2 '(:elgantt nil))
+	(mapc (lambda (props)
+		(elgantt--insert-entry
+		 (plist-put props :elgantt-folded nil))) (reverse entries))
+	(elgantt--update-display-all-cells)))))
+
+(defun elgantt--insert-new-header-line (header &optional after-current-line)
   "Inserts a new header."
   (let ((inhibit-read-only t))
-    (unless at-point 
+    (if after-current-line
+	(goto-char (point-at-eol))
       (goto-char (point-max)))
     (insert "\n"
 	    (substring 
@@ -1085,8 +1215,8 @@ then get the level of the current header."
     ;; properties are stored both at the first entry and the last entry
     (mapc (lambda (date)
 	    ;; instead of passing only the header and level, pass all properties
-	    (elgantt--get-header-create props)
 	    ;;(elgantt--get-header-create (plist-get props :elgantt-header) (plist-get props :elgantt-level))
+	    (elgantt--get-header-create props)
 	    (when date
 	      (elgantt--add-year (string-to-number (substring date 0 4)))
 	      (elgantt--goto-date date)
@@ -1104,6 +1234,110 @@ then get the level of the current header."
 	      ;; If there is no date and `elgantt-insert-header-even-if-no-timestamp'
 	      ;; is non-nil, then we still need to insert the heading
 	      '(nil)))))
+
+;; (defun elgantt--insert-entry (props)
+;;   "Inserts text properties of a cell at point, keeping any properties which
+;;     are already present. Updates the cell's display."
+;;   (let ((inhibit-read-only t)
+;; 	(date (plist-get props :elgantt-date)))
+;;     ;; It is necessary to `mapc' over the date because date ranges
+;;     ;; are stored as a list. If there is a date range the
+;;     ;; properties are stored both at the first entry and the last entry
+;;     (cond
+;;      ((and (null date) (eq t (plist-get props :elgantt-folded)))
+;;       (goto-char (point-min))
+;;       (let ((face (get-text-property (point) 'face))
+;; 	    (old-props (plist-get (text-properties-at (point)) :elgantt)))
+;; 	(unless (cl-loop for prop in old-props
+;; 			 do (cl-loop for property in (-slice props 0 nil 2)
+;; 				     do (plist-put prop property (plist-get props property)))
+;; 			 and return t)
+;; 	  (set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
+;; 									old-props))))
+;; 	(add-face-text-property (point) (1+ (point)) face)))
+;;      (date (mapc (lambda (date)
+;; 		   ;; instead of passing only the header and level, pass all properties
+;; 		   (elgantt--get-header-create props)
+;; 		   ;;(elgantt--get-header-create (plist-get props :elgantt-header) (plist-get props :elgantt-level))
+;; 		   (elgantt--add-year (string-to-number (substring date 0 4)))
+;; 		   (elgantt--goto-date date)
+;; 		   (let ((face (get-text-property (point) 'face))
+;; 			 (old-props (plist-get (text-properties-at (point)) :elgantt)))
+;; 		     (unless (cl-loop for prop in old-props
+;; 				      if (equal (plist-get prop :elgantt-org-id)
+;; 						(plist-get props :elgantt-org-id))
+;; 				      do (cl-loop for property in (-slice props 0 nil 2)
+;; 						  do (plist-put prop property (plist-get props property)))
+;; 				      and return t)
+;; 		       (set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
+;; 										     old-props))))
+;; 		     (add-face-text-property (point) (1+ (point)) face)))
+;; 		 (or (-list date)
+;; 		     ;; If there is no date and `elgantt-insert-header-even-if-no-timestamp'
+;; 		     ;; is non-nil, then we still need to insert the heading
+;; 		     '(nil)))))))
+
+
+
+;; ;; OLD; STABLE
+;; (defun elgantt--insert-entry (props)
+;;   "Inserts text properties of a cell at point, keeping any properties which
+;;     are already present. Updates the cell's display."
+;;   (let ((inhibit-read-only t)
+;; 	(face (get-text-property (point) 'face))
+;; 	(date (plist-get props :elgantt-date)))
+;;     ;; It is necessary to `mapc' over the date because date ranges
+;;     ;; are stored as a list. If there is a date range the
+;;     ;; properties are stored both at the first entry and the last entry
+;;     (mapc (lambda (date)
+;; 	    (elgantt--get-header-create props)
+;; 	    (when date
+;; 	      (elgantt--add-year (string-to-number (substring date 0 4)))
+;; 	      (elgantt--goto-date date))
+;; 	    (let ((old-props (plist-get (text-properties-at (point)) :elgantt)))
+;; 	      (unless (cl-loop for prop in old-props
+;; 			       if (equal (plist-get prop :elgantt-org-id)
+;; 					 (plist-get props :elgantt-org-id))
+;; 			       do (cl-loop for property in (-slice props 0 nil 2)
+;; 					   do (plist-put prop property (plist-get props property)))
+;; 			       and return t)
+;; 		(set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
+;; 									      old-props))))
+;; 	      (add-face-text-property (point) (1+ (point)) face)))
+;; 	  (or (-list date)
+;; 	      '(nil)))))
+
+;; (defun elgantt--insert-entry (props)
+;;   "Inserts text properties of a cell at point, keeping any properties which
+;;     are already present. Updates the cell's display."
+;;   (let ((inhibit-read-only t)
+;; 	(date (plist-get props :elgantt-date)))
+;;     ;; It is necessary to `mapc' over the date because date ranges
+;;     ;; are stored as a list. If there is a date range the
+;;     ;; properties are stored both at the first entry and the last entry
+;;     (mapc (lambda (date)
+;; 	    ;; instead of passing only the header and level, pass all properties
+;; 	    (elgantt--get-header-create props)
+;; 	    ;;(elgantt--get-header-create (plist-get props :elgantt-header) (plist-get props :elgantt-level))
+;; 	    (when date
+;; 	      (elgantt--add-year (string-to-number (substring date 0 4)))
+;; 	      (elgantt--goto-date date)
+;; 	      (let ((face (get-text-property (point) 'face))
+;; 		    (old-props (plist-get (text-properties-at (point)) :elgantt)))
+;; 		(unless (cl-loop for prop in old-props
+;; 				 if (equal (plist-get prop :elgantt-org-id)
+;; 					   (plist-get props :elgantt-org-id))
+;; 				 do (cl-loop for property in (-slice props 0 nil 2)
+;; 					     do (plist-put prop property (plist-get props property)))
+;; 				 and return t)
+;; 		  (set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
+;; 										old-props))))
+;; 		(add-face-text-property (point) (1+ (point)) face))))
+;; 	  (or (-list date)
+;; 	      ;; If there is no date and `elgantt-insert-header-even-if-no-timestamp'
+;; 	      ;; is non-nil, then we still need to insert the heading
+;; 	      '(nil)))))
+
 
 (defun elgantt--blank-header-line-p ()
   "Does this header contain any entries?"
@@ -1136,19 +1370,30 @@ new color."
 				:background
 				,(elgantt--auto-shade-background elgantt-even-numbered-line-change))))))
 
+(defun elgantt--clear-all-date-chars ()
+  (save-excursion
+    (let ((inhibit-read-only t))
+      (goto-char (point-min))
+      (while (re-search-forward elgantt-cell-entry-re nil t)
+	(forward-char -1)
+	(elgantt--change-char " ")))))
+
 ;; Updating overlays
 (defun elgantt--update-display-all-cells ()
   "Clear overlays and run functions in `elgantt--display-rules'"
   (interactive)
   (remove-overlays (point-min) (point-max))
+  (elgantt--remove-overarching-headers)
   (elgantt--clear-juxtapositions)
+  (elgantt--clear-all-date-chars)
   (save-excursion
     (cl-loop for func in (append (list #'elgantt--display-rule-display-char) elgantt--display-rules)
 	     do (progn (goto-char (point-min))
 		       (while (next-single-property-change (point) :elgantt)
 			 (goto-char (next-single-property-change (point) :elgantt))
 			 (when (get-text-property (point) :elgantt)
-			   (funcall func)))))))
+			   (funcall func))))))
+  (elgantt--draw-overarching-headers))
 
 (defun elgantt--update-display-this-cell ()
   "Updates the overlays for the cell at point."
@@ -1270,7 +1515,75 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
     (when property 
       (put-text-property (point) (1+ (point)) property t))))
 
+(defun elgantt--remove-overarching-headers ()
+  (let ((inhibit-read-only t))
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward (concat "["
+					elgantt-draw--horizontal-line
+					elgantt-draw--top-left
+					elgantt-draw--top-right
+					"]")
+				nil t)
+	(backward-char)
+	(elgantt--change-char " ")))))
 
+
+(defun elgantt--draw-overarching-headers ()
+  (let ((inhibit-read-only t))
+    (save-excursion 
+      (goto-char (point-min))
+      (forward-line 1)
+      (cl-loop until (progn (save-excursion (end-of-line)
+					    (eobp)))
+	       do (forward-line 1)
+	       if (elgantt--blank-header-line-p)
+	       do (let ((first-date nil)
+			(last-date nil)
+			(point (point))
+			(current-level (elgantt--get-level-at-point)))
+		    (save-excursion
+		      (forward-line 1)
+		      (cl-loop until (or (<= (elgantt--get-level-at-point)
+					     current-level)
+					 (eobp))
+			       do (progn
+				    (save-excursion
+				      (goto-char (point-at-bol))
+				      (while (re-search-forward elgantt-cell-entry-re (point-at-eol) t)
+					(forward-char -1)
+					(setq first-date
+					      (first
+					       (elgantt--sort-dates
+						(-flatten (list first-date
+								(elgantt-get-prop-at-point :elgantt-scheduled)
+								(elgantt-get-date-at-point))))))
+					(forward-char 1)))
+				    (save-excursion
+				      (goto-char (point-at-eol))
+				      (while (re-search-backward elgantt-cell-entry-re (point-at-bol) t)
+					(setq last-date
+					      (car
+					       (last
+						(elgantt--sort-dates
+						 (-flatten (list last-date
+								 (elgantt-get-prop-at-point :elgantt-scheduled)
+								 (elgantt-get-date-at-point)))))))))
+				    (forward-line 1))
+
+			       finally (when (and first-date last-date)
+					 (goto-char point)
+					 (cl-loop with end = (1- (elgantt--goto-date last-date))
+						  with start = (elgantt--goto-date first-date)
+						  for x from start to end
+						  if (= x start)
+						  do (progn (when (not (looking-at "|"))
+							      (elgantt--change-char elgantt-draw--top-left))
+							    (forward-char 1))
+						  else do (progn (when (not (looking-at "|"))
+								   (elgantt--change-char elgantt-draw--horizontal-line))
+								 (forward-char 1))
+						  finally (elgantt--change-char  elgantt-draw--top-right))))))))))
 
 ;; Gradients
 (defun elgantt--get-color-midpoint (color1 color2)
@@ -1455,9 +1768,6 @@ through all other matching cells."
 												   (background-color-at-point)))))
 		     (setq point (+ point line-length 1)))))
 
-
-
-
 (defun elgantt--highlight-current-day ()
   "Draws an overlay highlighting the current date."
   ;; TODO: The check for whether to run this (i.e., whether the current
@@ -1519,8 +1829,6 @@ horizontal line coloring."
   "Runs `post-command-hook' functions created with `elgantt-create-display-rule'."
   (cl-loop for command in elgantt--post-command-hooks
 	   do (funcall command)))
-
-
 
 (cl-defmacro elgantt-create-display-rule (name &key docstring args parser body
 					       append disable post-command-hook)
@@ -1926,16 +2234,19 @@ horizontal line coloring."
     (elgantt--move-vertically 'down)))
 
 
+
 ;;; Major mode
 (setq elgantt-mode-map
       (let ((map (make-sparse-keymap)))
-	(define-key map (kbd "r")   #'elgantt-open)
+	(define-key map (kbd "r")   #'elgantt--reload)
+	(define-key map (kbd "C-r") #'elgantt-open)
 	(define-key map (kbd "SPC") #'elgantt-navigate-to-org-file)
 	(define-key map (kbd "p")   #'elgantt--move-up)
 	(define-key map (kbd "c")   #'elgantt-scroll-to-current-month)
 	(define-key map (kbd "n")   #'elgantt--move-down)
 	(define-key map (kbd "f")   #'elgantt--move-forward)
 	(define-key map (kbd "b")   #'elgantt--move-backward)
+	(define-key map (kbd "<tab>") #'elgantt--toggle-fold)
 	(define-key map (kbd "<right>") #'elgantt--forward-char)
 	(define-key map (kbd "<left>") #'elgantt--backward-char)
 	(define-key map (kbd "C-f")   #'elgantt--forward-char)
@@ -1948,6 +2259,30 @@ horizontal line coloring."
 	(define-key map (kbd "M-b") #'elgantt--shift-date-backward)
 	map))
 
+(defun elgantt--reload ()
+  (interactive)
+  (let ((point (point))
+	(inhibit-read-only t))
+    (erase-buffer)
+    (elgantt--set-even-numbered-line-face)
+    (elgantt--set-vertical-line-face)
+    ;;(elgantt--set-vertical-highlight-face)
+    (setq elgantt--date-range nil)
+    (setq elgantt--hidden-overlays nil)
+    (insert (make-string elgantt-header-column-offset ? )
+	    "\n"
+	    (make-string elgantt-header-column-offset ? ))
+    (elgantt--iterate)
+    (elgantt--draw-even-odd-background)
+    (elgantt--update-display-all-cells)
+    (elgantt--highlight-current-day)
+    (toggle-truncate-lines 1)
+    (setq header-line-format elgantt-header-line-format)
+    (when elgantt-scroll-to-current-month-at-startup
+      (elgantt-scroll-to-current-month))
+    (goto-char point)))
+
+(add-hook 'elgantt-mode-hook #'elgantt--draw-overarching-headers)
 ;; Major mode
 (define-derived-mode elgantt-mode special-mode
   "El Gantt"
@@ -1957,7 +2292,7 @@ horizontal line coloring."
     (erase-buffer)
     (elgantt--set-even-numbered-line-face)
     (elgantt--set-vertical-line-face)
-    (elgantt--set-vertical-highlight-face)
+    ;;(elgantt--set-vertical-highlight-face)
     (setq elgantt--date-range nil)
     (setq elgantt--hidden-overlays nil)
     (insert (make-string elgantt-header-column-offset ? )
@@ -1972,7 +2307,6 @@ horizontal line coloring."
     (when elgantt-scroll-to-current-month-at-startup
       (elgantt-scroll-to-current-month))
     (goto-char point))
-  (read-only-mode -1)
   (add-hook 'post-command-hook #'elgantt--post-command-hook nil t)
   (add-hook 'post-command-hook #'elgantt--vertical-highlight nil t))
 
