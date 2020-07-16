@@ -1,4 +1,4 @@
-;;; elgant.el --- Generate integrated text-based Gantt Charts from Orgmode files  -*- lexical-binding: t; -*-
+;;; elgant.el --- Generate  Gantt Charts from Orgmode files  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019 Jeff Filipovits
 
@@ -103,10 +103,6 @@
 background default face, lighten by this percent. If using a light background 
 default face, darken by this percent.")
 
-(defcustom elgantt-show-header-depth t
-  "Add a prefix to the headers showing the depth of the outline,
-or to show sub-headings")
-
 (defcustom elgantt-timestamps-to-display '(deadline
 					   timestamp
 					   timestamp-range
@@ -125,8 +121,7 @@ Default: ▲")
   "If using 'hashtag for `elgantt-header-type' , use inherited tags.")
 
 (defcustom elgantt-level-prefix-char ?-
-  "If `elgantt-show-header-depth' is t, use this prefix character to show
-  header depth.")
+  "Use this prefix character to show header depth when the outline is unfolded.")
 
 (defcustom elgantt-active-timestamp-character "●"
   "Character used for active timestamps in the calendar.
@@ -171,7 +166,7 @@ Default: the current year.")
 Default: 20.")
 
 (defcustom elgantt-startup-folded nil
-  "Are subheadings folded at startup?")
+  "Whether subheadings are folded at startup.")
 
 (defcustom elgantt-header-type 'outline
   "Define how to gather the headers. Can be: category, hashtag, root, outline,
@@ -195,8 +190,8 @@ or a function that returns the desired header. Default: 'outline.")
 
 (defcustom elgantt-exclusions nil
   "Exclude headings mathing these strings or regexps
-  in this list from display in the calendar.
-  Default: nil")
+in this list from display in the calendar.
+Default: nil")
 
 (defcustom elgantt-insert-header-even-if-no-timestamp nil
   "Insert a header even if there is no timestamp. 
@@ -223,8 +218,6 @@ if this is set to nil.")
 
 ;;;; Faces
 
-;; I know faces aren't supposed to end with -face, but I
-;; don't like that rule! 
 (defface elgantt-vertical-line-face
   '((t (:height .1)))
   "Vertical line face")
@@ -243,51 +236,147 @@ if this is set to nil.")
   "Face applied to even numbered lines in the calendar. Do not set this face.")
 
 ;;;; Constants
-(defconst elgantt-leap-year-month-line #("| January xxxx                  | February xxxx               | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 " 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 62 63 (face elgantt-vertical-line-face) 94 95 (face elgantt-vertical-line-face) 125 126 (face elgantt-vertical-line-face) 157 158 (face elgantt-vertical-line-face) 188 189 (face elgantt-vertical-line-face) 220 221 (face elgantt-vertical-line-face) 252 253 (face elgantt-vertical-line-face) 283 284 (face elgantt-vertical-line-face) 315 316 (face elgantt-vertical-line-face) 346 347 (face elgantt-vertical-line-face)))
-(defconst elgantt-leap-year-date-line #("|1234567890123456789012345678901|12345678901234567890123456789|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901" 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 62 63 (face elgantt-vertical-line-face) 94 95 (face elgantt-vertical-line-face) 125 126 (face elgantt-vertical-line-face) 157 158 (face elgantt-vertical-line-face) 188 189 (face elgantt-vertical-line-face) 220 221 (face elgantt-vertical-line-face) 252 253 (face elgantt-vertical-line-face) 283 284 (face elgantt-vertical-line-face) 315 316 (face elgantt-vertical-line-face) 346 347 (face elgantt-vertical-line-face)))
-(defconst elgantt-leap-year-blank-line #("|                               |                             |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               " 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 62 63 (face elgantt-vertical-line-face) 94 95 (face elgantt-vertical-line-face) 125 126 (face elgantt-vertical-line-face) 157 158 (face elgantt-vertical-line-face) 188 189 (face elgantt-vertical-line-face) 220 221 (face elgantt-vertical-line-face) 252 253 (face elgantt-vertical-line-face) 283 284 (face elgantt-vertical-line-face) 315 316 (face elgantt-vertical-line-face) 346 347 (face elgantt-vertical-line-face)))
-(defconst elgantt-normal-year-month-line #("| January xxxx                  | February xxxx              | March xxxx                    | April xxxx                   | May xxxx                      | June xxxx                    | July xxxx                     | August xxxx                   | September xxxx               | October xxxx                  | November xxxx                | December xxxx                 " 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 61 62 (face elgantt-vertical-line-face) 93 94 (face elgantt-vertical-line-face) 124 125 (face elgantt-vertical-line-face) 156 157 (face elgantt-vertical-line-face) 187 188 (face elgantt-vertical-line-face) 219 220 (face elgantt-vertical-line-face) 251 252 (face elgantt-vertical-line-face) 282 283 (face elgantt-vertical-line-face) 314 315 (face elgantt-vertical-line-face) 345 346 (face elgantt-vertical-line-face)))
-(defconst elgantt-normal-year-date-line #("|1234567890123456789012345678901|1234567890123456789012345678|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901|123456789012345678901234567890|1234567890123456789012345678901" 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 61 62 (face elgantt-vertical-line-face) 93 94 (face elgantt-vertical-line-face) 124 125 (face elgantt-vertical-line-face) 156 157 (face elgantt-vertical-line-face) 187 188 (face elgantt-vertical-line-face) 219 220 (face elgantt-vertical-line-face) 251 252 (face elgantt-vertical-line-face) 282 283 (face elgantt-vertical-line-face) 314 315 (face elgantt-vertical-line-face) 345 346 (face elgantt-vertical-line-face)))
-(defconst elgantt-normal-year-blank-line #("|                               |                            |                               |                              |                               |                              |                               |                               |                              |                               |                              |                               " 0 1 (face elgantt-vertical-line-face) 32 33 (face elgantt-vertical-line-face) 61 62 (face elgantt-vertical-line-face) 93 94 (face elgantt-vertical-line-face) 124 125 (face elgantt-vertical-line-face) 156 157 (face elgantt-vertical-line-face) 187 188 (face elgantt-vertical-line-face) 219 220 (face elgantt-vertical-line-face) 251 252 (face elgantt-vertical-line-face) 282 283 (face elgantt-vertical-line-face) 314 315 (face elgantt-vertical-line-face) 345 346 (face elgantt-vertical-line-face)))
+(defconst elgantt-leap-year-month-line
+  (concat  "| January xxxx                  "
+	   "| February xxxx               "
+	   "| March xxxx                    "
+	   "| April xxxx                   "
+	   "| May xxxx                      "
+	   "| June xxxx                    "
+	   "| July xxxx                     "
+	   "| August xxxx                   "
+	   "| September xxxx               "
+	   "| October xxxx                  "
+	   "| November xxxx                "
+	   "| December xxxx                 "))
 
-(defconst elgantt-cell-entry-re (concat "["
-					elgantt-deadline-character
-					elgantt-active-timestamp-character
-					elgantt-inactive-timestamp-character
-					elgantt-scheduled-character
-					elgantt-multiple-entry-character
-					elgantt-timestamp-range-end-character
-					elgantt-timestamp-range-start-character
-					elgantt-timestamp-range-ia-end-character
-					elgantt-timestamp-range-ia-start-character
-					"]")
+(defconst elgantt-leap-year-date-line
+  (concat "|1234567890123456789012345678901"
+	  "|12345678901234567890123456789"
+	  "|1234567890123456789012345678901"
+	  "|123456789012345678901234567890"
+	  "|1234567890123456789012345678901"
+	  "|123456789012345678901234567890"
+	  "|1234567890123456789012345678901"
+	  "|1234567890123456789012345678901"
+	  "|123456789012345678901234567890"
+	  "|1234567890123456789012345678901"
+	  "|123456789012345678901234567890"
+	  "|1234567890123456789012345678901"))
+
+(defconst elgantt-leap-year-blank-line
+  (concat "|                               "
+	  "|                             "
+	  "|                               "
+	  "|                              "
+	  "|                               "
+	  "|                              "
+	  "|                               "
+	  "|                               "
+	  "|                              "
+	  "|                               "
+	  "|                              "
+	  "|                               "))
+
+
+(defconst elgantt-normal-year-month-line
+  (concat  "| January xxxx                  "
+	   "| February xxxx              "
+	   "| March xxxx                    "
+	   "| April xxxx                   "
+	   "| May xxxx                      "
+	   "| June xxxx                    "
+	   "| July xxxx                     "
+	   "| August xxxx                   "
+	   "| September xxxx               "
+	   "| October xxxx                  "
+	   "| November xxxx                "
+	   "| December xxxx                 "))
+
+(defconst elgantt-normal-year-date-line
+  (concat "|1234567890123456789012345678901"
+	  "|1234567890123456789012345678"
+	  "|1234567890123456789012345678901"
+	  "|123456789012345678901234567890"
+	  "|1234567890123456789012345678901"
+	  "|123456789012345678901234567890"
+	  "|1234567890123456789012345678901"
+	  "|1234567890123456789012345678901"
+	  "|123456789012345678901234567890"
+	  "|1234567890123456789012345678901"
+	  "|123456789012345678901234567890"
+	  "|1234567890123456789012345678901"))
+
+(defconst elgantt-normal-year-blank-line
+  (concat "|                               "
+	  "|                            "
+	  "|                               "
+	  "|                              "
+	  "|                               "
+	  "|                              "
+	  "|                               "
+	  "|                               "
+	  "|                              "
+	  "|                               "
+	  "|                              "
+	  "|                               "))
+
+(defconst elgantt-cell-entry-re
+  (concat "["
+	  elgantt-deadline-character
+	  elgantt-active-timestamp-character
+	  elgantt-inactive-timestamp-character
+	  elgantt-scheduled-character
+	  elgantt-multiple-entry-character
+	  elgantt-timestamp-range-end-character
+	  elgantt-timestamp-range-start-character
+	  elgantt-timestamp-range-ia-end-character
+	  elgantt-timestamp-range-ia-start-character
+	  "]")
   "List of display characters for use as a regexp for finding entries.")
+
+(setq elgantt-vertical-line-char "|")
+
+
+(defmacro elgantt--add-vertical-line-props (lines)
+  (let ((body (cl-loop for line in lines
+                       collect `(setq ,line (s-replace "|" ,elgantt-vertical-line-char ,line)))))
+    `(progn ,@body)))
 
 ;;;; Private variables
 (defvar elgantt--parsing-functions nil
   "List of functions for parsing org files.")
+
 (defvar elgantt--display-rules nil
-  "List of functions for drawing overlays in the buffer based on underlying text properties.")
+  "List of functions for drawing overlays in the buffer based on underlying
+text properties.")
+
 (defvar elgantt--date-range nil
   "Range of years present in the agenda files.")
+
 (defvar elgantt--vertical-bar-overlay-list nil
   "List of overlays for the vertical selection bar.")
+
 (defvar elgantt--post-command-hooks nil
   "Post command hooks added by user.")
 
 ;;;; Functions
 
 ;;;;;; These functions are used in some of the macros.
-(defun elgantt--change-symbol-name (symbol &optional prefix suffix substring-start substring-end)
+(defun elgantt--change-symbol-name (symbol &optional prefix suffix
+					   substring-start substring-end)
   "SYMBOL is any symbol name. PREFIX and SUFFIX are a string to be
-  prepended or appended to the symbol name and returned as a new 
-  symbol."
-  (intern (concat prefix (substring (symbol-name symbol) substring-start substring-end) suffix)))
+prepended or appended to the symbol name and returned as a new 
+symbol."
+  (intern (concat prefix
+		  (substring (symbol-name symbol)
+			     substring-start substring-end)
+		  suffix)))
 
 (defun elgantt--add-remove-prop-colon (prop &optional remove)
   "PROP is a symbol with or without a colon prefix. 
-  Returns a symbol with a colon prefix. If REMOVE is t, 
-  then returns a symbol without a colon prefix."
+Returns a symbol with a colon prefix. If REMOVE is t, 
+then returns a symbol without a colon prefix."
   (if remove
       (if (s-starts-with-p ":" (symbol-name prop))
 	  (intern (substring (symbol-name prop) 1))			
@@ -298,7 +387,7 @@ if this is set to nil.")
 
 (defun elgantt--plist-pair-p (plist key val &optional predicate)
   "Return t if PLIST has the KEY and VAL pair. Tests using `equal'.
-  Optional PREDICATE provides a function which performs equality test."
+Optional PREDICATE provides a function which performs equality test."
   (when-let ((stored-val (plist-get plist key)))
     (cond ((not predicate)
 	   (equal stored-val val))
@@ -307,9 +396,9 @@ if this is set to nil.")
 
 (defun elgantt--zip (args)
   "Zips multiple lists together. Example:
-  (elgantt--zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
-  => '((1 2 3 4) (5 6 7 8) (9 10 11 12)).
-  All lists must be the same length."
+(elgantt--zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
+=> '((1 2 3 4) (5 6 7 8) (9 10 11 12)).
+All lists must be the same length."
   (if (catch 'match ; Check if lists are all the same length
 	(dotimes (x (1- (length args)))
 	  (when (/= (length (nth x args))
@@ -329,17 +418,20 @@ if this is set to nil.")
   "Return the number of days in YEAR." 
   (if (elgantt--leap-year-p year) 366 365))
 
-(defsubst elgantt--leap-year-p (year)
+(defun elgantt--leap-year-p (year)
   "Return t if YEAR is a leap year. Otherwise, nil."
-  (= (% year 4) 0))
+  (cond ((/= (% year 4) 0) nil)
+	((/= (% year 100) 0) t)
+	((/= (% year 400) 0) nil)
+	(t t)))
 
 (defun elgantt--sort-dates (dates)
-  "Put a list of DATES (YYYY-MM-DD) in order."
+  "Put a list of DATES in order."
   (sort (-non-nil dates) #'string<))
 
 (defun elgantt--date-compare-p (pred date1 date2)
-  "Apply PRED to date1 and date2. PRED is one of =, <, <=,
-  >=, >, /=, but app"
+  "Apply PRED to date1 and date2. 
+PRED is one of =, <, <=, >=, >, or /=."
   (pcase pred
     (`/= (not (string= date1 date2)))
     (`> (string> date1 date2))
@@ -348,11 +440,13 @@ if this is set to nil.")
     (`<= (or (string< date1 date2)
 	     (string= date1 date2)))
     (`>= (or (string> date1 date2)
-	     (string= date1 date2)))))
+	     (string= date1 date2)))
+    (_ (error "Invalid predicate."))))
 
 (defun elgantt--date-earlier-p (date1 date2)
   "Return t if date1 is before date2."
-  (string= date1 (car (elgantt--sort-dates (list date1 date2)))))
+  (string= date1
+	   (car (elgantt--sort-dates (list date1 date2)))))
 
 (defun elgantt--convert-date-string (date)
   "Converts an org date string to YYYY-MM-DD."
@@ -362,18 +456,22 @@ if this is set to nil.")
 
 (defun elgantt--convert-date-to-column-number (timestamp)
   "Accepts a date in the form of YYYY-MM-DD and returns
-  the column of that date."
+the column of that date."
   (let ((spaces 0)
 	(date timestamp))
     (cl-subseq elgantt--date-range
-	       0 (cl-position (string-to-number (substring date 0 4)) elgantt--date-range))
+	       0 (cl-position (string-to-number (substring date 0 4))
+			      elgantt--date-range))
     (dolist (year
 	     (cl-subseq elgantt--date-range
-			0 (cl-position (string-to-number (substring date 0 4)) elgantt--date-range)))
+			0 (cl-position (string-to-number (substring date 0 4))
+				       elgantt--date-range)))
       (if (elgantt--leap-year-p year)
 	  (setq spaces (+ spaces 366 12))
 	(setq spaces (+ spaces 365 12))))
-    (+ spaces (elgantt--convert-date-to-column-in-current-year date) elgantt-header-column-offset)))
+    (+ spaces
+       (elgantt--convert-date-to-column-in-current-year date)
+       elgantt-header-column-offset)))
 
 (defun elgantt--convert-date-to-day-number-in-year (date)
   "accept a date in the format YYYY-MM-DD and return an int of day number of the year"
@@ -383,14 +481,14 @@ if this is set to nil.")
 
 (defun elgantt--convert-date-to-column-in-current-year (date)
   "accepts a date YYYY-MM-DD and returns the position on the horizontal calendar (int)
-  this works on leap years"
+this works on leap years"
   (+ (elgantt--convert-date-to-day-number-in-year date)
      (- (string-to-number (substring date 5 7)) 1)))
 
 (defun elgantt--date-calc (date offset &optional unit)
   "DATE is a string \"YYYY-MM-DD\"
-  OFFSET is a positive or negative integer representing
-  the number of days. UNIT should be day, month, year."
+OFFSET is a positive or negative integer representing
+the number of days. UNIT should be day, month, year."
   (->> date
        (ts-parse)
        (ts-adjust (or unit 'day) offset)
@@ -398,8 +496,8 @@ if this is set to nil.")
 
 (defun elgantt--create-overlay (&optional begin end properties)
   "Create an overlay from BEGIN to END with PROPERTIES. If BEGIN is
-  nil, then create the overlay at point. If END is nil, then create
-  the overlay only at point. Returns the new overlay."
+nil, then create the overlay at point. If END is nil, then create
+the overlay only at point. Returns the new overlay."
   (let ((overlay (make-overlay (or begin (point))
 			       (or end (1+ (point)))))
 	(len (length properties))
@@ -413,7 +511,7 @@ if this is set to nil.")
 
 (defun elgantt--parser ()
   "Runs at each org heading and returns a plist of 
-  relevant properties to be inserted into the calendar buffer."
+relevant properties to be inserted into the calendar buffer."
   (-let* (((&alist "CATEGORY" elgantt-category
 		   "ITEM" elgantt-headline
 		   "FILE" elgantt-file
@@ -429,9 +527,12 @@ if this is set to nil.")
 	  ;; Return a new property list to be
 	  ;; assigned to the cell. The first set
 	  ;; match proerties from `org-entry-properties'.
-	  (props (list :elgantt-category (org-entry-get-with-inheritance "CATEGORY")
+	  (props (list :elgantt-category (or (org-entry-get-with-inheritance "CATEGORY")
+					     elgantt-category)
 		       :elgantt-headline elgantt-headline
-		       :elgantt-level (org-outline-level)
+		       :elgantt-level (if (eq elgantt-header-type 'outline)
+					  (org-outline-level)
+					1)
 		       :elgantt-file elgantt-file
 		       :elgantt-deadline (when elgantt-deadline
 					   (elgantt--convert-date-string elgantt-deadline))
@@ -451,17 +552,23 @@ if this is set to nil.")
 						  (if (not (s-match "--" elgantt-timestamp))
 						      nil
 						    (let ((dates (s-split "--" elgantt-timestamp)))
-						      (list (elgantt--convert-date-string (car dates))
-							    (elgantt--convert-date-string (cadr dates))))))
+						      (list (elgantt--convert-date-string
+							     (car dates))
+							    (elgantt--convert-date-string
+							     (cadr dates))))))
 		       :elgantt-timestamp-range-ia (when elgantt-timestamp-ia
 						     (if (not (s-match "--" elgantt-timestamp-ia))
 							 nil
-						       (let ((dates (s-split "--" elgantt-timestamp-ia)))
-							 (list (elgantt--convert-date-string (car dates))
-							       (elgantt--convert-date-string (cadr dates))))))
+						       (let ((dates (s-split "--"
+									     elgantt-timestamp-ia)))
+							 (list (elgantt--convert-date-string
+								(car dates))
+							       (elgantt--convert-date-string
+								(cadr dates))))))
 		       ;; Clean up the tags
 		       :elgantt-hashtag (--first (s-starts-with-p "#" it)
-						 (org-get-tags nil (not elgantt-use-inherited-hashtags)))
+						 (org-get-tags nil
+							       (not elgantt-use-inherited-hashtags)))
 		       :elgantt-alltags (when-let ((tag-string elgantt-alltags))
 					  (mapcar #'org-no-properties (s-split ":" tag-string t)))
 		       :elgantt-folded elgantt-startup-folded
@@ -469,13 +576,14 @@ if this is set to nil.")
 					 ('root (save-excursion 
 						  (while (org-up-heading-safe))
 						  (cdar (org-entry-properties (point) "ITEM"))))
-					 ('hashtag (when-let ((hashtag (--first (s-starts-with-p "#" it)
-										(org-get-tags nil (not elgantt-use-inherited-hashtags)))))
+					 ('hashtag (when-let ((hashtag
+							       (--first (s-starts-with-p "#" it)
+									(org-get-tags nil
+										      (not elgantt-use-inherited-hashtags)))))
 						     (substring hashtag 1)))
-
-
 					 ('outline elgantt-headline)
-					 ('category (org-entry-get-with-inheritance "CATEGORY"))
+					 ('category (or (org-entry-get-with-inheritance "CATEGORY")
+							elgantt-category))
 					 ('parent (save-excursion
 						    (when (org-up-heading-safe)
 						      (cdar (org-entry-properties (point) "ITEM")))))
@@ -492,7 +600,8 @@ if this is set to nil.")
 									     (not elgantt-use-inherited-hashtags)))))
 					    (substring hashtag 1)))
 					 ('outline elgantt-headline)
-					 ('category (org-entry-get-with-inheritance "CATEGORY"))
+					 ('category (or (org-entry-get-with-inheritance "CATEGORY")
+							elgantt-category))
 					 ('parent (save-excursion
 						    (when (org-up-heading-safe)
 						      (cdar (org-entry-properties (point) "ITEM")))))
@@ -508,7 +617,6 @@ if this is set to nil.")
 								      collect (cons (org-no-properties
 										     (org-get-heading))
 										    (org-id-get-create)))))))
-
     ;; If the header is in `elgantt-exclusions', then don't add it.
     ;; If :elgantt-header is nil, don't add it
     (unless (or (member (plist-get props :elgantt-header) elgantt-exclusions)
@@ -516,14 +624,14 @@ if this is set to nil.")
       (setq props (append props
 			  ;; Set the date if it contains a date type in `elgantt-timestamps-to-display'
 			  `(:elgantt-date ,(plist-get props
-						      (elgantt--change-symbol-name (--first (plist-get props
-												       (elgantt--change-symbol-name it ":elgantt-"))
-											    elgantt-timestamps-to-display)
-										   ":elgantt-")))
+						      (elgantt--change-symbol-name
+						       (--first (plist-get props
+									   (elgantt--change-symbol-name it ":elgantt-"))
+								elgantt-timestamps-to-display)
+						       ":elgantt-")))
 			  `(:elgantt-date-type ,(--first (plist-get props
 								    (elgantt--change-symbol-name it ":elgantt-"))
 							 elgantt-timestamps-to-display))))
-
       (if ;;(or (and (not elgantt-insert-header-even-if-no-timestamp)
 	  (or (plist-get props :elgantt-date)
 	      elgantt-insert-header-even-if-no-timestamp)
@@ -559,15 +667,15 @@ if this is set to nil.")
 				 org-archive-tag))))
 	     :action #'elgantt--parser)))))
 
-(defun elgantt--on-vertical-line ()
+(defun elgantt--on-vertical-line-p ()
   "Is the cursor on a vertical line?"
   (looking-at "|"))
 
 (defun elgantt--select-entry (&optional prop-or-all val)
   "Prompt the user to select from multiple entries.
-  If PROP is `all', then skip the prompt and return the
-  list of all props at point. (i.e., the same thing as
-				     `elgantt-get-props-at-point')"
+If PROP is `all', then skip the prompt and return the
+list of all props at point. (i.e., the same thing as
+				   `elgantt-get-props-at-point')"
   (when-let ((prop-list (elgantt-get-prop-at-point)))
     (cond ((eq prop-or-all 'all)
 	   ;; If user wants all entries, return them
@@ -594,15 +702,15 @@ if this is set to nil.")
 
 (defun elgantt-get-header-at-point ()
   "Gets the header of the cell's current position.
-  Returns nil if not on a header line."
+Returns nil if not on a header line."
   (save-excursion
     (beginning-of-line)
     (get-text-property (point) 'elgantt-header)))
 
 (defun elgantt-get-date-at-point (&optional column)
   "Get the date at point in YYYY-MM-DD format. NOTE: this gets this date 
-  from the location in the calendar, and does not rely on the text properties. 
-  It works on empty cells, and does not rely on the :elgantt-date property." 
+from the location in the calendar, and does not rely on the text properties. 
+It works on empty cells, and does not rely on the :elgantt-date property." 
   ;; HACK: It works, but...
   (let ((deactivate-mark t)) 
     (if (not (char-equal (char-after) ?|))
@@ -637,12 +745,12 @@ if this is set to nil.")
 
 (defun elgantt-get-prop-at-point (&optional prop)
   "Returns the :elgantt text property value. 
-  This will be a list of plists with the values stored by
-  `elgantt--parser'. 
+This will be a list of plists with the values stored by
+`elgantt--parser'. 
 
-  If PROP is specified, return the value of that property in a list.
-  If there is more than one entry in the cell, the list will contain
-  the value of each entry."
+If PROP is specified, return the value of that property in a list.
+If there is more than one entry in the cell, the list will contain
+the value of each entry."
   (let ((prop-list (plist-get (text-properties-at (point)) :elgantt)))
     (if prop
 	(mapcar (lambda (props) (plist-get props prop))
@@ -660,8 +768,8 @@ if this is set to nil.")
 
 (defun elgantt-scroll (direction)
   "Place, or move, an overlay on each line, hiding (or showing)
-  the month immediately after the headers.
-  DIRECTION must be a symbol: `forward' or `backard'."
+the month immediately after the headers.
+DIRECTION must be a symbol: `forward' or `backard'."
   ;; HACK: This was a first draft, but it works well enough. 
   (let ((column (current-column))
 	(line (line-number-at-pos))
@@ -722,7 +830,7 @@ if this is set to nil.")
 
 (defun elgantt--move-vertically (up-or-down)
   "Move up or down one line, and then move to the nearest
-  entry. UP-OR-DOWN must be 'up or 'down."
+entry. UP-OR-DOWN must be 'up or 'down."
   (if (eq up-or-down 'up)
       (if (> (org-current-line) 3)
 	  (elgantt--forward-line -1)
@@ -742,16 +850,20 @@ if this is set to nil.")
 		 (goto-char (1- next))
 	       (goto-char previous))))))
 
+(defun elgantt--reset-org-ql-cache ()
+  "Invalidate the org-ql cache."
+  (setq org-ql-cache (make-hash-table :weakness 'key)))
+
 (defun elgantt--move-horizontally (n)
   "Moves N chars and ensures that the point is not on a vertical line."
   (forward-char n)
-  (when (elgantt--on-vertical-line)
+  (when (elgantt--on-vertical-line-p)
     (forward-char n)))
 
 ;; Programmatic movement functions 
 (defmacro elgantt--parse-org-files-over-cells (&rest body)
   "Executes BODY at each cell in the calendar, iterating in order
-  of buffer position."
+of buffer position."
   `(save-excursion
      (goto-char (point-min))
      (cl-loop for points being the intervals of (current-buffer) property :elgantt
@@ -761,9 +873,9 @@ if this is set to nil.")
 
 (defun elgantt--next-match (property value &optional previous)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
-  Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
-  Returns nil if there are no additional matches. Does not mach a cell which falls on the 
-  same day as the current cell."
+Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
+Returns nil if there are no additional matches. Does not mach a cell which falls on the 
+same day as the current cell."
   (save-excursion
     (cl-loop with target-point = nil
 	     with target-date  = nil
@@ -785,39 +897,15 @@ if this is set to nil.")
 
 (defun elgantt--previous-match (property value)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
-  Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
-  Returns nil if there are no additional matches. Does not mach a cell which falls on the 
-  same day as the current cell."
+Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
+Returns nil if there are no additional matches. Does not mach a cell which falls on the 
+same day as the current cell."
   (elgantt--next-match property value t))
-
-;; (defun elgantt--previous-match (property value)
-;;   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
-;;   Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
-;;   Returns nil if there are no additional matches. Does not mach a cell which falls on the 
-;;   same day as the current cell."
-;;   (save-excursion
-;;     (cl-loop with target-point = nil
-;; 	     with target-date  = nil
-;; 	     with start-col = (current-column)
-;; 	     with start-point = (point)
-;; 	     for points being the intervals of (current-buffer) property :elgantt
-;; 	     do (goto-char (car points))
-;; 	     when (and (< (current-column) start-col)
-;; 		       (--first (member value (-list it)) (elgantt-get-prop-at-point property)))
-;; 	     do (cond ((not target-date)
-;; 		       (setq target-date (elgantt-get-date-at-point)
-;; 			     target-point (point)))
-;; 		      ((elgantt--date-compare-p '> (elgantt-get-date-at-point) target-date)
-;; 		       (setq target-date (elgantt-get-date-at-point)
-;; 			     target-point (point)))
-;; 		      ((elgantt--date-compare-p '= (elgantt-get-date-at-point) target-date)
-;; 		       (setq target-point (append (-list target-point) (-list (point))))))
-;; 	     finally return (-list target-point))))
 
 (defun elgantt--goto-id (id &optional range)
   "Go to the cell containing the org-id ID. Return nil if not found.
-  If ID represents an entry that is a time range, go do the first 
-  cell in that range."
+If ID represents an entry that is a time range, go do the first 
+cell in that range."
   ;; If you want to go to the last date in a range, you should
   ;; goto the starting point, get :elgantt-timestamp-range and then
   ;; use `elgantt--goto-date' to go to the cadar of that value,
@@ -835,7 +923,7 @@ if this is set to nil.")
 
 (defun elgantt--goto-date (date)
   "Go to DATE in the current line. 
-  DATE is a string in \"YYYY-MM-DD\" format."
+DATE is a string in \"YYYY-MM-DD\" format."
   (if-let ((overlay (car elgantt--hidden-overlays))
 	   (start (overlay-start overlay))
 	   (end (overlay-end overlay)))
@@ -845,59 +933,12 @@ if this is set to nil.")
   (point))
 
 ;; Interaction functions
-(defun elgantt--shift-date (n &optional properties)
-  "Move the timestamp up or down by one day.
-  N must be 1 or -1. The return value
-  is the prop list of the entry that has been moved."
-  ;; Only allows moving by a single day
-  (unless (or (= n 1)
-	      (= n -1))
-    (error "elgantt--shift-date: Invalid argument. N must be 1 or -1."))
-  (when (looking-at elgantt-cell-entry-re)
-    (let* ((props (or properties
-		      (elgantt--select-entry)))
-	   (date (elgantt-get-date-at-point))
-	   ;; Some of the symbols stored
-	   ;; in :elgantt-date-type need to be changed
-	   ;; to work with `org-re-timestamp'
-	   (type (pcase (plist-get props :elgantt-date-type)
-		   (`timestamp 'active)
-		   (`timestamp-ia 'inactive)
-		   (other other))))
-      (elgantt-with-point-at-orig-entry props
-	  (when (re-search-forward
-		 ;; BUG: if in a timestamp range, the only way to move it
-		 ;; is to search for the specific date; otherwise
-		 ;; we rely on `org-re-timestamp' to find the date
-		 ;; to shift. This could case an issue if there is a
-		 ;; scheduled time that has the same date as a timerange
-		 ;; because the regexp will find the scheduled date before
-		 ;; the range. I think this is waht call a "corner case,"
-		 ;; but I call it not my problem. 
-		 (if (or (eq type 'timestamp-range)
-			 (eq type 'timestamp-range-ia))
-		     (concat
-		      "[[<]\\("
-		      date
-		      " ?[^]\n>]*?\\)[]>]\\|"
-		      "\\(?:<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\\+[0-9]+"
-		      "[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)>\\)")
-		   (org-re-timestamp type)) nil t)
-	    (org-timestamp-change n 'day)))
-      ;; For some reason, `save-excursion' does not work here.
-      (let ((point (point)))
-	(elgantt-update-this-cell)
-	(elgantt--update-display-this-cell)
-	(goto-char point))
-      (elgantt--move-horizontally n)
-      (elgantt-update-this-cell)
-      (elgantt--update-display-this-cell))))
 
 (defmacro elgantt-with-point-at-orig-entry (props &rest body)
   "Execute BODY with point at marker stored in `:elgantt-marker'.
-  Buffer is retrieved from the `:elgantt-org-buffer' property. If PROPS is nil, 
-  then retrieve PROPS with `elgantt--select-entry’.
-  If PROPS is supplied, use those props instead of the props at point."
+Buffer is retrieved from the `:elgantt-org-buffer' property. If PROPS is nil, 
+then retrieve PROPS with `elgantt--select-entry’.
+If PROPS is supplied, use those props instead of the props at point."
   (declare (indent 2))
   `(let* ((props (or ,props (elgantt--select-entry)))
 	  (marker (plist-get props :elgantt-marker))
@@ -941,9 +982,12 @@ if this is set to nil.")
 		elgantt-leap-year-blank-line
 	      elgantt-normal-year-blank-line))))
 
+(defface elgantt-outline-level-1 '((t (:underline t)))
+  "Face applied to top level headers.")
+
 (defun elgantt--get-header-create (props)
   "Put point at the first char in the HEADER line, creating a new header
-  line if one does not exist."
+line if one does not exist."
   (let* ((outlinep (eq 'outline elgantt-header-type))
 	 (level (plist-get props :elgantt-level))
 	 (parent-level (plist-get props :elgantt-parent-level))
@@ -964,7 +1008,7 @@ if this is set to nil.")
 				 id))
 	       (format-header (text lev &optional no-prefix)
 			      (concat
-			       (unless (or no-prefix (not elgantt-show-header-depth))
+			       (unless no-prefix
 				 (if outlinep 
 				     (make-string (1- lev) (pcase elgantt-level-prefix-char
 							     ((pred characterp) elgantt-level-prefix-char)
@@ -973,15 +1017,6 @@ if this is set to nil.")
 				     ((pred stringp) elgantt-level-prefix-char)
 				     ((pred characterp) (char-to-string elgantt-level-prefix-char)))))
 			       (s-truncate elgantt-header-column-offset text)))
-	       ;; (insert-hidden-parent-header ()
-	       ;; 				    (goto-char (point-min))
-	       ;; 				    (put-text-property 0 1 'elgantt-header parent-text)
-	       ;; 				    (put-text-property 0 1 'elgantt-level (if outlinep
-	       ;; 									      parent-level
-	       ;; 									    -1))
-	       ;; 				    (put-text-property 0 1 'elgantt-org-id parent-id)
-	       ;; 				    (put-text-property 0 1 'elgantt-parent t)
-	       ;; 				    (put-text-property 0 1 'elgantt-folded foldedp))
 	       (insert-parent-header ()
 				     (let ((it (format-header parent-text parent-level (not outlinep))))
 				       (put-text-property 0 (length it) 'elgantt-header parent-text it)
@@ -989,31 +1024,6 @@ if this is set to nil.")
 				       (put-text-property 0 (length it) 'elgantt-org-id parent-id it)
 				       (put-text-property 0 (length it) 'elgantt-parent t it)
 				       (put-text-property 0 (length it) 'elgantt-folded foldedp it)
-				       ;; 			     (put-text-property 0 (length it) :elgantt (list 
-				       ;; 									:elgantt-category nil
-				       ;; 									:elgantt-headline parent-text
-				       ;; 									:elgantt-level (if outlinep parent-level -1)
-				       ;; 									:elgantt-file nil
-				       ;; 									:elgantt-deadline nil
-				       ;; 									:elgantt-scheduled nil
-				       ;; 									:elgantt-todo nil
-				       ;; 									:elgantt-marker nil
-				       ;; 									:elgantt-timestamp nil
-				       ;; 									:elgantt-timestamp-ia nil
-				       ;; 									:elgantt-timestamp-range nil
-				       ;; 									:elgantt-timestamp-range-ia nil
-				       ;; 									:elgantt-hashtag nil
-				       ;; 									:elgantt-alltags nil
-				       ;; 									:elgantt-folded foldedp
-				       ;; 									:elgantt-header parent-text
-				       ;; 									:elgantt-parent t
-				       ;; 									:elgantt-parent-level nil
-				       ;; 									:elgantt-org-buffer nil
-				       ;; 									:elgantt-org-parent nil
-				       ;; 									:elgantt-outline-path nil
-				       ;; 									:elgantt-date nil
-				       ;; 									:elgantt-date-type nil
-				       ;; 									:elgantt-org-id parent-id))
 				       (elgantt--insert-new-header-line it)))
 	       (insert-current-header ()
 				      (let ((it (format-header headline-text level)))
@@ -1021,10 +1031,7 @@ if this is set to nil.")
 					(put-text-property 0 (length it) 'elgantt-level level it)
 					(put-text-property 0 (length it) 'elgantt-org-id header-id it)
 					(put-text-property 0 (length it) 'elgantt-folded foldedp it)
-					;;(elgantt--insert-new-header-line it (not outlinep))))
-					;;(elgantt--insert-new-header-line it elgantt-insert-header-even-if-no-timestamp)))
 					(elgantt--insert-new-header-line it t)))
-
 	       (parent-found-p () (cl-loop initially do (goto-char (point-min))
 					   do (forward-line)
 					   until (eobp)
@@ -1041,104 +1048,128 @@ if this is set to nil.")
       (cond (foldedp
 	     (cond
 	      ((parent-found-p)
-	       (elgantt--move-to-next-sibling-or-parent))
+	       (if (eq 'outline elgantt-header-type)
+		   (elgantt--move-to-next 'parent-or-sibling)
+		 nil))
 	      (t (insert-parent-header))))
 	    (t (cond ((parent-found-p)
 		      (cond
 		       ((header-found-p) nil)
-		       (t (elgantt--move-to-next-sibling-or-parent)
-			  (insert-current-header))))
+		       (t
+			(if (eq 'outline elgantt-header-type)
+			    (progn
+			      (elgantt--move-to-next 'parent-or-sibling)
+			      (insert-current-header))
+			  (parent-found-p)
+			  (elgantt--move-to-next 'parent-or-sibling)
+			  (forward-char -1)
+			  (insert-current-header)))))
 		     (t (insert-parent-header)
 			(unless (equal parent-id header-id)
 			  (insert-current-header)))))))))
-
 
 (defun elgantt--get-level-at-point ()
   "If using the 'heading option of `elgantt-header-type', 
 then get the level of the current header."
   (get-text-property (point-at-bol) 'elgantt-level))
 
-(defun elgantt--move-to-next-sibling-or-parent ()
-  (cl-loop with point = (point)
-	   with level = (elgantt--get-level-at-point)
-	   with found = nil
-	   do (forward-line)
-	   if (eobp)
-	   return (point)
-	   else if (or (<= (elgantt--get-level-at-point) level)
-		       (= -1 (elgantt--get-level-at-point)))
-	   return (point)))
+(defun elgantt--shift-date (n &optional properties)
+  "Move the timestamp up or down by one day.
+N must be 1 or -1. The return value
+is the prop list of the entry that has been moved."
+  ;; Only allows moving by a single day
+  (unless (or (= n 1)
+	      (= n -1))
+    (error "elgantt--shift-date: Invalid argument. N must be 1 or -1."))
+  (when (looking-at elgantt-cell-entry-re)
+    (let* ((props (or properties
+		      (elgantt--select-entry)))
+	   (date (elgantt-get-date-at-point))
+	   ;; Some of the symbols stored
+	   ;; in :elgantt-date-type need to be changed
+	   ;; to work with `org-re-timestamp'
+	   (type (pcase (plist-get props :elgantt-date-type)
+		   (`timestamp 'active)
+		   (`timestamp-ia 'inactive)
+		   (other other))))
+      (elgantt-with-point-at-orig-entry props
+	  (when (re-search-forward
+		 ;; BUG: if in a timestamp range, the only way to move it
+		 ;; is to search for the specific date; otherwise
+		 ;; we rely on `org-re-timestamp' to find the date
+		 ;; to shift. This could case an issue if there is a
+		 ;; scheduled time that has the same date as a timerange
+		 ;; because the regexp will find the scheduled date first.
+		 (if (or (eq type 'timestamp-range)
+			 (eq type 'timestamp-range-ia))
+		     (concat
+		      "[[<]\\("
+		      date
+		      " ?[^]\n>]*?\\)[]>]\\|"
+		      "\\(?:<[0-9]+-[0-9]+-[0-9]+[^>\n]+?\\+[0-9]+"
+		      "[dwmy]>\\)\\|\\(?:<%%\\(?:([^>\n]+)\\)>\\)")
+		   (org-re-timestamp type)) nil t)
+	    (org-timestamp-change n 'day)))
+      ;; For some reason, `save-excursion' does not work here.
+      (let ((point (point)))
+	(elgantt-update-this-cell)
+	(elgantt--update-display-this-cell)
+	(goto-char point))
+      (elgantt--move-horizontally n)
+      (elgantt-update-this-cell)
+      (elgantt--update-display-this-cell))))
 
-(defun elgantt--move-to-previous-sibling-or-parent ()
-  (cl-loop with point = (point)
-	   with level = (elgantt--get-level-at-point)
-	   do (forward-line -1)
-	   if (= 2 (line-number-at-pos))
-	   do (goto-char point)
-	   and return nil
-	   else if (or (<= (elgantt--get-level-at-point) level)
-		       (= -1 (elgantt--get-level-at-point)))
-	   return t))
-
-(defun elgantt--get-all-entries-in-range (&optional start end)
-  (save-excursion 
-    (goto-char (or start (point-min)))
-    (cl-loop for points being the intervals of (current-buffer) property :elgantt
-	     until (>= (car points) (or end (point-max)))
-	     if (>= (car points) (or start (point-min)))
-	     do (goto-char (car points))
-	     append (elgantt-get-prop-at-point))))
-
-(defun elgantt--toggle-fold ()
+(defun elgantt--shift-date-forward ()
+  "Move the entry at point forward by one day."
   (interactive)
-  (let ((point (point)))
-    (when (re-search-forward elgantt-cell-entry-re (save-excursion (elgantt--move-to-next-sibling-or-parent)) t)
-      (forward-char -1)
-      (if (null (car (elgantt-get-prop-at-point :elgantt-folded)))
-	  (progn (goto-char point)
-		 (elgantt--fold))
-	(goto-char point)
-	(elgantt--unfold)))))
+  (elgantt--shift-date 1))
 
+(defun elgantt--shift-date-backward ()
+  "Move the entry at point backward by one day."
+  (interactive)
+  (elgantt--shift-date -1))
 
-;; need to gather any headings that do not have associated dates 
-(defun elgantt--fold ()
-  (when (or (= 1 (elgantt--get-level-at-point))
-	    (= -1 (elgantt--get-level-at-point)))
-    (save-excursion 
-      (when-let* ((inhibit-read-only t)
-		  (start (save-excursion (forward-line) (point-at-bol)))
-		  (end (save-excursion (elgantt--move-to-next-sibling-or-parent)
-				       (point)))
-		  (entries ;;(append (elgantt--get-all-entries-in-range 0 1)
-		   (elgantt--get-all-entries-in-range start end)))
-	(if (/= end (point-max))
-	    (delete-region start end)
-	  (delete-region start end)
-	  (save-excursion 
-	    (goto-char (point-max))
-	    (delete-char -1)))
-	(mapc (lambda (props)
-		(elgantt--insert-entry
-		 (plist-put props :elgantt-folded t))) entries)
-	(elgantt--update-display-all-cells)))))
+(defun elgantt--move-to-next (&optional place)
+  "Move to the next PLACE, where PLACE is 'parent,
+'sibling, or 'parent-or-sibling. If SAVE-EXCURSION is non-nil,
+then return the point but don't move to it.
 
-(defun elgantt--unfold ()
-  (when (or (= 1 (elgantt--get-level-at-point))
-	    (= -1 (elgantt--get-level-at-point)))
-    (save-excursion 
-      (when-let ((inhibit-read-only t)
-		 (start (point-at-bol))
-		 (end (point-at-eol))
-		 (entries  (elgantt--get-all-entries-in-range start end)))
-	;; (entries (append (elgantt--get-all-entries-in-range start end)
-	;; 		  (elgantt--get-all-entries-in-range 0 1))))
-	(remove-text-properties start end '(:elgantt nil))
-	;;(remove-text-properties 1 2 '(:elgantt nil))
-	(mapc (lambda (props)
-		(elgantt--insert-entry
-		 (plist-put props :elgantt-folded nil))) (reverse entries))
-	(elgantt--update-display-all-cells)))))
+If `elgantt-header-type' is not 'outline, then 
+this will move to the next header, regardless of the value of 
+PLACE."
+  (when (and (null place)
+	     (eq 'outline elgantt-header-type))
+    (error "Must supply an argument if elgantt-header-type is 'outline."))
+  (let ((level (elgantt--get-level-at-point))
+	(point (point))
+	(start-line (line-number-at-pos)))
+    (cl-flet* ((foundp ()
+		       (if (eq 'outline elgantt-header-type)
+			   (pcase place
+			     (`parent
+			      (or (< (elgantt--get-level-at-point) level)
+				  (= -1 (elgantt--get-level-at-point))))
+			     (`sibling
+			      (= (elgantt--get-level-at-point) level))
+			     ((or `parent-or-sibling
+				  `sibling-or-parent)
+			      (or (<= (elgantt--get-level-at-point) level)
+				  (= -1 (elgantt--get-level-at-point)))))
+			 (or (= -1 (elgantt--get-level-at-point))
+			     (and (elgantt--with-point-at (point-at-eol) (eobp))
+				  (= level -1)
+				  (/= (line-number-at-pos) start-line))))))
+      (cl-loop do (forward-line)
+	       if (and (eobp)
+		       (foundp))
+	       return (point)
+	       else if (foundp)
+	       return
+	       (if (eq 'outline elgantt-header-type)
+		   (point)
+		 (if (= -1 (elgantt--get-level-at-point))
+		     (point)
+		   (point-at-eol)))))))
 
 (defun elgantt--insert-new-header-line (header &optional after-current-line)
   "Inserts a new header."
@@ -1157,9 +1188,9 @@ then get the level of the current header."
 
 (defun elgantt--insert-year (year &optional append)
   "For each line in the calendar, insert the appropriate
-  lines to display YEAR. If APPEND is t, then add the years
-  to the end of the calendar. (This should be calculated automatically, 
-  but currently it is not.)"
+lines to display YEAR. If APPEND is t, then add the years
+to the end of the calendar. (This should be calculated automatically, 
+				  but currently it is not.)"
   (goto-char (point-min))
   (if append
       (end-of-line)
@@ -1180,10 +1211,10 @@ then get the level of the current header."
 
 (defun elgantt--add-year (year)
   "Check to see if YEAR has already been displayed in the calendar.
-  If so, do nothing. If not, insert that year for all calendar lines
-  and all header lines in the calendar, and push the year onto 
-  `elgantt--date-range' so that any new entries will contain the 
-  proper number of years."
+If so, do nothing. If not, insert that year for all calendar lines
+and all header lines in the calendar, and push the year onto 
+`elgantt--date-range' so that any new entries will contain the 
+proper number of years."
   (when (not (memq year elgantt--date-range))
     (cond ((not elgantt--date-range)
 	   (cl-pushnew year elgantt--date-range)
@@ -1206,7 +1237,7 @@ then get the level of the current header."
 
 (defun elgantt--insert-entry (props)
   "Inserts text properties of a cell at point, keeping any properties which
-    are already present. Updates the cell's display."
+are already present. Updates the cell's display."
   (let ((inhibit-read-only t)
 	(face (get-text-property (point) 'face))
 	(date (plist-get props :elgantt-date)))
@@ -1234,110 +1265,6 @@ then get the level of the current header."
 	      ;; If there is no date and `elgantt-insert-header-even-if-no-timestamp'
 	      ;; is non-nil, then we still need to insert the heading
 	      '(nil)))))
-
-;; (defun elgantt--insert-entry (props)
-;;   "Inserts text properties of a cell at point, keeping any properties which
-;;     are already present. Updates the cell's display."
-;;   (let ((inhibit-read-only t)
-;; 	(date (plist-get props :elgantt-date)))
-;;     ;; It is necessary to `mapc' over the date because date ranges
-;;     ;; are stored as a list. If there is a date range the
-;;     ;; properties are stored both at the first entry and the last entry
-;;     (cond
-;;      ((and (null date) (eq t (plist-get props :elgantt-folded)))
-;;       (goto-char (point-min))
-;;       (let ((face (get-text-property (point) 'face))
-;; 	    (old-props (plist-get (text-properties-at (point)) :elgantt)))
-;; 	(unless (cl-loop for prop in old-props
-;; 			 do (cl-loop for property in (-slice props 0 nil 2)
-;; 				     do (plist-put prop property (plist-get props property)))
-;; 			 and return t)
-;; 	  (set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
-;; 									old-props))))
-;; 	(add-face-text-property (point) (1+ (point)) face)))
-;;      (date (mapc (lambda (date)
-;; 		   ;; instead of passing only the header and level, pass all properties
-;; 		   (elgantt--get-header-create props)
-;; 		   ;;(elgantt--get-header-create (plist-get props :elgantt-header) (plist-get props :elgantt-level))
-;; 		   (elgantt--add-year (string-to-number (substring date 0 4)))
-;; 		   (elgantt--goto-date date)
-;; 		   (let ((face (get-text-property (point) 'face))
-;; 			 (old-props (plist-get (text-properties-at (point)) :elgantt)))
-;; 		     (unless (cl-loop for prop in old-props
-;; 				      if (equal (plist-get prop :elgantt-org-id)
-;; 						(plist-get props :elgantt-org-id))
-;; 				      do (cl-loop for property in (-slice props 0 nil 2)
-;; 						  do (plist-put prop property (plist-get props property)))
-;; 				      and return t)
-;; 		       (set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
-;; 										     old-props))))
-;; 		     (add-face-text-property (point) (1+ (point)) face)))
-;; 		 (or (-list date)
-;; 		     ;; If there is no date and `elgantt-insert-header-even-if-no-timestamp'
-;; 		     ;; is non-nil, then we still need to insert the heading
-;; 		     '(nil)))))))
-
-
-
-;; ;; OLD; STABLE
-;; (defun elgantt--insert-entry (props)
-;;   "Inserts text properties of a cell at point, keeping any properties which
-;;     are already present. Updates the cell's display."
-;;   (let ((inhibit-read-only t)
-;; 	(face (get-text-property (point) 'face))
-;; 	(date (plist-get props :elgantt-date)))
-;;     ;; It is necessary to `mapc' over the date because date ranges
-;;     ;; are stored as a list. If there is a date range the
-;;     ;; properties are stored both at the first entry and the last entry
-;;     (mapc (lambda (date)
-;; 	    (elgantt--get-header-create props)
-;; 	    (when date
-;; 	      (elgantt--add-year (string-to-number (substring date 0 4)))
-;; 	      (elgantt--goto-date date))
-;; 	    (let ((old-props (plist-get (text-properties-at (point)) :elgantt)))
-;; 	      (unless (cl-loop for prop in old-props
-;; 			       if (equal (plist-get prop :elgantt-org-id)
-;; 					 (plist-get props :elgantt-org-id))
-;; 			       do (cl-loop for property in (-slice props 0 nil 2)
-;; 					   do (plist-put prop property (plist-get props property)))
-;; 			       and return t)
-;; 		(set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
-;; 									      old-props))))
-;; 	      (add-face-text-property (point) (1+ (point)) face)))
-;; 	  (or (-list date)
-;; 	      '(nil)))))
-
-;; (defun elgantt--insert-entry (props)
-;;   "Inserts text properties of a cell at point, keeping any properties which
-;;     are already present. Updates the cell's display."
-;;   (let ((inhibit-read-only t)
-;; 	(date (plist-get props :elgantt-date)))
-;;     ;; It is necessary to `mapc' over the date because date ranges
-;;     ;; are stored as a list. If there is a date range the
-;;     ;; properties are stored both at the first entry and the last entry
-;;     (mapc (lambda (date)
-;; 	    ;; instead of passing only the header and level, pass all properties
-;; 	    (elgantt--get-header-create props)
-;; 	    ;;(elgantt--get-header-create (plist-get props :elgantt-header) (plist-get props :elgantt-level))
-;; 	    (when date
-;; 	      (elgantt--add-year (string-to-number (substring date 0 4)))
-;; 	      (elgantt--goto-date date)
-;; 	      (let ((face (get-text-property (point) 'face))
-;; 		    (old-props (plist-get (text-properties-at (point)) :elgantt)))
-;; 		(unless (cl-loop for prop in old-props
-;; 				 if (equal (plist-get prop :elgantt-org-id)
-;; 					   (plist-get props :elgantt-org-id))
-;; 				 do (cl-loop for property in (-slice props 0 nil 2)
-;; 					     do (plist-put prop property (plist-get props property)))
-;; 				 and return t)
-;; 		  (set-text-properties (point) (1+ (point)) `(:elgantt ,(append (list props)
-;; 										old-props))))
-;; 		(add-face-text-property (point) (1+ (point)) face))))
-;; 	  (or (-list date)
-;; 	      ;; If there is no date and `elgantt-insert-header-even-if-no-timestamp'
-;; 	      ;; is non-nil, then we still need to insert the heading
-;; 	      '(nil)))))
-
 
 (defun elgantt--blank-header-line-p ()
   "Does this header contain any entries?"
@@ -1403,7 +1330,7 @@ new color."
 
 (defun elgantt--change-char (char &optional point)
   "Replace the character at point with CHAR, preserving all 
-  existing text properties."
+existing text properties."
   (let ((inhibit-read-only t))
     (save-excursion 
       (let ((props (text-properties-at (point))))
@@ -1418,7 +1345,7 @@ new color."
 
 (defun elgantt--hexcolor-luminance (color)
   "Calculate the luminance of a color string (e.g. \"#ffaa00\", \"blue\").
-  This is 0.3 red + 0.59 green + 0.11 blue and always between 0 and 255."
+This is 0.3 red + 0.59 green + 0.11 blue and always between 0 and 255."
   ;; from https://www.emacswiki.org/emacs/HexColour
   (let* ((values (x-color-values color))
 	 (r (car values))
@@ -1570,8 +1497,9 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
 								 (elgantt-get-prop-at-point :elgantt-scheduled)
 								 (elgantt-get-date-at-point)))))))))
 				    (forward-line 1))
-
-			       finally (when (and first-date last-date)
+			       finally (when (and first-date
+						  last-date
+						  (not (string= first-date last-date)))
 					 (goto-char point)
 					 (cl-loop with end = (1- (elgantt--goto-date last-date))
 						  with start = (elgantt--goto-date first-date)
@@ -1749,7 +1677,7 @@ through all other matching cells."
 	(setq next-point (elgantt--next-match property value))))))
 
 (defun elgantt--vertical-highlight ()
-  "Draws an vertical line of the overlay at point."
+  "Draws an vertical highlight at point."
   (remove-overlays (point-min) (point-max) 'elgantt-vertical-highlight t)
   (cl-loop with overlay = nil
 	   with line-length = (- (point-at-eol) (point-at-bol))
@@ -1769,7 +1697,7 @@ through all other matching cells."
 		     (setq point (+ point line-length 1)))))
 
 (defun elgantt--highlight-current-day ()
-  "Draws an overlay highlighting the current date."
+  "Draws an overlay highlighting the current date, if it is visible."
   ;; TODO: The check for whether to run this (i.e., whether the current
   ;; date is actually in the calendar is in `elgantt-open', but it
   ;; should be here instead. 
@@ -1804,8 +1732,8 @@ horizontal line coloring."
 
 (defun elgantt-update-this-cell (&optional date)
   "Gets data for a specific cell by looking for any headings
-      which occur on DATE. If DATE is nil, use `elgantt-get-date-at-point'."
-  (when (elgantt--on-vertical-line)
+which occur on DATE. If DATE is nil, use `elgantt-get-date-at-point'."
+  (when (elgantt--on-vertical-line-p)
     (error "Error in elgantt-update-this-cell: Not on a calendar cell."))
   (save-excursion
     (let ((dates (sort
@@ -1834,47 +1762,47 @@ horizontal line coloring."
 					       append disable post-command-hook)
   "NAME is a symbol used to name new functions that are created. 
 
-      ARGS is a list of the text properties that will be used by the function. 
-      Any poperties supplied here will be automatically fetched from 
-      the cell at point and let-bound for use within BODY. ARGS should consist of only
-      those properties that are stored in a calendar cell. If you need to use 
-      data that is not contained in the stored properties, you can add a PARSER. 
+ARGS is a list of the text properties that will be used by the function. 
+Any poperties supplied here will be automatically fetched from 
+the cell at point and let-bound for use within BODY. ARGS should consist of only
+those properties that are stored in a calendar cell. If you need to use 
+data that is not contained in the stored properties, you can add a PARSER. 
 
-      PARSER is is used to add information to cells when the
-      calendar is generated. It must be an alist in form of ((property-name . body)).
-      You may specify a property-name which begins with a colon, or not. If none is 
-      provided, a colon will be added automatically. Body is the body of a function 
-      that is called when the point is at the first point of each org heading. 
-      Its return value will be assigned to the property-name for each cell, and 
-      stored as a text property.  
+PARSER is is used to add information to cells when the
+calendar is generated. It must be an alist in form of ((property-name . body)).
+You may specify a property-name which begins with a colon, or not. If none is 
+provided, a colon will be added automatically. Body is the body of a function 
+that is called when the point is at the first point of each org heading. 
+Its return value will be assigned to the property-name for each cell, and 
+stored as a text property.  
 
-      DOCSTRING is the docstring of the newly-defined function.
+DOCSTRING is the docstring of the newly-defined function.
 
-      BODY is the body of the display function. DISPLAY-BODY should generally do one
-      of the following: Setting an overlay, setting text-properties, changing the face, etc.
-      The return value of BODY is ignored and all changes must be made through side-effect. 
-      - An overlay can be set with `elgantt--create-overlay'.
-      - The character of a cell can be changed by using `elgantt--change-char'.
-      - The gradient of a cell, or cells, can be changed with `elgantt--draw-gradient'.
-      - A progress bar can be drawn with `elgantt--draw-two-color-block'. 
+BODY is the body of the display function. DISPLAY-BODY should generally do one
+of the following: Setting an overlay, setting text-properties, changing the face, etc.
+The return value of BODY is ignored and all changes must be made through side-effect. 
+- An overlay can be set with `elgantt--create-overlay'.
+- The character of a cell can be changed by using `elgantt--change-char'.
+- The gradient of a cell, or cells, can be changed with `elgantt--draw-gradient'.
+- A progress bar can be drawn with `elgantt--draw-two-color-block'. 
 
-      After the display function is created, it is pushed onto `elgantt--display-functions'.
-      These functions are run for each cell at point, from the start of the list to the 
-      end. 
+After the display function is created, it is pushed onto `elgantt--display-functions'.
+These functions are run for each cell at point, from the start of the list to the 
+end. 
 
-      If APPEND is non-nil, then the function will be appended to the end of
-      `elgantt--display-functions' rather than pushed to the front.
+If APPEND is non-nil, then the function will be appended to the end of
+`elgantt--display-functions' rather than pushed to the front.
 
-      If POST-COMMAND-HOOK is non-nil, then the display function will be added as a post
-      command hook. If this option is used for an overlay, make sure to give the overlay
-      a unique property value so that it can be cleared. For example adding the property
-      '(:my-customization t) to the overlay properties will allow you to clear and update
-      that overlay without interfering with other overlays in the buffer. If POST-COMMAND-HOOK
-      is nil, then the hook will be removed if it exists.
+If POST-COMMAND-HOOK is non-nil, then the display function will be added as a post
+command hook. If this option is used for an overlay, make sure to give the overlay
+a unique property value so that it can be cleared. For example adding the property
+'(:my-customization t) to the overlay properties will allow you to clear and update
+that overlay without interfering with other overlays in the buffer. If POST-COMMAND-HOOK
+is nil, then the hook will be removed if it exists.
 
-      If DISABLE is non-nil, then the rule will be removed from the 
-      `elgantt--display-rules', any parsing functions created by the rule will
-      be removed, and any hook will be removed."
+If DISABLE is non-nil, then the rule will be removed from the 
+`elgantt--display-rules', any parsing functions created by the rule will
+be removed, and any hook will be removed."
 
   (declare (indent defun))
   (let ((display-func-name (intern (concat "elgantt--display-rule-" (symbol-name name)))))
@@ -1938,117 +1866,6 @@ horizontal line coloring."
 	 (setq elgantt--post-command-hooks (remq ',display-func-name elgantt--post-command-hooks))
 	 (setq elgantt--display-rules (remq ',display-func-name elgantt--display-rules))))))
 
-
-;; ;;; OLD
-;; (cl-defmacro elgantt-create-display-rule (name &key docstring
-;; 					       args parser body append disable
-;; 					       post-command-hook
-;; 					       mode-hook)
-;;   "NAME is a symbol used to name new functions that are created. 
-
-;;       ARGS is a list of the text properties that will be used by the function. 
-;;       Any poperties supplied here will be automatically fetched from 
-;;       the cell at point and let-bound for use within BODY. ARGS should consist of only
-;;       those properties that are stored in a calendar cell. If you need to use 
-;;       data that is not contained in the stored properties, you can add a PARSER. 
-
-;;       PARSER is is used to add information to cells when the
-;;       calendar is generated. It must be an alist in form of ((property-name . body)).
-;;       You may specify a property-name which begins with a colon, or not. If none is 
-;;       provided, a colon will be added automatically. Body is the body of a function 
-;;       that is called when the point is at the first point of each org heading. 
-;;       Its return value will be assigned to the property-name for each cell, and 
-;;       stored as a text property.  
-
-;;       DOCSTRING is the docstring of the newly-defined function.
-
-;;       BODY is the body of the display function. DISPLAY-BODY should generally do one
-;;       of the following: Setting an overlay, setting text-properties, changing the face, etc.
-;;       The return value of BODY is ignored and all changes must be made through side-effect. 
-;;       - An overlay can be set with `elgantt--create-overlay'.
-;;       - The character of a cell can be changed by using `elgantt--change-char'.
-;;       - The gradient of a cell, or cells, can be changed with `elgantt--draw-gradient'.
-;;       - A progress bar can be drawn with `elgantt--draw-two-color-block'. 
-
-;;       After the display function is created, it is pushed onto `elgantt--display-functions'.
-;;       These functions are run for each cell at point, from the start of the list to the 
-;;       end. 
-
-;;       If APPEND is non-nil, then the function will be appended to the end of
-;;       `elgantt--display-functions' rather than pushed to the front.p 
-
-;;       If POST-COMMAND-HOOK is non-nil, then the display function will be added as a post
-;;       command hook. If this option is used for an overlay, make sure to give the overlay
-;;       a unique property value so that it can be cleared. For example adding the property
-;;       '(:my-customization t) to the overlay properties will allow you to clear and update
-;;       that overlay without interfering with other overlays in the buffer. If POST-COMMAND-HOOK
-;;       is nil, then the hook will be removed if it exists.
-
-;;       If DISABLE is non-nil, then the rule will be removed from the 
-;;       `elgantt--display-rules', any parsing functions created by the rule will
-;;       be removed, and any hook will be removed."
-
-;;   (declare (indent defun))
-;;   (let ((display-func-name (intern (concat "elgantt--display-rule-" (symbol-name name)))))
-;;     `(progn
-;;        (when ',parser
-;; 	 (cl-loop for (prop . val) in (-list ',parser)
-;; 		  do (setf (alist-get (if (s-starts-with-p ":" (symbol-name prop))
-;; 					  prop
-;; 					(intern (concat ":" (symbol-name prop))))
-;; 				      elgantt--parsing-functions)
-;; 			   `(lambda () ,@val))))
-;;        (if (or ',parser ',args)
-;; 	   (progn
-;; 	     (defun ,display-func-name ()
-;; 	       ,docstring
-;; 	       (mapc
-;; 		(lambda (arg-list)
-;; 		  (-let ((,(append (cl-loop for arg in args
-;; 					    collect (elgantt--add-remove-prop-colon arg t))
-;; 				   (cl-loop for (prop . val) in parser
-;; 					    collect (elgantt--add-remove-prop-colon prop t)))
-;; 			  arg-list))
-;; 		    ,@body))
-;; 		(or (elgantt--zip
-;; 		     (mapcar #'elgantt-get-prop-at-point
-;; 			     (append ',(cl-loop for arg in args
-;; 						collect (elgantt--add-remove-prop-colon arg))
-;; 				     ',(cl-loop for (prop . val) in parser
-;; 						collect (elgantt--add-remove-prop-colon prop)))))
-;; 		    ;; If the preceding code returns `nil', then the `mapc' function, above,
-;; 		    ;; will not run. Since `elgantt-get-prop-at-point' will return nil
-;; 		    ;; if on an empty cell, it creates a problem if the user wants to run
-;; 		    ;; the command in an empty cell. 
-;; 		    ;; Thus, if `elgantt--zip' returns nil, this will create a list of nils to
-;; 		    ;; be assigned to the argument list, since nil is not `eq' to (nil),
-;; 		    ;; `mapc' will accept the list and run.
-;; 		    ;; NOTE: I am not sure if simply returning a single (nil) would suffice.
-;; 		    (make-list (if (> 0 (length (elgantt-get-prop-at-point))) 
-;; 				   (length (elgantt-get-prop-at-point)) 1)
-;; 			       (make-list (+ (length ',parser) (length ',args)) nil))))))
-;; 	 (defun ,display-func-name () ,docstring ,@body))
-;;        (if ',append
-;; 	   (progn
-;; 	     (setq elgantt--display-rules (remq ',display-func-name elgantt--display-rules))
-;; 	     (add-to-list 'elgantt--display-rules #',display-func-name t))
-;; 	 (setq elgantt--display-rules (remq ',display-func-name elgantt--display-rules))
-;; 	 (cl-pushnew #',display-func-name elgantt--display-rules))
-;;        (if ',post-command-hook
-;; 	   (progn
-;; 	     (setq elgantt--display-rules (remq ',display-func-name elgantt--display-rules))
-;; 	     (cl-pushnew ',display-func-name elgantt--post-command-hooks))
-;; 	 (setq elgantt--post-command-hooks (remq ',display-func-name elgantt--post-command-hooks)))
-;;        ;;(setq elgantt--display-rules (remq ',display-func-name elgantt--display-rules)))
-;;        (when ',disable
-;; 	 (cl-loop for (name . func) in ',parser
-;; 		  do (setq elgantt--parsing-functions
-;; 			   (assq-delete-all name elgantt--parsing-functions)))
-;; 	 (setq elgantt--post-command-hooks (remq ',display-func-name elgantt--post-command-hooks))
-;; 	 (setq elgantt--display-rules (remq ',display-func-name elgantt--display-rules))))))
-
-
-
 (elgantt-create-display-rule display-char
   :docstring "Display the appropriate character in each cell."
   :args (elgantt-date-type elgantt-timestamp-range elgantt-timestamp-range-ia)
@@ -2076,29 +1893,29 @@ horizontal line coloring."
 (cl-defmacro elgantt-create-action (name &key docstring parser args body binding)
   "NAME is a symbol used to name new functions that are created. 
 
-     ARGS is a list of the text properties that will be used by the function. 
-     Any poperties supplied here will be automatically fetched from 
-     the cell at point and let-bound for use within BODY. ARGS should consist of only
-     those properties that are stored in a calendar cell. If you need to use 
-     data that is not contained, you can add a PARSER. 
+ARGS is a list of the text properties that will be used by the function. 
+Any poperties supplied here will be automatically fetched from 
+the cell at point and let-bound for use within BODY. ARGS should consist of only
+those properties that are stored in a calendar cell. If you need to use 
+data that is not contained, you can add a PARSER. 
 
-     PARSER is is used to add information to cells when the
-     calendar is generated. It must be an alist in form of ((property-name . body)).
-     You may specify a property-name which begins with a colon, or not. If none is 
-     provided, a colon will be added automatically. Body is the body of a function 
-     that is called when the point is at the first point of each org heading. 
-     Its return value will be assigned to the property-name for each cell, and 
-     stored as a text property. 
+PARSER is is used to add information to cells when the
+calendar is generated. It must be an alist in form of ((property-name . body)).
+You may specify a property-name which begins with a colon, or not. If none is 
+provided, a colon will be added automatically. Body is the body of a function 
+that is called when the point is at the first point of each org heading. 
+Its return value will be assigned to the property-name for each cell, and 
+stored as a text property. 
 
-     DOCSTRING is the docstring of the newly-defined function.
+DOCSTRING is the docstring of the newly-defined function.
 
-     BODY is the body of a function which performs some action on the underlying
-     cell, the underlying org file, or something else. If you need to perform some action
-     on the org file, or get data from it, use `elgantt-with-point-at-orig-entry'. Otherwise,
-     action can do anything you'd like. 
+BODY is the body of a function which performs some action on the underlying
+cell, the underlying org file, or something else. If you need to perform some action
+on the org file, or get data from it, use `elgantt-with-point-at-orig-entry'. Otherwise,
+action can do anything you'd like. 
 
-     BINDING the key binding for the newly defined ACTION. It allows any
-     string accepted by `kbd'."
+BINDING the key binding for the newly defined ACTION. It allows any
+string accepted by `kbd'."
   (declare (indent defun))
   (let ((action-func-name (intern (concat "elgantt--action-rule-" (symbol-name name)))))
     `(progn
@@ -2147,15 +1964,6 @@ horizontal line coloring."
 	     until (eobp))))
 
 ;;; Interactive functions
-(defun elgantt--shift-date-forward ()
-  "Move the entry at point forward by one day."
-  (interactive)
-  (elgantt--shift-date 1))
-
-(defun elgantt--shift-date-backward ()
-  "Move the entry at point backward by one day."
-  (interactive)
-  (elgantt--shift-date -1))
 
 (defun elgantt--open-org-agenda-at-date ()
   "Opens `org-agenda' for the date at point."
@@ -2230,10 +2038,18 @@ horizontal line coloring."
 (defun elgantt--move-down ()
   "Move the cursor down with `elgantt--move-vertically'."
   (interactive)
-  (unless (= (line-number-at-pos) (count-lines (point-min) (point-max)))
+  (unless (= (line-number-at-pos)
+	     (count-lines (point-min) (point-max)))
     (elgantt--move-vertically 'down)))
 
-
+(defun elgantt--fontify-vertical-bars ()
+  (let ((inhibit-read-only t))
+    (save-excursion 
+      (goto-char (point-min))
+      (while (re-search-forward "|" nil t)
+	(forward-char -1)
+	(put-text-property (point) (1+ (point))
+			   'face 'elgantt-vertical-line-face)))))
 
 ;;; Major mode
 (setq elgantt-mode-map
@@ -2246,7 +2062,7 @@ horizontal line coloring."
 	(define-key map (kbd "n")   #'elgantt--move-down)
 	(define-key map (kbd "f")   #'elgantt--move-forward)
 	(define-key map (kbd "b")   #'elgantt--move-backward)
-	(define-key map (kbd "<tab>") #'elgantt--toggle-fold)
+	;; (define-key map (kbd "<tab>") #'elgantt--toggle-fold)
 	(define-key map (kbd "<right>") #'elgantt--forward-char)
 	(define-key map (kbd "<left>") #'elgantt--backward-char)
 	(define-key map (kbd "C-f")   #'elgantt--forward-char)
@@ -2264,6 +2080,7 @@ horizontal line coloring."
   (let ((point (point))
 	(inhibit-read-only t))
     (erase-buffer)
+    (elgantt--reset-org-ql-cache)
     (elgantt--set-even-numbered-line-face)
     (elgantt--set-vertical-line-face)
     ;;(elgantt--set-vertical-highlight-face)
@@ -2290,8 +2107,16 @@ horizontal line coloring."
   (let ((point (point))
 	(inhibit-read-only t))
     (erase-buffer)
-    (elgantt--set-even-numbered-line-face)
     (elgantt--set-vertical-line-face)
+    (put-text-property 0 1 'face 'elgantt-vertical-line-face elgantt-vertical-line-char)
+    (elgantt--add-vertical-line-props (elgantt-leap-year-month-line
+				       elgantt-leap-year-date-line
+				       elgantt-leap-year-blank-line
+				       elgantt-normal-year-month-line
+				       elgantt-normal-year-date-line
+				       elgantt-normal-year-blank-line))
+    (elgantt--reset-org-ql-cache)
+    (elgantt--set-even-numbered-line-face)
     ;;(elgantt--set-vertical-highlight-face)
     (setq elgantt--date-range nil)
     (setq elgantt--hidden-overlays nil)
