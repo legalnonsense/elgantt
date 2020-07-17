@@ -148,6 +148,10 @@ Default: ▷")
   "Character shown at the end of a timerange.
 Default: ◁")
 
+(defcustom elgantt-insert-blank-line-between-top-level-header t "")
+
+(defcustom elgantt-draw-overarching-headers t "")
+
 (defcustom elgantt-agenda-files (org-agenda-files)
   "A file, list of files, or function returning a list of files
 Default: `org-agenda-files'.")
@@ -840,15 +844,16 @@ entry. UP-OR-DOWN must be 'up or 'down."
       (return-from elgantt--move-vertically nil)))
   (let ((next (save-excursion (re-search-forward elgantt-cell-entry-re (point-at-eol) t)))
 	(previous (save-excursion (re-search-backward elgantt-cell-entry-re (point-at-bol) t))))
-    (cond ((and (not next) (not previous))
-	   (elgantt--move-vertically up-or-down))
-	  ((and (not next) previous)
-	   (goto-char previous))
-	  ((and (not previous) next)
-	   (goto-char (1- next)))
-	  (t (if (< (- next (point)) (- (point) previous))
-		 (goto-char (1- next))
-	       (goto-char previous))))))
+    (when (or next previous)
+      (cond ((and (not next) (not previous))
+	     (elgantt--move-vertically up-or-down))
+	    ((and (not next) previous)
+	     (goto-char previous))
+	    ((and (not previous) next)
+	     (goto-char (1- next)))
+	    (t (if (< (- next (point)) (- (point) previous))
+		   (goto-char (1- next))
+		 (goto-char previous)))))))
 
 (defun elgantt--reset-org-ql-cache ()
   "Invalidate the org-ql cache."
@@ -1024,6 +1029,9 @@ line if one does not exist."
 				       (put-text-property 0 (length it) 'elgantt-org-id parent-id it)
 				       (put-text-property 0 (length it) 'elgantt-parent t it)
 				       (put-text-property 0 (length it) 'elgantt-folded foldedp it)
+				       (when elgantt-insert-blank-line-between-top-level-header
+					 (unless (and outlinep parent-level (/= parent-level 1))
+					   (elgantt--insert-new-header-line "")))
 				       (elgantt--insert-new-header-line it)))
 	       (insert-current-header ()
 				      (let ((it (format-header headline-text level)))
@@ -1031,7 +1039,8 @@ line if one does not exist."
 					(put-text-property 0 (length it) 'elgantt-level level it)
 					(put-text-property 0 (length it) 'elgantt-org-id header-id it)
 					(put-text-property 0 (length it) 'elgantt-folded foldedp it)
-					(elgantt--insert-new-header-line it t)))
+					(elgantt--insert-new-header-line it (or (eq elgantt-header-type 'outline)
+										(functionp elgantt-header-type)))))
 	       (parent-found-p () (cl-loop initially do (goto-char (point-min))
 					   do (forward-line)
 					   until (eobp)
@@ -1045,6 +1054,7 @@ line if one does not exist."
 						   (if (not foldedp)
 						       (at-id-p header-id) t))
 					   return (point))))
+      ;; Good luck figuring this one out. 
       (cond (foldedp
 	     (cond
 	      ((parent-found-p)
@@ -1129,6 +1139,11 @@ is the prop list of the entry that has been moved."
   (interactive)
   (elgantt--shift-date -1))
 
+(defmacro elgantt--with-point-at (point &rest body)
+  (declare (indent defun))
+  `(save-excursion (goto-char ,point)
+		   (progn ,@body)))
+
 (defun elgantt--move-to-next (&optional place)
   "Move to the next PLACE, where PLACE is 'parent,
 'sibling, or 'parent-or-sibling. If SAVE-EXCURSION is non-nil,
@@ -1146,19 +1161,26 @@ PLACE."
     (cl-flet* ((foundp ()
 		       (if (eq 'outline elgantt-header-type)
 			   (pcase place
+
 			     (`parent
-			      (or (< (elgantt--get-level-at-point) level)
-				  (= -1 (elgantt--get-level-at-point))))
+			      (and (elgantt--get-level-at-point)
+				   (or (< (elgantt--get-level-at-point) level)
+				       (= -1 (elgantt--get-level-at-point)))))
+
 			     (`sibling
-			      (= (elgantt--get-level-at-point) level))
+			      (and (elgantt--get-level-at-point)
+				   (= (elgantt--get-level-at-point) level)))
 			     ((or `parent-or-sibling
 				  `sibling-or-parent)
-			      (or (<= (elgantt--get-level-at-point) level)
-				  (= -1 (elgantt--get-level-at-point)))))
-			 (or (= -1 (elgantt--get-level-at-point))
-			     (and (elgantt--with-point-at (point-at-eol) (eobp))
-				  (= level -1)
-				  (/= (line-number-at-pos) start-line))))))
+			      (and (elgantt--get-level-at-point)
+				   (or (<= (elgantt--get-level-at-point) level)
+				       (= -1 (elgantt--get-level-at-point))))))
+			 
+			 (and (elgantt--get-level-at-point)
+			      (or (= -1 (elgantt--get-level-at-point))
+				  (and (elgantt--with-point-at (point-at-eol) (eobp))
+				       (= level -1)
+				       (/= (line-number-at-pos) start-line)))))))
       (cl-loop do (forward-line)
 	       if (and (eobp)
 		       (foundp))
@@ -1270,7 +1292,8 @@ are already present. Updates the cell's display."
   "Does this header contain any entries?"
   (save-excursion
     (goto-char (point-at-bol))
-    (not (re-search-forward elgantt-cell-entry-re (point-at-eol) t))))
+    (and (not (re-search-forward elgantt-cell-entry-re (point-at-eol) t))
+	 (get-text-property (point-at-bol) 'elgantt-header))))
 
 (defun elgantt--auto-shade-background (percent &optional base-color)
   "If the background is light, darken it. If the background is dark, lighten it. Return the
@@ -1320,7 +1343,8 @@ new color."
 			 (goto-char (next-single-property-change (point) :elgantt))
 			 (when (get-text-property (point) :elgantt)
 			   (funcall func))))))
-  (elgantt--draw-overarching-headers))
+  (when elgantt-draw-overarching-headers
+    (elgantt--draw-overarching-headers)))
 
 (defun elgantt--update-display-this-cell ()
   "Updates the overlays for the cell at point."
@@ -1456,6 +1480,12 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
 	(elgantt--change-char " ")))))
 
 
+
+(defun elgantt--empty-line-p ()
+  (elgantt--with-point-at (point-at-bol)
+    (and (> (line-number-at-pos) 2)
+	 (not (get-text-property (point) 'elgantt-header)))))
+
 (defun elgantt--draw-overarching-headers ()
   (let ((inhibit-read-only t))
     (save-excursion 
@@ -1471,7 +1501,8 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
 			(current-level (elgantt--get-level-at-point)))
 		    (save-excursion
 		      (forward-line 1)
-		      (cl-loop until (or (<= (elgantt--get-level-at-point)
+		      (cl-loop until (or (elgantt--empty-line-p)
+					 (<= (elgantt--get-level-at-point)
 					     current-level)
 					 (eobp))
 			       do (progn
@@ -2095,11 +2126,12 @@ string accepted by `kbd'."
     (elgantt--highlight-current-day)
     (toggle-truncate-lines 1)
     (setq header-line-format elgantt-header-line-format)
+    (when elgantt-draw-overarching-headers
+      (elgantt--draw-overarching-headers))
     (when elgantt-scroll-to-current-month-at-startup
       (elgantt-scroll-to-current-month))
     (goto-char point)))
 
-(add-hook 'elgantt-mode-hook #'elgantt--draw-overarching-headers)
 ;; Major mode
 (define-derived-mode elgantt-mode special-mode
   "El Gantt"
@@ -2132,6 +2164,8 @@ string accepted by `kbd'."
     (when elgantt-scroll-to-current-month-at-startup
       (elgantt-scroll-to-current-month))
     (goto-char point))
+  (when elgantt-draw-overarching-headers
+    (elgantt--draw-overarching-headers))
   (add-hook 'post-command-hook #'elgantt--post-command-hook nil t)
   (add-hook 'post-command-hook #'elgantt--vertical-highlight nil t))
 
