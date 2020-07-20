@@ -31,7 +31,6 @@ Set =elgantt-agenda-files= to the location wherever you installed =elgantt=. If 
 The headers of the calendar are defined by =elgantt-header-type=. There are four default values and an option to define a custom function which will be run at the first point of each org heading:
 | Value    | Behavior                                                                                  |
 |----------+-------------------------------------------------------------------------------------------|
-| root     | Group entries under their root heading                                                    |
 | category | Group entries by their CATEGORY property, or the filename if no CATEGORY property is set. |
 | hashtag  | Group entries by tags which are prefixed by a hashtag.                                    |
 | outline  | Use the outline structure                                                                 |
@@ -71,15 +70,15 @@ These can be customized set with =setq=.
 | Variable                                       | Default                                                                                                         |
 |------------------------------------------------+-----------------------------------------------------------------------------------------------------------------|
 | elgantt-timestamps-to-display                  | '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia) (i.e., all possible timestamps) |
-| elgantt-deadline-character                     | "▲"                                                                                                             |
-| elgantt-active-timestamp-character             | "●"                                                                                                             |
-| elgantt-inactive-timestamp-character           | "⊚"                                                                                                             |
-| elgantt-scheduled-character                    | "⬟"                                                                                                             |
-| elgantt-multiple-entry-character               | "☰"                                                                                                             |
-| elgantt-timestamp-range-start-character        | "▶"                                                                                                             |
-| elgantt-timestamp-range-end-character          | "◀"                                                                                                             |
-| elgantt-cal-timestamp-range-ia-start-character | "▷"                                                                                                             |
-| elgantt-timestamp-range-ia-end-character       | "◁"                                                                                                             |
+| elgantt-deadline-character                     | "=▲="                                                                                                           |
+| elgantt-active-timestamp-character             | "=●="                                                                                                           |
+| elgantt-inactive-timestamp-character           | "=⊚="                                                                                                           |
+| elgantt-scheduled-character                    | "=⬟="                                                                                                           |
+| elgantt-multiple-entry-character               | "=☰="                                                                                                           |
+| elgantt-timestamp-range-start-character        | "=▶="                                                                                                           |
+| elgantt-timestamp-range-end-character          | "=◀="                                                                                                           |
+| elgantt-cal-timestamp-range-ia-start-character | "=▷="                                                                                                          |
+| elgantt-timestamp-range-ia-end-character       | "=◁="                                                                                                           |
 | elgantt-agenda-files                           | (org-agenda-files)                                                                                              |
 | elgantt-skip-archives                          | t                                                                                                               |
 | elgantt-start-date                             | (concat (format-time-string "%Y-%m") "-01") (i.e., the current month)                                           |
@@ -334,7 +333,7 @@ These exampes all use the =test.org= file: =(setq elgantt-agenda-files "~/.emacs
       elgantt-draw-overarching-headers)
 #+end_src
 [[file:screenshots/folded-outline.png]]
-
+Note: When two colored gradients overlap, the average of the two gradients will be used for the display. 
 *** Use hashtags, folded, with no spaces
 #+begin_src emacs-lisp :results silent
   (setq elgantt-header-type 'hashtag
@@ -372,7 +371,7 @@ The above examples customize the colors with the following macro, which will dra
                                ;; precedence over later ones
                                :elgantt-user-overlay ,elgantt-org-id)))))))
 #+end_src
-*** Other tricks
+*** Other examples
 If the point is on a cell with a hashtag, this will draw a line through all other cells with the same hashtag. It also adds a shortcut to move to the next matching hashtag:
 [[file:screenshots/output-2020-07-20-14:14:55.gif]]
 #+begin_src emacs-lisp :results silent
@@ -399,44 +398,6 @@ If the point is on a cell with a hashtag, this will draw a line through all othe
                        (point (car (elgantt--previous-match :elgantt-alltags hashtag))))
              (goto-char point))))
 #+end_src
-
-
-#+begin_src emacs-lisp :results silent
-    (elgantt-create-display-rule user-set-color
-      :parser ((elgantt-color . ((when-let ((colors (org-entry-get (point) "ELGANTT-COLOR")))
-                                   (s-split " " colors))))
-               (elgantt-linked-to . ((org-entry-get (point) "ELGANTT-LINKED-TO"))))
-      :args (elgantt-org-id)
-      :body ((when elgantt-linked-to
-               (save-excursion
-                 (when-let ((point1 (point))
-                            (point2 (let (date) 
-                                      ;; Cells can be linked even if they are not 
-                                      ;; in the same header in the calendar. Therefore, 
-                                      ;; we have to get the date of the linked cell, and then
-                                      ;; move to that date in the current header
-                                      (save-excursion (elgantt--goto-id elgantt-linked-to)
-                                                      (setq date (elgantt-get-date-at-point)))
-                                      (elgantt--goto-date date)
-                                      (point)))
-                            (color1 (car elgantt-color))
-                            (color2 (cadr elgantt-color)))
-                   (when (/= point1 point2)
-                     (elgantt--draw-gradient 
-                      color1
-                      color2
-                      (if (< point1 point2) point1 point2) ;; Since cells are not necessarily linked in 
-                      (if (< point1 point2) point2 point1) ;; chronological order, make sure they are sorted
-                      nil
-                      `(priority ,(setq elgantt-user-set-color-priority-counter
-                                        (1- elgantt-user-set-color-priority-counter))
-                                 ;; Decrease the priority so that earlier entries take
-                                 ;; precedence over later ones
-                                 :elgantt-user-overlay ,elgantt-org-id))))))))
-
-    (elgantt-open))
-#+end_src
-
 ** Creating custom views
 You can create custom views of the gantt chart/calendar by defining a function like this. Don't try to let-bind the variables and then call =elgantt-open= open inside the closure; things will break if you do. 
 #+begin_src emacs-lisp :results silent
