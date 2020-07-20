@@ -425,7 +425,7 @@ You can create custom views of the gantt chart/calendar by defining a function l
 ** FAQ
 *** Your code...
 Yup.
-https://imgs.xkcd.com/comics/code_quality.png
+[[file:screenshots/code_quality.png]]
 *** How about folding and unfolding without reloading?
 It can be done, but it’ll break scrolling and maybe some other stuff. I suggest you don’t bother trying to get it to work.
 #+begin_src emacs-lisp :results silent
