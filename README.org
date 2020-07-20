@@ -407,7 +407,7 @@ If all else fails, reload everything with =elgantt-open=.
 A note about org-ql: Org-ql creates a cache of its results and uses that cache until the underlying org file is changed. If you change something about the way the calendar is displayed, odds are that there will be a problem with using the org-ql cache. For this reason, all reloading invalidates the org-ql cache by calling =elgantt--reset-org-ql-cache= which simply sets =org-ql-cache= to its initial value. This seems to solve reloading problems. 
 
 ** Creating custom views
-You can create custom views of the gantt chart/calendar by defining a function like this. Don't try to let-bind the variables and then call =elgantt-open= open inside the closure; things will break. 
+You can create custom views of the gantt chart/calendar by defining a function like this. Don't try to let-bind the variables and then call =elgantt-open= open inside the closure; things will break. You can use =setq= and do not need to use the customize interface.
 #+begin_src emacs-lisp :results silent
   (defun elgantt-outline-folded ()
     (interactive)
@@ -422,44 +422,16 @@ You can create custom views of the gantt chart/calendar by defining a function l
           elgantt-even-numbered-line-change 5)
     (elgantt-open))
 #+end_src
+** Dark/light themes
+Elgantt should automatically detect if you are using a dark or light theme and adjust the relevant faces accordingly. If it doesn’t, well, then it’s going to be a mess. 
 ** FAQ
 *** Your code...
-Yup.
-[[file:screenshots/code_quality.png]]
-*** How about folding and unfolding without reloading?
-It can be done, but it’ll break scrolling and maybe some other stuff. I suggest you don’t bother trying to get it to work.
-#+begin_src emacs-lisp :results silent
-(defun elgantt--fold ()
-  (let ((inhibit-read-only t)
-	(current-level (elgantt--get-level-at-point))
-	(current-line (line-number-at-pos))
-	(current-header (elgantt-get-header-at-point))
-	(elgantt--remove-overarching-headers)
-	(cl-loop initially do (forward-line 1)
-		 initially do (goto-char (point-at-bol))
-		 until (<= (elgantt--get-level-at-point) current-level)
-		 do (progn (cl-loop while (re-search-forward elgantt-cell-entry-re (point-at-eol) t)
-				    do (save-excursion (forward-char -1)
-						       (let ((props (elgantt-get-prop-at-point)))
-							 (loop for prop in props
-							       do (plist-put prop :elgantt-header current-header)
-							       (loop for prop in props
-								     do (elgantt--insert-entry prop)))))
-				    finally (kill-whole-line)))
-		 finally (elgantt--update-display-all-cells)))))
+I’ll save you the trouble of finishing your thought:
 
-(defun elgantt--unfold ()
-  (save-excursion 
-    (let ((inhibit-read-only t))
-      (while (re-search-forward elgantt-cell-entry-re (point-at-eol) t)
-	(backward-char)
-	(save-excursion 
-	  (let ((props (elgantt-get-prop-at-point)))
-	    (cl-loop for prop in props
-		     do (elgantt--insert-entry
-			 (plist-put prop :elgantt-folded nil)))))
-	(elgantt--delete-cell-contents-at-point)))
-    (elgantt--update-display-all-cells)))
-#+end_src
+[[file:screenshots/code_quality.png]]
+
+Seriously though, a lot of this code is bad. Some of it is probably pretty decent. I am not interested in changing any of it unless something does not work, or unless someone else does it for me. 
 *** This is a mess/this is confusing
- This was an exercise in learning elisp and programming, and I realized a lot of things along the way. (Mostly, that it’s not as much fun as I thought it was.) I use this package daily to review my schedule because my job demands a lot of long-term scheduling. But I don’t need the vast majority of the features, and suspect you don’t either. I tried to cover most reasonable use cases. 
+ This was an exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, that programming is not as much fun as I thought it was, and takes way more time than it should.
+
+While I use this package daily to review my schedule because my job demands a lot of long-term scheduling, I don’t need the vast majority of the features, and suspect you don’t either. I tried to cover most reasonable use cases.
