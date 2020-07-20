@@ -98,7 +98,7 @@
 (defcustom elgantt-scroll-to-current-month-at-startup t
   "Scroll the calendar to the current month at startup.")
 
-(defcustom elgantt-even-numbered-line-change 15
+(defcustom elgantt-even-numbered-line-change 5
   "Percent to darken or lighten even numbered lines in the calendar. If using a dark 
 background default face, lighten by this percent. If using a light background 
 default face, darken by this percent.")
@@ -339,10 +339,11 @@ if this is set to nil.")
 	  "]")
   "List of display characters for use as a regexp for finding entries.")
 
-(setq elgantt-vertical-line-char "|")
-
+(defconst elgantt-vertical-line-char "|"
+  "Character used to draw lines between dates.")
 
 (defmacro elgantt--add-vertical-line-props (lines)
+  "Place text properties "
   (let ((body (cl-loop for line in lines
                        collect `(setq ,line (s-replace "|" ,elgantt-vertical-line-char ,line)))))
     `(progn ,@body)))
@@ -366,7 +367,6 @@ text properties.")
 
 ;;;; Functions
 
-;;;;;; These functions are used in some of the macros.
 (defun elgantt--change-symbol-name (symbol &optional prefix suffix
 					   substring-start substring-end)
   "SYMBOL is any symbol name. PREFIX and SUFFIX are a string to be
@@ -458,11 +458,10 @@ PRED is one of =, <, <=, >=, >, or /=."
        (ts-parse-org)
        (ts-format "%Y-%m-%d")))
 
-(defun elgantt--convert-date-to-column-number (timestamp)
+(defun elgantt--convert-date-to-column-number (date)
   "Accepts a date in the form of YYYY-MM-DD and returns
 the column of that date."
-  (let ((spaces 0)
-	(date timestamp))
+  (let ((spaces 0))
     (cl-subseq elgantt--date-range
 	       0 (cl-position (string-to-number (substring date 0 4))
 			      elgantt--date-range))
@@ -501,7 +500,7 @@ the number of days. UNIT should be day, month, year."
 (defun elgantt--create-overlay (&optional begin end properties)
   "Create an overlay from BEGIN to END with PROPERTIES. If BEGIN is
 nil, then create the overlay at point. If END is nil, then create
-the overlay only at point. Returns the new overlay."
+the overlay at BEGIN. Returns the new overlay."
   (let ((overlay (make-overlay (or begin (point))
 			       (or end (1+ (point)))))
 	(len (length properties))
@@ -636,7 +635,7 @@ relevant properties to be inserted into the calendar buffer."
 			  `(:elgantt-date-type ,(--first (plist-get props
 								    (elgantt--change-symbol-name it ":elgantt-"))
 							 elgantt-timestamps-to-display))))
-      (if ;;(or (and (not elgantt-insert-header-even-if-no-timestamp)
+      (if
 	  (or (plist-get props :elgantt-date)
 	      elgantt-insert-header-even-if-no-timestamp)
 	  (append props
@@ -876,6 +875,7 @@ of buffer position."
 			(when (elgantt-get-prop-at-point)
 			  ,@body)))))
 
+
 (defun elgantt--next-match (property value &optional previous)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
 Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
@@ -888,17 +888,43 @@ same day as the current cell."
 	     with start-point = (point)
 	     for points being the intervals of (current-buffer) property :elgantt
 	     do (goto-char (car points))
-	     when (and ((when previous #'> #'<) (current-column) start-col)
+	     when (and (> (current-column) start-col)
 		       (--first (member value (-list it)) (elgantt-get-prop-at-point property)))
 	     do (cond ((not target-date)
 		       (setq target-date (elgantt-get-date-at-point)
 			     target-point (point)))
-		      ((elgantt--date-compare-p (when previous #'> #'<) (elgantt-get-date-at-point) target-date)
+		      ((elgantt--date-compare-p '< (elgantt-get-date-at-point) target-date)
 		       (setq target-date (elgantt-get-date-at-point)
 			     target-point (point)))
 		      ((elgantt--date-compare-p '= (elgantt-get-date-at-point) target-date)
 		       (setq target-point (append (-list target-point) (-list (point))))))
 	     finally return (-list target-point))))
+
+;; (defun elgantt--next-match (property value &optional previous)
+;;   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
+;; Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
+;; Returns nil if there are no additional matches. Does not mach a cell which falls on the 
+;; same day as the current cell."
+;;   (save-excursion
+;;     (cl-loop with target-point = nil
+;; 	     with target-date  = nil
+;; 	     with start-col = (current-column)
+;; 	     with start-point = (point)
+;; 	     for points being the intervals of (current-buffer) property :elgantt
+;; 	     do (goto-char (car points))
+;; 	     when (and (if previous
+;; 			   (> (current-column) start-col)
+;; 			 (< (current-column) start-col))
+;; 		       (--first (member value (-list it)) (elgantt-get-prop-at-point property)))
+;; 	     do (cond ((not target-date)
+;; 		       (setq target-date (elgantt-get-date-at-point)
+;; 			     target-point (point)))
+;; 		      ((elgantt--date-compare-p (if previous #'> #'<) (elgantt-get-date-at-point) target-date)
+;; 		       (setq target-date (elgantt-get-date-at-point)
+;; 			     target-point (point)))
+;; 		      ((elgantt--date-compare-p '= (elgantt-get-date-at-point) target-date)
+;; 		       (setq target-point (append (-list target-point) (-list (point))))))
+;; 	     finally return (-list target-point))))
 
 (defun elgantt--previous-match (property value)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
@@ -1439,12 +1465,13 @@ This is 0.3 red + 0.59 green + 0.11 blue and always between 0 and 255."
 (defun elgantt--clear-juxtapositions (&optional start end property)
   "Clear all juxtaposed text, i.e., text with a 'juxtapose text property.
 If PROPERTY is supplied, clear juxtapositions only if they also have PROPERTY."
-  (cl-loop for points being the intervals of (current-buffer) property (or property 'juxtapose)
-	   from (or start (point-min))
-	   to (or end (point-max))
-	   if (get-text-property (car points) (or property
-						  'juxtapose))
-	   do (remove-text-properties (car points) (cdr points) `(display t juxtapose t ,property t))))
+  (let ((inhibit-read-only t))
+    (cl-loop for points being the intervals of (current-buffer) property (or property 'juxtapose)
+	     from (or start (point-min))
+	     to (or end (point-max))
+	     if (get-text-property (car points) (or property
+						    'juxtapose))
+	     do (remove-text-properties (car points) (cdr points) `(display t juxtapose t ,property t)))))
 
 (defun elgantt--insert-juxtaposition (char &optional replace hide-buffer-char property face)
   "Draw CHAR on top of the existing text a point. If REPLACE is non-nil, replace
@@ -1478,8 +1505,6 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
 				nil t)
 	(backward-char)
 	(elgantt--change-char " ")))))
-
-
 
 (defun elgantt--empty-line-p ()
   (elgantt--with-point-at (point-at-bol)
@@ -1598,11 +1623,12 @@ Puts the midpoint of the gradient at MIDPOINT. Adds PROPS to the overlay."
 	      	  (overlay-put overlay 'face `(:background ,(elgantt--color-rgb-to-hex
 	      						     (elgantt--get-color-midpoint (background-color-at-point)
 											  color))))
-		(elgantt--create-overlay (point)
-					 (1+ (point))
-					 (-flatten-n 1 (append 
-							`(face ((:background ,(elgantt--color-rgb-to-hex color))))
-							props))))
+		(unless (elgantt--on-vertical-line-p)
+		  (elgantt--create-overlay (point)
+					   (1+ (point))
+					   (-flatten-n 1 (append 
+							  `(face ((:background ,(elgantt--color-rgb-to-hex color))))
+							  props)))))
 	      (forward-char))
 	    color-gradient)))) 
 
@@ -1630,7 +1656,8 @@ Puts the midpoint of the gradient at MIDPOINT. Adds PROPS to the overlay."
   ;; will have the text property 'juxtapose set to t. They can be cleared
   ;; with `elgantt--clear-juxtapositions'. PROPERTY is an optional
   ;; argument to add a unique property to the juxtaposition.
-  (let* ((start (cons (progn (goto-char start-point)
+  (let* ((inhibit-read-only t)
+	 (start (cons (progn (goto-char start-point)
 			     (current-column))
 		      (line-number-at-pos)))
 	 (end (cons (progn (goto-char end-point)
@@ -1695,7 +1722,8 @@ Puts the midpoint of the gradient at MIDPOINT. Adds PROPS to the overlay."
   "Draw a line from the first cell that has a matching PROPERTY and VALUE
 through all other matching cells."
   (save-excursion
-    (when-let* ((previous-point (progn (goto-char (point-min))
+    (when-let* ((inhibit-read-only t)
+		(previous-point (progn (goto-char (point-min))
 				       (car (elgantt--next-match property value))))
 		(next-point (progn (goto-char previous-point)
 				   (elgantt--next-match property value))))
@@ -2123,13 +2151,13 @@ string accepted by `kbd'."
     (elgantt--iterate)
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
-    (elgantt--highlight-current-day)
     (toggle-truncate-lines 1)
     (setq header-line-format elgantt-header-line-format)
     (when elgantt-draw-overarching-headers
       (elgantt--draw-overarching-headers))
     (when elgantt-scroll-to-current-month-at-startup
       (elgantt-scroll-to-current-month))
+    (elgantt--highlight-current-day)
     (goto-char point)))
 
 ;; Major mode
