@@ -15,7 +15,7 @@ git clone httpqs://github.com/legalnonsense/elgantt.git
 #+end_src
 Then:
 #+begin_src emacs-lisp :results silent
-(add-to-list 'load-path (concat user-emacs-directory "lisp/elgantt/"))
+(add-to-list 'load-path (concat user-emacs-directory "lisp/elgantt/")) ;; Or wherever it is located
 (require 'elgantt)
 #+end_src
 ** First use
@@ -34,6 +34,7 @@ The headers of the calendar are defined by =elgantt-header-type=. There are four
 | category | Group entries by their CATEGORY property, or the filename if no CATEGORY property is set. |
 | hashtag  | Group entries by tags which are prefixed by a hashtag.                                    |
 | outline  | Use the outline structure                                                                 |
+| root     | Group by the root heading                                                                 |
 | function | Run the given function at point, grouping entries by the return value of the function     |
 *** Setting the timestamps to display
 Customize the variable =elgantt-timestamps-to-display=. This variable is a list which can contain any of:
@@ -43,13 +44,21 @@ Customize the variable =elgantt-timestamps-to-display=. This variable is a list 
 - scheduled
 - timestamp-range
 - timestamp-range-ia
-The order of the list matters determined precedence. By default, only the first type of entry found in a heading will be displayed. 
+The order of the list matters determined precedence. Only the first type of entry found in a heading will be displayed with a character. 
 *** Display options
-| Value                     | Behavior                                                                                                                                                                       |
-| elgantt-startup-folded    | If non-nil, display all entries, grouped by header-type, on a single line; otherwise, entries are grouped under a header with one entry per line                               |
-| elgantt-show-header-depth | If elgantt-header-type is set to 'outline, then show the outline depth by inserting elgantt-level-prefix-char. If elgantt-header-type is not 'outline, then this has no effect |
-| elgantt-level-prefix-char | The character used to prefix nested entries.                                                                                                                                   |
-|                           |                                                                                                                                                                                |
+| Value                                              | Behavior                                                                                                                                                                       |
+| elgantt-startup-folded                             | If non-nil, display all entries, grouped by header-type, on a single line; otherwise, entries are grouped under a header with one entry per line                               |
+| elgantt-show-header-depth                          | If elgantt-header-type is set to 'outline, then show the outline depth by inserting elgantt-level-prefix-char. If elgantt-header-type is not 'outline, then this has no effect |
+| elgantt-level-prefix-char                          | The character used to prefix nested entries.                                                                                                                                   |
+| elgantt-even-numbered-line-change                  |                                                                                                                                                                                |
+| elgantt-scroll-to-current-month-at-startup         |                                                                                                                                                                                |
+| elgantt-insert-blank-line-between-top-level-header |                                                                                                                                                                                |
+| elgantt-draw-overarching-headers                   |                                                                                                                                                                                |
+| elgantt-header-column-offset                       |                                                                                                                                                                                |
+| elgantt-header-line-format                         | This is currently a mess and needs to be fixed.                                                                                                                                |
+| elgantt-exclusions                                 |                                                                                                                                                                                |
+| elgantt-insert-header-even-if-no-timestamp         |                                                                                                                                                                                |
+|                                                    |                                                                                                                                                                                |
 ** Navigation commands
 | Key binding | Command                                        |
 |-------------+------------------------------------------------|
@@ -169,10 +178,8 @@ So, to add the property to get the priority of an org heading:
 #+end_src
 You must reload the calendar after evaluating the macro so the calendar can repopulate and =:elgantt-priority=
 and its value will be added to each entry's text properties. 
-***** Example: the display-char function
-You may be thinking, okay, I get it, but how about a useful example? Turning matching todos red doesn't come close to functionality I can use. 
-
-Here is how I colorize blocks of time. It depends on two org properties: =ELGANTT-COLOR= and =ELGANTT-LINKED-TO=. =ELGANTT-COLOR= is an org property that contains two color names, which will represent the start and end of a gradient. =ELGANTT-LINKED-TO= contains the ID of an org heading. 
+***** Example
+Here is how I colorize blocks of time. It depends on two org properties: =ELGANTT-COLOR= and =ELGANTT-LINKED-TO=. =ELGANTT-COLOR= is an org property that contains two color names, which will represent the start and end of a gradient. =ELGANTT-LINKED-TO= contains the ID of an org heading. This is different than the colorizing macro used for other examples, which colors a block starting with the scheduled date and ending with a deadline. 
 #+begin_src emacs-lisp :results silent
   (setq elgantt-user-set-color-priority-counter 0) ;; There must be a counter to ensure that overlapping overlays are handled properly
   (elgantt-create-display-rule user-set-color
@@ -399,7 +406,7 @@ If the point is on a cell with a hashtag, this will draw a line through all othe
              (goto-char point))))
 #+end_src
 ** Creating custom views
-You can create custom views of the gantt chart/calendar by defining a function like this. Don't try to let-bind the variables and then call =elgantt-open= open inside the closure; things will break if you do. 
+You can create custom views of the gantt chart/calendar by defining a function like this. Don't try to let-bind the variables and then call =elgantt-open= open inside the closure; things will break. 
 #+begin_src emacs-lisp :results silent
   (defun elgantt-outline-folded ()
     (interactive)
@@ -411,9 +418,46 @@ You can create custom views of the gantt chart/calendar by defining a function l
           elgantt-header-type 'outline
           elgantt-show-header-depth t
           elgantt-header-column-offset 30
-          elgantt-even-numbered-line-change 5
-          elgantt-open)
+          elgantt-even-numbered-line-change 5)
     (elgantt-open))
 #+end_src
+** FAQ
+*** Your code...?
+Yeah, I know. 
+https://imgs.xkcd.com/comics/code_quality.png
+*** How about folding and unfolding without reloading?
+It can be done, but it’ll break scrolling and maybe some other stuff. I suggest you don’t bother trying to get it to work.
+#+begin_src emacs-lisp :results silent
+(defun elgantt--fold ()
+  (let ((inhibit-read-only t)
+	(current-level (elgantt--get-level-at-point))
+	(current-line (line-number-at-pos))
+	(current-header (elgantt-get-header-at-point))
+	(elgantt--remove-overarching-headers)
+	(cl-loop initially do (forward-line 1)
+		 initially do (goto-char (point-at-bol))
+		 until (<= (elgantt--get-level-at-point) current-level)
+		 do (progn (cl-loop while (re-search-forward elgantt-cell-entry-re (point-at-eol) t)
+				    do (save-excursion (forward-char -1)
+						       (let ((props (elgantt-get-prop-at-point)))
+							 (loop for prop in props
+							       do (plist-put prop :elgantt-header current-header)
+							       (loop for prop in props
+								     do (elgantt--insert-entry prop)))))
+				    finally (kill-whole-line)))
+		 finally (elgantt--update-display-all-cells)))))
 
+(defun elgantt--unfold ()
+  (save-excursion 
+    (let ((inhibit-read-only t))
+      (while (re-search-forward elgantt-cell-entry-re (point-at-eol) t)
+	(backward-char)
+	(save-excursion 
+	  (let ((props (elgantt-get-prop-at-point)))
+	    (cl-loop for prop in props
+		     do (elgantt--insert-entry
+			 (plist-put prop :elgantt-folded nil)))))
+	(elgantt--delete-cell-contents-at-point)))
+    (elgantt--update-display-all-cells)))
+#+end_src
 

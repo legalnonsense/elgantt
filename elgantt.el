@@ -233,10 +233,10 @@ if this is set to nil.")
 (defface elgantt-header-line-face '((t (:inherit default)))
   "Header line face.")
 
-(defface elgantt-odd-numbered-line '((t (:inherit default)))
+(defface elgantt-odd-numbered-line-face '((t (:inherit default)))
   "Face applied to odd numbered lines in the calendar.")
 
-(defface elgantt-even-numbered-line '((t (:inherit default)))
+(defface elgantt-even-numbered-line-face '((t (:inherit default)))
   "Face applied to even numbered lines in the calendar. Do not set this face.")
 
 ;;;; Constants
@@ -343,7 +343,7 @@ if this is set to nil.")
   "Character used to draw lines between dates.")
 
 (defmacro elgantt--add-vertical-line-props (lines)
-  "Place text properties "
+  "Place vertical line text properties."
   (let ((body (cl-loop for line in lines
                        collect `(setq ,line (s-replace "|" ,elgantt-vertical-line-char ,line)))))
     `(progn ,@body)))
@@ -674,7 +674,7 @@ relevant properties to be inserted into the calendar buffer."
   "Is the cursor on a vertical line?"
   (looking-at "|"))
 
-(defun elgantt--select-entry (&optional prop-or-all val)
+(defun elgantt--select-entry (&optional prop-or-all)
   "Prompt the user to select from multiple entries.
 If PROP is `all', then skip the prompt and return the
 list of all props at point. (i.e., the same thing as
@@ -876,7 +876,7 @@ of buffer position."
 			  ,@body)))))
 
 
-(defun elgantt--next-match (property value &optional previous)
+(defun elgantt--next-match (property value)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
 Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
 Returns nil if there are no additional matches. Does not mach a cell which falls on the 
@@ -885,7 +885,6 @@ same day as the current cell."
     (cl-loop with target-point = nil
 	     with target-date  = nil
 	     with start-col = (current-column)
-	     with start-point = (point)
 	     for points being the intervals of (current-buffer) property :elgantt
 	     do (goto-char (car points))
 	     when (and (> (current-column) start-col)
@@ -900,32 +899,6 @@ same day as the current cell."
 		       (setq target-point (append (-list target-point) (-list (point))))))
 	     finally return (-list target-point))))
 
-;; (defun elgantt--next-match (property value &optional previous)
-;;   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
-;; Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
-;; Returns nil if there are no additional matches. Does not mach a cell which falls on the 
-;; same day as the current cell."
-;;   (save-excursion
-;;     (cl-loop with target-point = nil
-;; 	     with target-date  = nil
-;; 	     with start-col = (current-column)
-;; 	     with start-point = (point)
-;; 	     for points being the intervals of (current-buffer) property :elgantt
-;; 	     do (goto-char (car points))
-;; 	     when (and (if previous
-;; 			   (> (current-column) start-col)
-;; 			 (< (current-column) start-col))
-;; 		       (--first (member value (-list it)) (elgantt-get-prop-at-point property)))
-;; 	     do (cond ((not target-date)
-;; 		       (setq target-date (elgantt-get-date-at-point)
-;; 			     target-point (point)))
-;; 		      ((elgantt--date-compare-p (if previous #'> #'<) (elgantt-get-date-at-point) target-date)
-;; 		       (setq target-date (elgantt-get-date-at-point)
-;; 			     target-point (point)))
-;; 		      ((elgantt--date-compare-p '= (elgantt-get-date-at-point) target-date)
-;; 		       (setq target-point (append (-list target-point) (-list (point))))))
-;; 	     finally return (-list target-point))))
-
 (defun elgantt--previous-match (property value)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
 Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
@@ -933,7 +906,7 @@ Returns nil if there are no additional matches. Does not mach a cell which falls
 same day as the current cell."
   (elgantt--next-match property value t))
 
-(defun elgantt--goto-id (id &optional range)
+(defun elgantt--goto-id (id)
   "Go to the cell containing the org-id ID. Return nil if not found.
 If ID represents an entry that is a time range, go do the first 
 cell in that range."
@@ -1023,7 +996,6 @@ line if one does not exist."
 	 (level (plist-get props :elgantt-level))
 	 (parent-level (plist-get props :elgantt-parent-level))
 	 (foldedp (plist-get props :elgantt-folded))
-	 (header-text (plist-get props :elgantt-header))
 	 (headline-text (plist-get props :elgantt-headline))
 	 (header-id (plist-get props :elgantt-org-id))
 	 (parent-text (if outlinep
@@ -1182,7 +1154,6 @@ PLACE."
 	     (eq 'outline elgantt-header-type))
     (error "Must supply an argument if elgantt-header-type is 'outline."))
   (let ((level (elgantt--get-level-at-point))
-	(point (point))
 	(start-line (line-number-at-pos)))
     (cl-flet* ((foundp ()
 		       (if (eq 'outline elgantt-header-type)
@@ -1341,7 +1312,7 @@ new color."
   ;; This face is set here instead of in the `defface' because I often change my
   ;; theme and want this to be recalculated every time the calendar is drawn,
   ;; rather than calculated once when the package is loaded. 
-  (face-spec-set 'elgantt-even-numbered-line
+  (face-spec-set 'elgantt-even-numbered-line-face
 		 `((t (:inherit default
 				:background
 				,(elgantt--auto-shade-background elgantt-even-numbered-line-change))))))
@@ -1738,8 +1709,7 @@ through all other matching cells."
 (defun elgantt--vertical-highlight ()
   "Draws an vertical highlight at point."
   (remove-overlays (point-min) (point-max) 'elgantt-vertical-highlight t)
-  (cl-loop with overlay = nil
-	   with line-length = (- (point-at-eol) (point-at-bol))
+  (cl-loop with line-length = (- (point-at-eol) (point-at-bol))
 	   with point = (cl-loop with point = (point)
 				 until (< point line-length)
 				 do (setq point (- point line-length 1))
@@ -1786,8 +1756,8 @@ horizontal line coloring."
     (add-face-text-property (point)
     			    (1+ (point))
     			    (if (= (% (line-number-at-pos) 2) 0)
-    				'elgantt-even-numbered-line
-    			      'elgantt-odd-numbered-line))))
+    				'elgantt-even-numbered-line-face
+    			      'elgantt-odd-numbered-line-face))))
 
 (defun elgantt-update-this-cell (&optional date)
   "Gets data for a specific cell by looking for any headings
@@ -2016,8 +1986,8 @@ string accepted by `kbd'."
     (cl-loop do (progn (add-face-text-property (point-at-bol)
 					       (point-at-eol)
 					       (if (= (% (line-number-at-pos) 2) 0)
-						   'elgantt-even-numbered-line
-						 'elgantt-odd-numbered-line)
+						   'elgantt-even-numbered-line-face
+						 'elgantt-odd-numbered-line-face)
 					       'append)
 		       (forward-line))
 	     until (eobp))))
@@ -2059,7 +2029,8 @@ string accepted by `kbd'."
   "Moves to the next entry on the line."
   (interactive)
   (when (<= (line-number-at-pos) 2)
-    (goto-line 3))
+    (goto-char (point-min))
+    (forward-line 3))
   (when (<= (current-column) elgantt-header-column-offset)
     (forward-char elgantt-header-column-offset))
   (when-let ((point (save-excursion 
