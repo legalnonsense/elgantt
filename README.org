@@ -1,6 +1,7 @@
 * El Gantt – A Gantt chart/calendar for Orgmode
 
 El Gantt creates a Gantt calendar from your orgmode files. It provides a flexible customization system with the goal of being adaptable to multiple purposes. 
+[[
 ** Installation
 Install the dependencies:
 - [[https://github.com/alphapapa/org-ql][org-ql]]
