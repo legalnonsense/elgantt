@@ -152,33 +152,31 @@ The above examples customize the colors with the following macro, which will dra
                                ;; precedence over later ones
                                :elgantt-user-overlay ,elgantt-org-id)))))))
 #+end_src
-The samples on this page also use the following macro to draw a line through cells which share the same hashtag. This code also adds a shortcut to move to the next matching hashtag:
-[[file:screenshots/output-2020-07-20-14:14:55.gif]]
-#+begin_src emacs-lisp :results silent
-  (elgantt-create-display-rule show-hashtag-links
-    :args (elgantt-hashtag)
-    :post-command-hook t
-    :body ((elgantt--clear-juxtapositions nil nil 'hashtag-link)
-           (when elgantt-hashtag
-             (elgantt--connect-cells :elgantt-alltags elgantt-hashtag 'hashtag-link '(:foreground "red")))))
-
-  (elgantt-create-action follow-hashtag-link-forward
-    :args (elgantt-alltags)
-    :binding "C-M-f"
-    :body ((when-let* ((hashtag (--first (s-starts-with-p "#" it)
-                                         elgantt-alltags))
-                       (point (car (elgantt--next-match :elgantt-alltags hashtag))))
-             (goto-char point))))
-
-  (elgantt-create-action follow-hashtag-link-backward
-    :args (elgantt-alltags)
-    :binding "C-M-b"
-    :body ((when-let* ((hashtag (--first (s-starts-with-p "#" it)
-                                         elgantt-alltags))
-                       (point (car (elgantt--previous-match :elgantt-alltags hashtag))))
-             (goto-char point))))
-#+end_src
 ** Macro/configuration examples and explanations
+ELG aims to provide a flexible approach to customizing calendar displays. With some customization, this package is adaptable to different workflows. To that end, these macros are designed to facilitate customization of the calendar display. 
+*** The =elgantt-create-display-rule= macro
+This macro is used to customize the display of the calendar. It defines functions that are run at each cell after the calendar is generated. If a cell contains multiple entries, it will be run for each entry in the cell. 
+*** Accessing and adding properties
+Before proceeding, here is a list of the properties that are included for each entry in the calendar:
+**** The following properties are included in each cell by default:
+| Property                    | Value                                                                                                 |
+|-----------------------------+-------------------------------------------------------------------------------------------------------|
+| :elgantt-headline           | Text of the org headline (no text properties)                                                         |
+| :elgantt-deadline           | Deadline as a string YYYY-MM-DD, or nil                                                               |
+| :elgantt-scheduled          | Scheduled timestamp, or nil                                                                           |
+| :elgantt-timestamp          | First active timestamp (date only) or nil                                                             |
+| :elgantt-timestamp-ia       | First inactive timestamp (date only) or nil                                                           |
+| :elgantt-timestamp-range    | Active timestamp range, as a list of two strings '("YYYY-MM-DD" "YYYY-MM-DD") or nil                  |
+| :elgantt-timestamp-range-ia | Same, but inactive timestamp range                                                                    |
+| :elgantt-category           | Category property of the heading, or the filename if no category property is supplied                 |
+| :elgantt-todo               | TODO type, no properties, or nil                                                                      |
+| :elgantt-marker             | Marker pointing to the location of the heading in the org buffer                                      |
+| :elgantt-file               | Filename of the underlying org file                                                                   |
+| :elgantt-org-buffer         | Buffer for the underlying org heading                                                                 |
+| :elgantt-alltags            | A list of all tags, including inherited tags, associated with the heading                             |
+| :elgantt-header             | Header used for insertion into the calendar buffer. Depends on the value of =elgantt-header-type=       |
+| :elgantt-date               | Date used for insertion into the calendar. Uses the first date found in =elgantt-timestamps-to-display= |
+
 Here are some basic examples of how to use the display customization macro. 
 *** Changing the color of certain cells
 Suppose we want to change the background color of any cell with a "TODO" state to red:
@@ -274,30 +272,34 @@ Here is how I colorize blocks of time. It depends on two org properties: =ELGANT
                                 ;; precedence over later ones
                       :elgantt-user-overlay ,elgantt-org-id))))))))
 #+end_src
-** Customization macros
-ELG aims to provide a flexible approach to customizing calendar displays. With some customization, this package is adaptable to different workflows. To that end, these macros are designed to facilitate customization of the calendar display. 
-*** The =elgantt-create-display-rule= macro
-This macro is used to customize the display of the calendar. It defines functions that are run at each cell after the calendar is generated. If a cell contains multiple entries, it will be run for each entry in the cell. 
-*** Accessing and adding properties
-Before proceeding, here is a list of the properties that are included for each entry in the calendar:
-**** The following properties are included in each cell by default:
-| Property                    | Value                                                                                                 |
-|-----------------------------+-------------------------------------------------------------------------------------------------------|
-| :elgantt-headline           | Text of the org headline (no text properties)                                                         |
-| :elgantt-deadline           | Deadline as a string YYYY-MM-DD, or nil                                                               |
-| :elgantt-scheduled          | Scheduled timestamp, or nil                                                                           |
-| :elgantt-timestamp          | First active timestamp (date only) or nil                                                             |
-| :elgantt-timestamp-ia       | First inactive timestamp (date only) or nil                                                           |
-| :elgantt-timestamp-range    | Active timestamp range, as a list of two strings '("YYYY-MM-DD" "YYYY-MM-DD") or nil                  |
-| :elgantt-timestamp-range-ia | Same, but inactive timestamp range                                                                    |
-| :elgantt-category           | Category property of the heading, or the filename if no category property is supplied                 |
-| :elgantt-todo               | TODO type, no properties, or nil                                                                      |
-| :elgantt-marker             | Marker pointing to the location of the heading in the org buffer                                      |
-| :elgantt-file               | Filename of the underlying org file                                                                   |
-| :elgantt-org-buffer         | Buffer for the underlying org heading                                                                 |
-| :elgantt-alltags            | A list of all tags, including inherited tags, associated with the heading                             |
-| :elgantt-header             | Header used for insertion into the calendar buffer. Depends on the value of =elgantt-header-type=       |
-| :elgantt-date               | Date used for insertion into the calendar. Uses the first date found in =elgantt-timestamps-to-display= |
+
+
+The samples on this also use the following macro to draw a line through cells which share the same hashtag. This code also adds a shortcut to move to the next matching hashtag:
+[[file:screenshots/output-2020-07-20-14:14:55.gif]]
+#+begin_src emacs-lisp :results silent
+  (elgantt-create-display-rule show-hashtag-links
+    :args (elgantt-hashtag)
+    :post-command-hook t
+    :body ((elgantt--clear-juxtapositions nil nil 'hashtag-link)
+           (when elgantt-hashtag
+             (elgantt--connect-cells :elgantt-alltags elgantt-hashtag 'hashtag-link '(:foreground "red")))))
+
+  (elgantt-create-action follow-hashtag-link-forward
+    :args (elgantt-alltags)
+    :binding "C-M-f"
+    :body ((when-let* ((hashtag (--first (s-starts-with-p "#" it)
+                                         elgantt-alltags))
+                       (point (car (elgantt--next-match :elgantt-alltags hashtag))))
+             (goto-char point))))
+
+  (elgantt-create-action follow-hashtag-link-backward
+    :args (elgantt-alltags)
+    :binding "C-M-b"
+    :body ((when-let* ((hashtag (--first (s-starts-with-p "#" it)
+                                         elgantt-alltags))
+                       (point (car (elgantt--previous-match :elgantt-alltags hashtag))))
+             (goto-char point))))
+#+end_src
 *** Iteracting with the calendar 
 There are two ways to interact with the calender: the =elgantt-create-action= macro and the separate module, =elgantt-interaction=.
 ***** =elgantt-create-action=
@@ -421,8 +423,8 @@ You can create custom views of the gantt chart/calendar by defining a function l
     (elgantt-open))
 #+end_src
 ** FAQ
-*** Your code...?
-Yeah, I know. 
+*** Your code...
+Yup.
 https://imgs.xkcd.com/comics/code_quality.png
 *** How about folding and unfolding without reloading?
 It can be done, but it’ll break scrolling and maybe some other stuff. I suggest you don’t bother trying to get it to work.
@@ -459,4 +461,5 @@ It can be done, but it’ll break scrolling and maybe some other stuff. I sugges
 	(elgantt--delete-cell-contents-at-point)))
     (elgantt--update-display-all-cells)))
 #+end_src
-
+*** This is a mess/this is confusing
+ This was an exercise in learning elisp and programming, and I realized a lot of things along the way. (Mostly, that it’s not as much fun as I thought it was.) I use this package daily to review my schedule because my job demands a lot of long-term scheduling. But I don’t need the vast majority of the features, and suspect you don’t either. I tried to cover most reasonable use cases. 
