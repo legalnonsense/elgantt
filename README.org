@@ -376,6 +376,7 @@ Or some other solution if you don't like =dash=.
 **** Navigating the buffer
 ***** Move to a cell by org-id with =elgantt--goto-id=.
 ***** Move to a date on the current line with =elgantt--goto-date=.
+***** Iterate over all entries with =elgantt--iterate-over-cells=
 **** Selecting from multiple entries
 Some cells will have multiple entries. To prompt the user to pick which one should be used: =elgantt--select-entry=.
 **** Getting calendar data 
@@ -517,14 +518,15 @@ Here is a second example I played with previously, which provided a more advance
 This was previously accompanied by code that allowed the user to move the date of dependent cells by moving the anchor cell, and which highlighted all dependent cells when the point was on an anchor. I abandoned this for various reasons. If there is interest in this level of interface I can clean it up and get it working. 
 ** FAQ
 *** Your code...
-I’ll save you the trouble of finishing your thought:
+I’ll save you the trouble:
 
 [[file:screenshots/code_quality.png]]
 
 This is a hobby and a continued exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. I don’t have the patience to clean up the code like I should. There are byte-compile warnings. I do not care. I am hoping that publishing this gets it out of my life.
 *** Can you fold and unfold without reloading?
-Not without significant changes to the code, or breaking other existing features. 
-*** Why gradients?
-They are pretty. You can also customize where the midpoint of the gradient appears so it reflects remaining time. That's even prettier. If you don't like gradients, then just use the same start and end color. 
+Not without significant changes to the code, or breaking other existing features. You’ll just have to change the value of =elgantt-startup-folded= and reload.  
+*** Why so many gradients?
+They are pretty. You can also customize where the midpoint of the gradient appears so it reflects remaining time. If you don't like gradients, then just use the same start and end color. 
+
 
 
