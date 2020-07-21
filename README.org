@@ -254,7 +254,8 @@ So, to add the property to get the priority of an org heading:
 #+end_src
 You must reload the calendar after evaluating the macro so the calendar can repopulate and =:elgantt-priority=
 and its value will be added to each entry's text properties. 
-*** Example
+*** Examples
+**** Other ways to colorize time blocks
 Here is how I colorize blocks of time. It depends on two org properties: =ELGANTT-COLOR= and =ELGANTT-LINKED-TO=. =ELGANTT-COLOR= is an org property that contains two color names, which will represent the start and end of a gradient. =ELGANTT-LINKED-TO= contains the ID of an org heading. This is different than the colorizing macro used for other examples, which colors a block starting with the scheduled date and ending with a deadline. 
 #+begin_src emacs-lisp :results silent
   (setq elgantt-user-set-color-priority-counter 0) ;; There must be a counter to ensure that overlapping overlays are handled properly
@@ -290,10 +291,9 @@ Here is how I colorize blocks of time. It depends on two org properties: =ELGANT
                                 ;; precedence over later ones
                       :elgantt-user-overlay ,elgantt-org-id))))))))
 #+end_src
+**** Real-time displays
+Some samples here use the following macro to draw a line through cells which share the same hashtag. This code also adds a shortcut to move to the next matching hashtag:
 
-
-The samples on this also use the following macro to draw a line through cells which share the same hashtag. This code also adds a shortcut to move to the next matching hashtag:
-[[file:screenshots/output-2020-07-20-14:14:55.gif]]
 #+begin_src emacs-lisp :results silent
   (elgantt-create-display-rule show-hashtag-links
     :args (elgantt-hashtag)
@@ -318,6 +318,8 @@ The samples on this also use the following macro to draw a line through cells wh
                        (point (car (elgantt--previous-match :elgantt-alltags hashtag))))
              (goto-char point))))
 #+end_src
+
+[[file:screenshots/output-2020-07-20-14:14:55.gif]]
 *** Helper functions
 The following functions are included to aid customizing the display. See docstrings for more information. 
 **** Drawing the display
@@ -358,7 +360,7 @@ The following code:
 #+end_src
 Will automatically display a progress bar starting at the scheduled date, to the deadline date, displaying a progress bar that represents the percent of pages read:
 [[file:screenshots/Screenshot_2020-07-21_09-37-17.png]]
-Note: the above code will generate an error if it is run on an org file that does not have the "TOTAL_PAGES" and "PAGES_READ" properties, because =org-entry-get= will return nil, which will cause =string-to-number= to fail. Instead, you could do something like:
+Note: the above code will generate an error if it is run on an org file that does not have the "TOTAL_PAGES" and "PAGES_READ" properties, because =org-entry-get= will return nil, which will cause =string-to-number= to fail. Instead, you should do something like:
 #+begin_src emacs-lisp :results silent
   :parser ((total-pages . ((--when-let (org-entry-get (point) "TOTAL_PAGES")
                              (string-to-number it))))
