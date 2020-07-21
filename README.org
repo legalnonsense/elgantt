@@ -291,15 +291,15 @@ Here is how I colorize blocks of time. It depends on two org properties: =ELGANT
                                 ;; precedence over later ones
                       :elgantt-user-overlay ,elgantt-org-id))))))))
 #+end_src
-**** Real-time displays
+**** Linking cells with =elgantt--connect-cells=
 Some samples here use the following macro to draw a line through cells which share the same hashtag. This code also adds a shortcut to move to the next matching hashtag:
 
 #+begin_src emacs-lisp :results silent
   (elgantt-create-display-rule show-hashtag-links
     :args (elgantt-hashtag)
-    :post-command-hook t
-    :body ((elgantt--clear-juxtapositions nil nil 'hashtag-link)
-           (when elgantt-hashtag
+    :post-command-hook t ;; update each time the point is moved
+    :body ((elgantt--clear-juxtapositions nil nil 'hashtag-link) ;; Need to clear the last display
+           (when elgantt-hashtag ;; only do it if there is a hashtag property at the cell
              (elgantt--connect-cells :elgantt-alltags elgantt-hashtag 'hashtag-link '(:foreground "red")))))
 
   (elgantt-create-action follow-hashtag-link-forward
@@ -367,7 +367,7 @@ Note: the above code will generate an error if it is run on an org file that doe
            (pages-read . ((--when-let (org-entry-get (point) "PAGES_READ")
                             (string-to-number it)))))
 #+end_src
-Or some other solution. 
+Or some other solution if you don't like =dash=. 
 ***** Draw a line from one cell to another with =elgantt--draw-line=. See also =elgantt--connect-cell=. 
 ***** Juxtapose text on top of a cell with =elgantt--insert-juxtaposition= and clear them with =elgantt--clear-juxtapositions=.
 ***** Change the character of a cell (while preserving text properties) with =elgantt--change-char=.
@@ -519,8 +519,7 @@ I’ll save you the trouble of finishing your thought:
 
 [[file:screenshots/code_quality.png]]
 
-This was a continued exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. 
+This is a hobby and a continued exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. I don’t have the patience to clean up the code like I should. There are byte-compile warnings. I do not care. 
 *** Can you fold and unfold without reloading?
 Not without significant changes to the code, or breaking other existing features. 
-*** Bug reports?
-That’s fine, and I’ll try to fix stuff. But I’d rather some took this thing over. 
+
