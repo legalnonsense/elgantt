@@ -392,7 +392,7 @@ Here is an example of how to use =elgantt--draw-progress-bar=
 
 Suppose you have the following org file:
 #+begin_src org
- TODO read The Illuminatus! Trilogy
+* TODO read The Illuminatus! Trilogy 
 SCHEDULED: <2020-06-02 Tue> DEADLINE: <2020-07-21 Tue>
 :PROPERTIES:
 :TOTAL_PAGES: 667
