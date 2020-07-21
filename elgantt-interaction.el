@@ -1,5 +1,7 @@
  ;;;  -*- lexical-binding: t; -*-
 
+(require 'ov)
+
 (defface elgantt-interaction::message-bar-face '((t (:background "gray" :foreground "black")))
   "Message bar face.")
 
@@ -146,17 +148,17 @@
 						      arg-list))
 						,@command))
 					    (or 
-					     (elg:zip
-					      (mapcar #'elg:get-prop-at-point
+					     (elgantt--zip
+					      (mapcar #'elgantt-get-prop-at-point
 						      (append (cl-loop for arg in ',args
 								       collect (elgantt--add-remove-prop-colon arg))
 							      (cl-loop for (prop . val) in ',parser
 								       collect (elgantt--add-remove-prop-colon prop)))))
 					     ;; If the preceding code returns `nil', then the `mapc' function, above,
-					     ;; will not run. Since `elg:get-prop-at-point' will usually return nil
+					     ;; will not run. Since `elgantt-get-prop-at-point' will usually return nil
 					     ;; if on an empty cell, it creates a problem if the user wants to run
 					     ;; the command in an empty cell. 
-					     ;; To avoid this, if `elg:zip' returns nil, this will create a list of nils to
+					     ;; To avoid this, if `elgantt--zip' returns nil, this will create a list of nils to
 					     ;; be assigned to the argument list, since nil is not `eq' to (nil),
 					     ;; `mapc' will accept the list and run.
 					     (make-list (+ (length ',parser) (length ',args)) nil)))))
@@ -164,10 +166,10 @@
 	(cl-loop for (place . command) in execution-functions
 		 do (push `(,place . (lambda (return-val) ,@command)) function-stack)))
       `(setf (alist-get ',name elgantt-interaction::action-list) (list :execution-functions ',function-stack
-								   :selection-number ,(if (= selection-number 0)
-											  999
-											selection-number)
-								   :selection-messages ',selection-messages)))))
+								       :selection-number ,(if (= selection-number 0)
+											      999
+											    selection-number)
+								       :selection-messages ',selection-messages)))))
 
 (defun elgantt-interaction::execute-action ()
   (interactive)
