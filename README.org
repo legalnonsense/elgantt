@@ -27,7 +27,11 @@ Set =elgantt-agenda-files= to the location wherever you installed =elgantt=. If 
 #+begin_src emacs-lisp :results silent
   (setq elgantt-agenda-files (concat user-emacs-directory "lisp/elgantt/test.org"))
 #+end_src
-*** Setting the header type
+And run =(elgantt-open)=. You’ll see this rather bland looking chart:
+[[file:screenshots/Screenshot_2020-07-20_20-20-20.png]]
+*** Customization
+All variables can get set with =setq= and there is no need to use the customization interface, or =use-package='s :custom keyword. 
+**** Setting the header type
 The headers of the calendar are defined by =elgantt-header-type=. There are four default values and an option to define a custom function which will be run at the first point of each org heading:
 | Value    | Behavior                                                                                  |
 |----------+-------------------------------------------------------------------------------------------|
@@ -36,8 +40,8 @@ The headers of the calendar are defined by =elgantt-header-type=. There are four
 | outline  | Use the outline structure                                                                 |
 | root     | Group by the root heading                                                                 |
 | function | Run the given function at point, grouping entries by the return value of the function     |
-*** Setting the timestamps to display
-Customize the variable =elgantt-timestamps-to-display=. This variable is a list which can contain any of:
+**** Setting the timestamps to display
+Set the variable =elgantt-timestamps-to-display= to control what types of timestamps are displayed. This variable is a list which can contain any of:
 - deadline
 - timestamp
 - timestamp-ia
@@ -45,20 +49,37 @@ Customize the variable =elgantt-timestamps-to-display=. This variable is a list 
 - timestamp-range
 - timestamp-range-ia
 The order of the list matters determined precedence. Only the first type of entry found in a heading will be displayed with a character. 
-*** Display options
+I generally use =(setq elgantt-timestamps-to-display '(deadline timestamp scheduled timestamp-range))=
+**** Display options
 | Value                                              | Behavior                                                                                                                                                                       |
 | elgantt-startup-folded                             | If non-nil, display all entries, grouped by header-type, on a single line; otherwise, entries are grouped under a header with one entry per line                               |
 | elgantt-show-header-depth                          | If elgantt-header-type is set to 'outline, then show the outline depth by inserting elgantt-level-prefix-char. If elgantt-header-type is not 'outline, then this has no effect |
 | elgantt-level-prefix-char                          | The character used to prefix nested entries.                                                                                                                                   |
-| elgantt-even-numbered-line-change                  |                                                                                                                                                                                |
-| elgantt-scroll-to-current-month-at-startup         |                                                                                                                                                                                |
-| elgantt-insert-blank-line-between-top-level-header |                                                                                                                                                                                |
-| elgantt-draw-overarching-headers                   |                                                                                                                                                                                |
-| elgantt-header-column-offset                       |                                                                                                                                                                                |
-| elgantt-header-line-format                         | This is currently a mess and needs to be fixed.                                                                                                                                |
-| elgantt-exclusions                                 |                                                                                                                                                                                |
-| elgantt-insert-header-even-if-no-timestamp         |                                                                                                                                                                                |
-|                                                    |                                                                                                                                                                                |
+| elgantt-even-numbered-line-change                  | This controls how much the percent the even numbered lines are offset from the background color; set to 0 if you don't want any distinction                                    |
+| elgantt-scroll-to-current-month-at-startup         | Scroll to the current month at startup, or keep the calendar at the first timestamp                                                                                            |
+| elgantt-insert-blank-line-between-top-level-header | Just what it says.                                                                                                                                                             |
+| elgantt-draw-overarching-headers                   | Draw a line bracketing the start and end dates for the children of and top-level headers, assuming there is no date already associated with the header.                        |
+| elgantt-header-column-offset                       | The width of the header column.                                                                                                                                                |
+| elgantt-header-line-format                         | This is currently a mess and needs to be fixed. I will write something that makes it easy to customize what data is shown in the header.                                       |
+| elgantt-exclusions                                 | This is a list of strings. Do not display any headers that appear in this list.                                                                                                |
+| elgantt-insert-header-even-if-no-timestamp         | Insert the header even if there is no timestamp associated with it.                                                                                                            |
+**** Other custom variables
+| Variable                                       | Default                                                                                                         |
+|------------------------------------------------+-----------------------------------------------------------------------------------------------------------------|
+| elgantt-deadline-character                     | "=▲="                                                                                                             |
+| elgantt-active-timestamp-character             | "=●="                                                                                                             |
+| elgantt-inactive-timestamp-character           | "=⊚="                                                                                                             |
+| elgantt-scheduled-character                    | "=⬟="                                                                                                             |
+| elgantt-multiple-entry-character               | "=☰="                                                                                                             |
+| elgantt-timestamp-range-start-character        | "=▶="                                                                                                             |
+| elgantt-timestamp-range-end-character          | "=◀="                                                                                                             |
+| elgantt-cal-timestamp-range-ia-start-character | "=▷="                                                                                                             |
+| elgantt-timestamp-range-ia-end-character       | "=◁="                                                                                                             |
+| elgantt-agenda-files                           | (org-agenda-files)                                                                                              |
+| elgantt-skip-archives                          | t                                                                                                               |
+| elgantt-start-date                             | (concat (format-time-string "%Y-%m") "-01") (i.e., the current month)                                           |
+| elgantt-header-column-offset                   | 20                                                                                                              |
+=elgantt-start-date= is probably the most important one here. This sets the cut-off date for when to ignore old entries. 
 ** Navigation commands
 | Key binding | Command                                        |
 |-------------+------------------------------------------------|
@@ -74,56 +95,10 @@ The order of the list matters determined precedence. Only the first type of entr
 | space       | Navigate to org heading at point               |
 | Return      | Show agenda for date at point                  |
 Note about cells with multiple entries: If a calendar cell has multiple entries, a special character will be displayed ("☰" by default). If you try to perform a function on one of these cells (e.g., navigating to the org file, shifting a date, etc.), you will be prompted to select the entry you want to perform the operation on. 
-** Other custom variables
-These can be customized set with =setq=. 
-| Variable                                       | Default                                                                                                         |
-|------------------------------------------------+-----------------------------------------------------------------------------------------------------------------|
-| elgantt-timestamps-to-display                  | '(deadline timestamp timestamp-ia scheduled timestamp-range timestamp-range-ia) (i.e., all possible timestamps) |
-| elgantt-deadline-character                     | "=▲="                                                                                                             |
-| elgantt-active-timestamp-character             | "=●="                                                                                                             |
-| elgantt-inactive-timestamp-character           | "=⊚="                                                                                                             |
-| elgantt-scheduled-character                    | "=⬟="                                                                                                             |
-| elgantt-multiple-entry-character               | "=☰="                                                                                                             |
-| elgantt-timestamp-range-start-character        | "=▶="                                                                                                             |
-| elgantt-timestamp-range-end-character          | "=◀="                                                                                                             |
-| elgantt-cal-timestamp-range-ia-start-character | "=▷="                                                                                                             |
-| elgantt-timestamp-range-ia-end-character       | "=◁="                                                                                                             |
-| elgantt-agenda-files                           | (org-agenda-files)                                                                                              |
-| elgantt-skip-archives                          | t                                                                                                               |
-| elgantt-start-date                             | (concat (format-time-string "%Y-%m") "-01") (i.e., the current month)                                           |
-| elgantt-header-column-offset                   | 20                                                                                                              |
-| elgantt-elgantt-header-line-format             | See =header-line-format= for more information; warning that this variable is a mess                               |
 ** Examples 
 These exampes all use the =test.org= file: =(setq elgantt-agenda-files "~/.emacs.d/lisp/elgantt/test.org")= (or wherever your elgantt direcctory is located). 
-*** Use outline structure, unfolded, with space between headers, and overarching header lines
-#+begin_src emacs-lisp :results silent
-(setq elgantt-header-type 'outline
-      elgantt-insert-blank-line-between-top-level-header t
-      elgantt-startup-folded nil
-      elgantt-show-header-depth t
-      elgantt-draw-overarching-headers t)
-#+end_src
-
-[[file:screenshots/unfolded-outline-with-space-betwee-headers.png]]
-*** Same as above, but folded 
-#+begin_src emacs-lisp :results silent
-(setq elgantt-header-type 'outline
-      elgantt-insert-blank-line-between-top-level-header nil
-      elgantt-startup-folded t
-      elgantt-show-header-depth t
-      elgantt-draw-overarching-headers)
-#+end_src
-[[file:screenshots/folded-outline.png]]
-Note: When two colored gradients overlap, the average of the two gradients will be used for the display. 
-*** Use hashtags, folded, with no spaces
-#+begin_src emacs-lisp :results silent
-  (setq elgantt-header-type 'hashtag
-        elgantt-insert-blank-line-between-top-level-header nil
-        elgantt-startup-folded nil)
-#+end_src
-[[file:screenshots/folded-hashtag-no-space.png]]
-*** Custom colors, etc.
-The above examples customize the colors with the following macro, which will draw a gradient from the scheduled date to the deadline. See below for a description of how to use the =elgantt-create-display-rule= and =elgantt-create-action= macro. 
+*** A note about colorizing the outline
+The examples that follow draw a gradient between the scheduled time of an entry and the deadline of the entry. (The scheduled date is not actually shown in the calendar.) This is not included in the package and you need to use a custom macro (shown below) to do it. I took this idea from the [[https://github.com/swillner/org-gantt][org-gantt]] package. It is not included by default because it only works if you use deadlines and scheduling in a particular way. I do not use colorize my calendars this way, but it makes for a good demonstration. The code necessary to do this, and an alternative way to use colors, are discussed below when explaining the =elgantt-create-display-rule= macro. If you want these colors to appear, evaluate this code and reload (i.e., =C-r=) the calendar:
 #+begin_src emacs-lisp :results silent
     (setq elgantt-user-set-color-priority-counter 0)
     (elgantt-create-display-rule draw-scheduled-to-deadline
@@ -149,11 +124,49 @@ The above examples customize the colors with the following macro, which will dra
                     `(priority ,(setq elgantt-user-set-color-priority-counter
                                       (1- elgantt-user-set-color-priority-counter))
                                ;; Decrease the priority so that earlier entries take
-                               ;; precedence over later ones
+                               ;; precedence over later ones (note: it doesn’t matter if the number is negative)
                                :elgantt-user-overlay ,elgantt-org-id)))))))
 #+end_src
+*** Use outline structure, unfolded, with space between headers, and overarching header lines
+#+begin_src emacs-lisp :results silent
+(setq elgantt-header-type 'outline
+      elgantt-insert-blank-line-between-top-level-header t
+      elgantt-startup-folded nil
+      elgantt-show-header-depth t
+      elgantt-draw-overarching-headers t)
+#+end_src
+
+[[file:screenshots/unfolded-outline-with-space-betwee-headers.png]]
+*** Same as above, but folded 
+#+begin_src emacs-lisp :results silent
+(setq elgantt-header-type 'outline
+      elgantt-insert-blank-line-between-top-level-header nil
+      elgantt-startup-folded t
+      elgantt-show-header-depth t
+      elgantt-draw-overarching-headers)
+#+end_src
+[[file:screenshots/folded-outline.png]]
+Note: When two colored gradients overlap, the average of the two gradients will be used for the display. This way, you can still see both spans of time. (Though the result is not always pretty.)
+*** Use hashtags, folded, with no spaces
+#+begin_src emacs-lisp :results silent
+  (setq elgantt-header-type 'hashtag
+        elgantt-insert-blank-line-between-top-level-header nil
+        elgantt-startup-folded t)
+#+end_src
+[[file:screenshots/folded-hashtag-no-space.png]]
+
+What does it look like unfolded? 
+
+[[file:screenshots/Screenshot_2020-07-20_20-39-11.png]]
+*** A custom header
+Here’s a silly example that will group headers by the first letter ofo the headline
+#+begin_src emacs-lisp :results silent
+  (setq elgantt-header-type (lambda () (substring (org-entry-get (point) "ITEM") 0 1)))
+;; You’ll also want to set `elgantt-insert-header-even-if-no-timestamp' to nil, otherwise you’ll see single letter headers that are assocated with headlines without dates
+#+end_src
+[[file:screenshots/Screenshot_2020-07-20_20-48-32.png]]
 ** Macro/configuration examples and explanations
-ELG aims to provide a flexible approach to customizing calendar displays. With some customization, this package is adaptable to different workflows. To that end, these macros are designed to facilitate customization of the calendar display. 
+Elgantt aims to provide a flexible way to customize calendar displays. Whether it hits its target is not my concern. 
 *** The =elgantt-create-display-rule= macro
 This macro is used to customize the display of the calendar. It defines functions that are run at each cell after the calendar is generated. If a cell contains multiple entries, it will be run for each entry in the cell. 
 *** Accessing and adding properties
@@ -207,7 +220,7 @@ If you want to use this kind of display, then you'll probably want to give the o
 #+begin_src emacs-lisp :results silent
   (elgantt-create-display-rule turn-matching-todos-red
     :args (elgantt-todo)
-    :post-command-hook t
+    :post-command-hook t ;; This will recalculate every time the point moves
     :body ((remove-overlays (point-min) (point-max) :turn-it-red t)
            ;; Since this will run each time the cursor moves, we need to clear
            ;; the previous overlays first
@@ -423,7 +436,7 @@ You can create custom views of the gantt chart/calendar by defining a function l
     (elgantt-open))
 #+end_src
 ** Dark/light themes
-Elgantt should automatically detect if you are using a dark or light theme and adjust the relevant faces accordingly. If it doesn’t, well, then it’s going to be a mess. 
+Elgantt should automatically detect if you are using a dark or light theme and adjust the relevant faces accordingly. If it doesn’t, well, good luck.
 ** FAQ
 *** Your code...
 I’ll save you the trouble of finishing your thought:

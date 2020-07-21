@@ -82,6 +82,8 @@
 (require 'cl-lib)
 (require 'color)
 (require 'org)
+(require 'org-clock)
+(require 'org-id) 
 
 (require 'org-ql)
 (require 's)
@@ -148,9 +150,12 @@ Default: ▷")
   "Character shown at the end of a timerange.
 Default: ◁")
 
-(defcustom elgantt-insert-blank-line-between-top-level-header t "")
+(defcustom elgantt-insert-blank-line-between-top-level-header t
+  "Do you want to put a blank line between the top level headers?")
 
-(defcustom elgantt-draw-overarching-headers t "")
+(defcustom elgantt-draw-overarching-headers nil
+  "Draw a line bracketing the start and end dates for the children of 
+and top-level headers, assuming there is no date already associated with the header.")
 
 (defcustom elgantt-agenda-files (org-agenda-files)
   "A file, list of files, or function returning a list of files
@@ -769,6 +774,11 @@ the value of each entry."
     (forward-line n)
     (move-to-column col)))
 
+(defun elgantt--scroll-to-beginning ()
+  (cl-loop for overlay in elgantt--hidden-overlays
+	   do (delete-overlay overlay)
+	   finally (setq elgantt--hidden-overlays nil)))
+
 (defun elgantt-scroll (direction)
   "Place, or move, an overlay on each line, hiding (or showing)
 the month immediately after the headers.
@@ -1341,7 +1351,8 @@ new color."
 			 (when (get-text-property (point) :elgantt)
 			   (funcall func))))))
   (when elgantt-draw-overarching-headers
-    (elgantt--draw-overarching-headers)))
+    (elgantt--draw-overarching-headers))
+  (elgantt--highlight-current-day))
 
 (defun elgantt--update-display-this-cell ()
   "Updates the overlays for the cell at point."
@@ -1483,6 +1494,7 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
 	 (not (get-text-property (point) 'elgantt-header)))))
 
 (defun elgantt--draw-overarching-headers ()
+  (elgantt--scroll-to-beginning)
   (let ((inhibit-read-only t))
     (save-excursion 
       (goto-char (point-min))
@@ -1497,6 +1509,7 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
 			(current-level (elgantt--get-level-at-point)))
 		    (save-excursion
 		      (forward-line 1)
+		      ;; HACK
 		      (cl-loop until (or (elgantt--empty-line-p)
 					 (<= (elgantt--get-level-at-point)
 					     current-level)
@@ -2082,28 +2095,28 @@ string accepted by `kbd'."
 			   'face 'elgantt-vertical-line-face)))))
 
 ;;; Major mode
-(setq elgantt-mode-map
-      (let ((map (make-sparse-keymap)))
-	(define-key map (kbd "r")   #'elgantt--reload)
-	(define-key map (kbd "C-r") #'elgantt-open)
-	(define-key map (kbd "SPC") #'elgantt-navigate-to-org-file)
-	(define-key map (kbd "p")   #'elgantt--move-up)
-	(define-key map (kbd "c")   #'elgantt-scroll-to-current-month)
-	(define-key map (kbd "n")   #'elgantt--move-down)
-	(define-key map (kbd "f")   #'elgantt--move-forward)
-	(define-key map (kbd "b")   #'elgantt--move-backward)
-	;; (define-key map (kbd "<tab>") #'elgantt--toggle-fold)
-	(define-key map (kbd "<right>") #'elgantt--forward-char)
-	(define-key map (kbd "<left>") #'elgantt--backward-char)
-	(define-key map (kbd "C-f")   #'elgantt--forward-char)
-	(define-key map (kbd "C-b")   #'elgantt--backward-char)
-	(define-key map (kbd "F")   #'elgantt-scroll-forward)
-	(define-key map (kbd "B")   #'elgantt-scroll-backward)
-	(define-key map (kbd "R")   #'elgantt--update-display-all-cells)
-	(define-key map (kbd "RET") #'elgantt--open-org-agenda-at-date)
-	(define-key map (kbd "M-f") #'elgantt--shift-date-forward)
-	(define-key map (kbd "M-b") #'elgantt--shift-date-backward)
-	map))
+(defvar elgantt-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "r")   #'elgantt--reload)
+    (define-key map (kbd "C-r") #'elgantt-open)
+    (define-key map (kbd "SPC") #'elgantt-navigate-to-org-file)
+    (define-key map (kbd "p")   #'elgantt--move-up)
+    (define-key map (kbd "c")   #'elgantt-scroll-to-current-month)
+    (define-key map (kbd "n")   #'elgantt--move-down)
+    (define-key map (kbd "f")   #'elgantt--move-forward)
+    (define-key map (kbd "b")   #'elgantt--move-backward)
+    ;; (define-key map (kbd "<tab>") #'elgantt--toggle-fold)
+    (define-key map (kbd "<right>") #'elgantt--forward-char)
+    (define-key map (kbd "<left>") #'elgantt--backward-char)
+    (define-key map (kbd "C-f")   #'elgantt--forward-char)
+    (define-key map (kbd "C-b")   #'elgantt--backward-char)
+    (define-key map (kbd "F")   #'elgantt-scroll-forward)
+    (define-key map (kbd "B")   #'elgantt-scroll-backward)
+    (define-key map (kbd "R")   #'elgantt--update-display-all-cells)
+    (define-key map (kbd "RET") #'elgantt--open-org-agenda-at-date)
+    (define-key map (kbd "M-f") #'elgantt--shift-date-forward)
+    (define-key map (kbd "M-b") #'elgantt--shift-date-backward)
+    map))
 
 (defun elgantt--reload ()
   (interactive)
@@ -2148,7 +2161,6 @@ string accepted by `kbd'."
 				       elgantt-normal-year-blank-line))
     (elgantt--reset-org-ql-cache)
     (elgantt--set-even-numbered-line-face)
-    ;;(elgantt--set-vertical-highlight-face)
     (setq elgantt--date-range nil)
     (setq elgantt--hidden-overlays nil)
     (insert (make-string elgantt-header-column-offset ? )
@@ -2157,14 +2169,11 @@ string accepted by `kbd'."
     (elgantt--iterate)
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
-    (elgantt--highlight-current-day)
     (toggle-truncate-lines 1)
     (setq header-line-format elgantt-header-line-format)
+    (goto-char point)
     (when elgantt-scroll-to-current-month-at-startup
-      (elgantt-scroll-to-current-month))
-    (goto-char point))
-  (when elgantt-draw-overarching-headers
-    (elgantt--draw-overarching-headers))
+      (elgantt-scroll-to-current-month)))
   (add-hook 'post-command-hook #'elgantt--post-command-hook nil t)
   (add-hook 'post-command-hook #'elgantt--vertical-highlight nil t))
 
