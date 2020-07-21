@@ -711,15 +711,16 @@ Returns nil if not on a header line."
     (beginning-of-line)
     (get-text-property (point) 'elgantt-header)))
 
-(defun elgnatt--clear-all-customizations ()
+(defun elgantt--clear-all-customizations ()
+  "Delete everything created with `elgantt-create-display-rule'."
   (setq elgantt--display-rules nil)
   (setq elgantt--parsing-functions nil)
   (setq elgantt--post-command-hooks nil))
 
 (defun elgantt-get-date-at-point (&optional column)
   "Get the date at point in YYYY-MM-DD format. NOTE: this gets this date 
-from the location in the calendar, and does not rely on the text properties. 
-It works on empty cells, and does not rely on the :elgantt-date property." 
+  from the location in the calendar, and does not rely on the text properties. 
+  It works on empty cells, and does not rely on the :elgantt-date property." 
   ;; HACK: It works, but...
   (let ((deactivate-mark t)) 
     (if (not (char-equal (char-after) ?|))
@@ -754,12 +755,12 @@ It works on empty cells, and does not rely on the :elgantt-date property."
 
 (defun elgantt-get-prop-at-point (&optional prop)
   "Returns the :elgantt text property value. 
-This will be a list of plists with the values stored by
-`elgantt--parser'. 
+  This will be a list of plists with the values stored by
+  `elgantt--parser'. 
 
-If PROP is specified, return the value of that property in a list.
-If there is more than one entry in the cell, the list will contain
-the value of each entry."
+  If PROP is specified, return the value of that property in a list.
+  If there is more than one entry in the cell, the list will contain
+  the value of each entry."
   (let ((prop-list (plist-get (text-properties-at (point)) :elgantt)))
     (if prop
 	(mapcar (lambda (props) (plist-get props prop))
@@ -782,8 +783,8 @@ the value of each entry."
 
 (defun elgantt-scroll (direction)
   "Place, or move, an overlay on each line, hiding (or showing)
-the month immediately after the headers.
-DIRECTION must be a symbol: `forward' or `backard'."
+  the month immediately after the headers.
+  DIRECTION must be a symbol: `forward' or `backard'."
   ;; HACK: This was a first draft, but it works well enough. 
   (let ((column (current-column))
 	(line (line-number-at-pos))
@@ -844,7 +845,7 @@ DIRECTION must be a symbol: `forward' or `backard'."
 
 (defun elgantt--move-vertically (up-or-down)
   "Move up or down one line, and then move to the nearest
-entry. UP-OR-DOWN must be 'up or 'down."
+  entry. UP-OR-DOWN must be 'up or 'down."
   (if (eq up-or-down 'up)
       (if (> (org-current-line) 3)
 	  (elgantt--forward-line -1)
@@ -876,9 +877,9 @@ entry. UP-OR-DOWN must be 'up or 'down."
     (forward-char n)))
 
 ;; Programmatic movement functions 
-(defmacro elgantt--parse-org-files-over-cells (&rest body)
+(defmacro elgantt--iterate-over-cells (&rest body)
   "Executes BODY at each cell in the calendar, iterating in order
-of buffer position."
+  of buffer position."
   `(save-excursion
      (goto-char (point-min))
      (cl-loop for points being the intervals of (current-buffer) property :elgantt
@@ -886,12 +887,22 @@ of buffer position."
 			(when (elgantt-get-prop-at-point)
 			  ,@body)))))
 
+;; (defmacro elgantt--parse-org-files-over-cells (&rest body)
+;;   "Executes BODY at each cell in the calendar, iterating in order
+;;   of buffer position."
+;;   `(save-excursion
+;;      (goto-char (point-min))
+;;      (cl-loop for points being the intervals of (current-buffer) property :elgantt
+;; 	      do (progn (goto-char (car points))
+;; 			(when (elgantt-get-prop-at-point)
+;; 			  ,@body)))))
+
 
 (defun elgantt--next-match (property value)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
-Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
-Returns nil if there are no additional matches. Does not mach a cell which falls on the 
-same day as the current cell."
+  Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
+  Returns nil if there are no additional matches. Does not mach a cell which falls on the 
+  same day as the current cell."
   (save-excursion
     (cl-loop with target-point = nil
 	     with target-date  = nil
@@ -910,17 +921,10 @@ same day as the current cell."
 		       (setq target-point (append (-list target-point) (-list (point))))))
 	     finally return (-list target-point))))
 
-(defun elgantt--previous-match (property value)
-  "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
-Returns a list containing the nearest matches that fall on the same date, sorted top to bottom.
-Returns nil if there are no additional matches. Does not mach a cell which falls on the 
-same day as the current cell."
-  (elgantt--next-match property value t))
-
 (defun elgantt--goto-id (id)
   "Go to the cell containing the org-id ID. Return nil if not found.
-If ID represents an entry that is a time range, go do the first 
-cell in that range."
+  If ID represents an entry that is a time range, go do the first 
+  cell in that range."
   ;; If you want to go to the last date in a range, you should
   ;; goto the starting point, get :elgantt-timestamp-range and then
   ;; use `elgantt--goto-date' to go to the cadar of that value,
@@ -938,7 +942,7 @@ cell in that range."
 
 (defun elgantt--goto-date (date)
   "Go to DATE in the current line. 
-DATE is a string in \"YYYY-MM-DD\" format."
+  DATE is a string in \"YYYY-MM-DD\" format."
   (if-let ((overlay (car elgantt--hidden-overlays))
 	   (start (overlay-start overlay))
 	   (end (overlay-end overlay)))
@@ -951,9 +955,9 @@ DATE is a string in \"YYYY-MM-DD\" format."
 
 (defmacro elgantt-with-point-at-orig-entry (props &rest body)
   "Execute BODY with point at marker stored in `:elgantt-marker'.
-Buffer is retrieved from the `:elgantt-org-buffer' property. If PROPS is nil, 
-then retrieve PROPS with `elgantt--select-entry’.
-If PROPS is supplied, use those props instead of the props at point."
+  Buffer is retrieved from the `:elgantt-org-buffer' property. If PROPS is nil, 
+  then retrieve PROPS with `elgantt--select-entry’.
+  If PROPS is supplied, use those props instead of the props at point."
   (declare (indent 2))
   `(let* ((props (or ,props (elgantt--select-entry)))
 	  (marker (plist-get props :elgantt-marker))
@@ -1002,7 +1006,7 @@ If PROPS is supplied, use those props instead of the props at point."
 
 (defun elgantt--get-header-create (props)
   "Put point at the first char in the HEADER line, creating a new header
-line if one does not exist."
+  line if one does not exist."
   (let* ((outlinep (eq 'outline elgantt-header-type))
 	 (level (plist-get props :elgantt-level))
 	 (parent-level (plist-get props :elgantt-parent-level))
@@ -1089,13 +1093,13 @@ line if one does not exist."
 
 (defun elgantt--get-level-at-point ()
   "If using the 'heading option of `elgantt-header-type', 
-then get the level of the current header."
+  then get the level of the current header."
   (get-text-property (point-at-bol) 'elgantt-level))
 
 (defun elgantt--shift-date (n &optional properties)
   "Move the timestamp up or down by one day.
-N must be 1 or -1. The return value
-is the prop list of the entry that has been moved."
+  N must be 1 or -1. The return value
+  is the prop list of the entry that has been moved."
   ;; Only allows moving by a single day
   (unless (or (= n 1)
 	      (= n -1))
