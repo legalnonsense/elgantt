@@ -313,72 +313,6 @@ The samples on this also use the following macro to draw a line through cells wh
                        (point (car (elgantt--previous-match :elgantt-alltags hashtag))))
              (goto-char point))))
 #+end_src
-*** Iteracting with the calendar 
-There are two ways to interact with the calender: the =elgantt-create-action= macro and the separate module, =elgantt-interaction=.
-***** =elgantt-create-action=
-This macro works the same way as =elgantt-create-display-rule= except that has keywords for binding
-commands. I don't use this macro for anything, but you could use it to perform actions on the org-file from the calendar (e.g., marking a TODO as DONE). 
-
-***** =elgantt-interaction=
-To use this, you must =(require 'elgantt-interaction)=.
-
-
-This module experimental. The code is not cleaned up. It was written in a frenzy of wondering whether I could without considering whether I should. If this inspires ideas for others to use it, I will return to it. Otherwise, unless I have a need, I plan to abandon it. 
-
-
-Here is an example I use to set the =:ELGANTT-LINKED-TO= and =:ELGANTT-COLOR= property used in the example above. It is designed to allow the user to select cells and perform actions on them in a certain sequence. Here, it allows the user to make two selections, and when return is pressed, it will prompted the user to enter two colors, and then set the properties of the relevant org heading. 
-
-
-While this example works, the code in =elgantt-interaction= is generally untested. I do not know whether I will develop it further absent a need to do so. The framework, in theory, provides a robust way to create ways to interact with the calendar and perform actions on multiple org entries. 
-
-
-To invoke the interface, press =a= to be prompted to select which interface you'd like to execute. After that, a counter should appear which shows the number of cells selected. The message displayed is defined by the =:selection-messages= keyword. Once the cells are selected (by pressing =space=), the user presses =Return= to execute the command. The execution functions will be run in the order listed in =:execution-functions=. The first number refers to cells in the order in which they were selected. The variable =return-val= is the return value of the previous function. 
-
-
-So, here, the user selects two cells and presses return. Then, the program moves to the second selected cell, and runs =org-id-get-create=, and returns the value. The section function moves to the first cell that the user selected, and adds the ID of the second selection (i.e., =return-val=), and then prompts the user for two colors and sets the properties of that heading appropriatly. 
-
-
-In addition to being able to use numbers to refer to cells by the order in which they were selected, you can use =all=, =rest=, =all-but-last=, and =last= to refer to the cells and perform operations on them.
-#+begin_src emacs-lisp :results silent
-  (require 'elgantt-interaction)
-
-    (elgantt--selection-rule
-     :name colorize
-     :selection-number 2
-     :selection-messages ((1 . "Select first cell")
-                          (2 . "Select second cell"))
-     :execution-functions ((2 . ((elgantt-with-point-at-orig-entry nil
-                                     (org-id-get-create))))
-                           (1 . ((elgantt-with-point-at-orig-entry nil
-                                     (org-set-property "ELGANTT-LINKED-TO" return-val)
-                                   (org-set-property "ELGANTT-COLOR" (concat (s-trim (helm-colors))
-                                                                         " "
-                                                                         (s-trim (helm-colors))))))))
-#+end_src
-Here is a second example I played with previously, which provided a more advanced way to link cells/headings together. You can see the use of =return-val= being passed from one execution function to the next. 
-#+begin_src emacs-lisp :results silent
-(elgantt--selection-rule :name set-anchor
-		     :parser ((:elgantt-dependents . ((when-let ((dependents (cdar (org-entry-properties (point)
-												     "ELGANTT-DEPENDENTS"))))
-						    (s-split " " dependents)))))
-		     :execution-functions ((2 . ((elg:with-point-at-orig-entry nil
-									       (org-id-get-create))))
-					   (1 . ((elg:with-point-at-orig-entry nil
-									       (let ((current-heading-id (org-id-get-create)))
-										 (org-set-property "ELGANTT-DEPENDENTS"
-												   (format "%s"
-													   (substring 
-													    (if (member return-val elgantt-dependents)
-														elgantt-dependents
-													      (push return-val elgantt-dependents))
-													    1 -1)))))))
-					   (2 . ((elg:with-point-at-orig-entry nil
-									       (org-set-property "ELGANTT-ANCHOR" return-val)))))
-		     :selection-messages ((1 . "Select the anchor.")
-					  (rest . "Select the dependents."))
-		     :selection-number 0)
-#+end_src
-This was previously accompanied by code that allowed the user to move the date of dependent cells by moving the anchor cell, and which highlighted all dependent cells when the point was on an anchor. I abandoned this for various reasons. If there is interest in this level of interface I can clean it up and get it working. 
 *** Helper functions
 The following functions are included to aid customizing the display. See docstrings for more information. 
 **** Drawing the display
@@ -468,12 +402,79 @@ You can create custom views of the gantt chart/calendar by defining a function l
 #+end_src
 ** Faces and themes
 Elgantt should adjust its colors to work with your theme, regardless of whether it is dark or light. 
+** Iteracting with the calendar 
+There are two ways to interact with the calender: the =elgantt-create-action= macro and the separate module, =elgantt-interaction=.
+**** =elgantt-create-action=
+This macro works the same way as =elgantt-create-display-rule= except that has keywords for binding
+commands. I don't use this macro for anything, but you could use it to perform actions on the org-file from the calendar (e.g., marking a TODO as DONE). 
+
+**** =elgantt-interaction=
+To use this, you must =(require 'elgantt-interaction)=.
+
+
+This module experimental. The code is not cleaned up. It was written in a frenzy of wondering whether I could without considering whether I should. If this inspires ideas for others to use it, I will return to it. Otherwise, unless I have a need, I plan to abandon it. 
+
+
+Here is an example I use to set the =:ELGANTT-LINKED-TO= and =:ELGANTT-COLOR= property used in the example above. It is designed to allow the user to select cells and perform actions on them in a certain sequence. Here, it allows the user to make two selections, and when return is pressed, it will prompted the user to enter two colors, and then set the properties of the relevant org heading. 
+
+
+While this example works, the code in =elgantt-interaction= is generally untested. I do not know whether I will develop it further absent a need to do so. The framework, in theory, provides a robust way to create ways to interact with the calendar and perform actions on multiple org entries. 
+
+
+To invoke the interface, press =a= to be prompted to select which interface you'd like to execute. After that, a counter should appear which shows the number of cells selected. The message displayed is defined by the =:selection-messages= keyword. Once the cells are selected (by pressing =space=), the user presses =Return= to execute the command. The execution functions will be run in the order listed in =:execution-functions=. The first number refers to cells in the order in which they were selected. The variable =return-val= is the return value of the previous function. 
+
+
+So, here, the user selects two cells and presses return. Then, the program moves to the second selected cell, and runs =org-id-get-create=, and returns the value. The section function moves to the first cell that the user selected, and adds the ID of the second selection (i.e., =return-val=), and then prompts the user for two colors and sets the properties of that heading appropriatly. 
+
+
+In addition to being able to use numbers to refer to cells by the order in which they were selected, you can use =all=, =rest=, =all-but-last=, and =last= to refer to the cells and perform operations on them.
+#+begin_src emacs-lisp :results silent
+  (require 'elgantt-interaction)
+
+    (elgantt--selection-rule
+     :name colorize
+     :selection-number 2
+     :selection-messages ((1 . "Select first cell")
+                          (2 . "Select second cell"))
+     :execution-functions ((2 . ((elgantt-with-point-at-orig-entry nil
+                                     (org-id-get-create))))
+                           (1 . ((elgantt-with-point-at-orig-entry nil
+                                     (org-set-property "ELGANTT-LINKED-TO" return-val)
+                                   (org-set-property "ELGANTT-COLOR" (concat (s-trim (helm-colors))
+                                                                         " "
+                                                                         (s-trim (helm-colors))))))))
+#+end_src
+Here is a second example I played with previously, which provided a more advanced way to link cells/headings together. You can see the use of =return-val= being passed from one execution function to the next. 
+#+begin_src emacs-lisp :results silent
+(elgantt--selection-rule :name set-anchor
+		     :parser ((:elgantt-dependents . ((when-let ((dependents (cdar (org-entry-properties (point)
+												     "ELGANTT-DEPENDENTS"))))
+						    (s-split " " dependents)))))
+		     :execution-functions ((2 . ((elg:with-point-at-orig-entry nil
+									       (org-id-get-create))))
+					   (1 . ((elg:with-point-at-orig-entry nil
+									       (let ((current-heading-id (org-id-get-create)))
+										 (org-set-property "ELGANTT-DEPENDENTS"
+												   (format "%s"
+													   (substring 
+													    (if (member return-val elgantt-dependents)
+														elgantt-dependents
+													      (push return-val elgantt-dependents))
+													    1 -1)))))))
+					   (2 . ((elg:with-point-at-orig-entry nil
+									       (org-set-property "ELGANTT-ANCHOR" return-val)))))
+		     :selection-messages ((1 . "Select the anchor.")
+					  (rest . "Select the dependents."))
+		     :selection-number 0)
+#+end_src
+This was previously accompanied by code that allowed the user to move the date of dependent cells by moving the anchor cell, and which highlighted all dependent cells when the point was on an anchor. I abandoned this for various reasons. If there is interest in this level of interface I can clean it up and get it working. 
 ** FAQ
 *** Your code...
 I’ll save you the trouble of finishing your thought:
 
 [[file:screenshots/code_quality.png]]
+This was a continued exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. 
 *** Can you fold and unfold without reloading?
 Not without significant changes to the code, or breaking other existing features. 
-*** This is a mess/this is confusing
- This was an exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. I pray this will be my last public Emacs package. 
+*** Bug reports?
+That’s fine, and I’ll try to fix stuff. But I’d rather some took this thing over. 
