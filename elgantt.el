@@ -711,6 +711,11 @@ Returns nil if not on a header line."
     (beginning-of-line)
     (get-text-property (point) 'elgantt-header)))
 
+(defun elgnatt--clear-all-customizations ()
+  (setq elgantt--display-rules nil)
+  (setq elgantt--parsing-functions nil)
+  (setq elgantt--post-command-hooks nil))
+
 (defun elgantt-get-date-at-point (&optional column)
   "Get the date at point in YYYY-MM-DD format. NOTE: this gets this date 
 from the location in the calendar, and does not rely on the text properties. 
