@@ -473,6 +473,7 @@ This was previously accompanied by code that allowed the user to move the date o
 I’ll save you the trouble of finishing your thought:
 
 [[file:screenshots/code_quality.png]]
+
 This was a continued exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. 
 *** Can you fold and unfold without reloading?
 Not without significant changes to the code, or breaking other existing features. 
