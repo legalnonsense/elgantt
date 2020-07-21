@@ -189,6 +189,9 @@ Before proceeding, here is a list of the properties that are included for each e
 | :elgantt-alltags            | A list of all tags, including inherited tags, associated with the heading                             |
 | :elgantt-header             | Header used for insertion into the calendar buffer. Depends on the value of =elgantt-header-type=       |
 | :elgantt-date               | Date used for insertion into the calendar. Uses the first date found in =elgantt-timestamps-to-display= |
+| :elgantt-hashtag            | Any hashtag (inherited) associated with the headline                                                  |
+All properties returned by =(org-entry-properties)= are also included in an entry’s property list. 
+
 
 Here are some basic examples of how to use the display customization macro. 
 *** Changing the color of certain cells
@@ -238,8 +241,7 @@ Using the test.org file (where only a few of the headlines have TODO states), yo
 [[file:screenshots/output-2020-07-21-12:39:52.gif]]
 
 
-
-If, during your experimentation, you want to disable a display rule, add =:disable t= and it will be removed from the function stack (or the post-command hook, if appropriate). In the alternative, call =elgantt--clear-all-customizations=. 
+If, during your experimentation, you want to disable a display rule, add =:disable t= and it will be removed from the function stack (or the post-command hook, if appropriate). In the alternative, call =elgantt--clear-all-customizations= which will delete any functions created by the customization macros.  
 *** Adding new properties from org files
 Suppose you want to change the color of a cell based on a property that is not present by default. For example, you want to change the color if the cell has a certain priority, but that property is not included by default. In that case, use the =:parser= keyword to add a property. The expression is run at the first point of each org heading, and will be automatically added to the parsing function. The syntax is:
 #+begin_src emacs-lisp :results silent
