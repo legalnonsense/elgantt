@@ -231,10 +231,6 @@ if this is set to nil.")
   '((t (:height .1)))
   "Vertical line face")
 
-(defface elgantt-dependent-highlight-face
-  '((t (:background "white" :foreground "white")))
-  "dependent highlight face")
-
 (defface elgantt-header-line-face '((t (:inherit default)))
   "Header line face.")
 

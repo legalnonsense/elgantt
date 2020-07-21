@@ -4,16 +4,17 @@
 :CATEGORY: asdfasdf
 :END:
 ** Design rocket :#Juan:
-SCHEDULED: <2020-02-03 Mon> DEADLINE: <2020-04-05 Sun>
+SCHEDULED: <2020-02-03 Mon> DEADLINE: <2020-05-06 Wed>
 :PROPERTIES:
 :ID:       7cda092c-d670-4545-892b-4eae2c68c4fa
 :ELGANTT-COLOR: LightGreen DarkGreen
 :END:
 ** Get materials :#Justinia:                
-SCHEDULED: <2020-02-16 Sun> DEADLINE: <2020-03-25 Wed>
+SCHEDULED: <2020-02-16 Sun> DEADLINE: <2020-03-17 Tue>
 :PROPERTIES:
 :ID:       0b4dde5d-4363-47d2-9995-b82c36a40645
 :ELGANTT-COLOR: Black LightBlue
+:Effort:   60d
 :END:
 ** Assemble materials :#Jasmine:
 SCHEDULED: <2020-06-01 Mon> DEADLINE: <2020-06-16 Tue>
@@ -39,7 +40,7 @@ SCHEDULED: <2020-06-01 Mon> DEADLINE: <2020-06-16 Tue>
 :ID:       60b318f5-8093-4015-9f51-7239c0ff10e2
 :END:
 ** Design space suit :#Jasmine:adsf:
-SCHEDULED: <2020-01-09 Thu> DEADLINE: <2020-02-07 Fri>
+SCHEDULED: <2020-01-09 Thu> DEADLINE: <2020-03-12 Thu>
 :PROPERTIES:
 :ID:       5b3e77de-fd29-4cde-b3ae-a86ecbd0141e
 :ELGANTT-COLOR: LightGreen DarkGreen
