@@ -100,32 +100,32 @@ These exampes all use the =test.org= file: =(setq elgantt-agenda-files "~/.emacs
 *** A note about colorizing the outline
 The examples that follow draw a gradient between the scheduled time of an entry and the deadline of the entry. (The scheduled date is not actually shown in the calendar.) This is not included in the package and you need to use a custom macro (shown below) to do it. I took this idea from the [[https://github.com/swillner/org-gantt][org-gantt]] package. It is not included by default because it only works if you use deadlines and scheduling in a particular way. I do not use colorize my calendars this way, but it makes for a good demonstration. The code necessary to do this, and an alternative way to use colors, are discussed below when explaining the =elgantt-create-display-rule= macro. If you want these colors to appear, evaluate this code and reload (i.e., =C-r=) the calendar:
 #+begin_src emacs-lisp :results silent
-    (setq elgantt-user-set-color-priority-counter 0)
-    (elgantt-create-display-rule draw-scheduled-to-deadline
-      :parser ((elgantt-color . ((when-let ((colors (org-entry-get (point) "ELGANTT-COLOR")))
-                                   (s-split " " colors)))))
-      :args (elgantt-scheduled elgantt-color elgantt-org-id)
-      :body ((when elgantt-scheduled
-               (let ((point1 (point))
-                     (point2 (save-excursion
-                               (elgantt--goto-date elgantt-scheduled)
-                               (point)))
-                     (color1 (or (car elgantt-color)
-                                 "black"))
-                     (color2 (or (cadr elgantt-color)
-                                 "red")))
-                 (when (/= point1 point2)
-                   (elgantt--draw-gradient 
-                    color1
-                    color2
-                    (if (< point1 point2) point1 point2) ;; Since cells are not necessarily linked in 
-                    (if (< point1 point2) point2 point1) ;; chronological order, make sure they are sorted
-                    nil
-                    `(priority ,(setq elgantt-user-set-color-priority-counter
-                                      (1- elgantt-user-set-color-priority-counter))
-                               ;; Decrease the priority so that earlier entries take
-                               ;; precedence over later ones (note: it doesn’t matter if the number is negative)
-                               :elgantt-user-overlay ,elgantt-org-id)))))))
+  (setq elgantt-user-set-color-priority-counter 0)
+  (elgantt-create-display-rule draw-scheduled-to-deadline
+    :parser ((elgantt-color . ((when-let ((colors (org-entry-get (point) "ELGANTT-COLOR")))
+                                 (s-split " " colors)))))
+    :args (elgantt-scheduled elgantt-color elgantt-org-id)
+    :body ((when elgantt-scheduled
+             (let ((point1 (point))
+                   (point2 (save-excursion
+                             (elgantt--goto-date elgantt-scheduled)
+                             (point)))
+                   (color1 (or (car elgantt-color)
+                               "black"))
+                   (color2 (or (cadr elgantt-color)
+                               "red")))
+               (when (/= point1 point2)
+                 (elgantt--draw-gradient 
+                  color1
+                  color2
+                  (if (< point1 point2) point1 point2) ;; Since cells are not necessarily linked in 
+                  (if (< point1 point2) point2 point1) ;; chronological order, make sure they are sorted
+                  nil
+                  `(priority ,(setq elgantt-user-set-color-priority-counter
+                                    (1- elgantt-user-set-color-priority-counter))
+                             ;; Decrease the priority so that earlier entries take
+                             ;; precedence over later ones (note: it doesn’t matter if the number is negative)
+                             :elgantt-user-overlay ,elgantt-org-id)))))))
 #+end_src
 *** Use outline structure, unfolded, with space between headers, and overarching header lines
 #+begin_src emacs-lisp :results silent
@@ -415,7 +415,7 @@ This macro works the same way as =elgantt-create-display-rule= except that has k
 commands. I don't use this macro for anything, but you could use it to perform actions on the org-file from the calendar (e.g., marking a TODO as DONE). 
 
 **** =elgantt-interaction=
-To use this, you must =(require 'elgantt-interaction)=.
+To use this, you must =(require 'elgantt-interaction)=. NOTE: elgantt-interaction requires [[https://github.com/emacsorphanage/ov][ov]]. 
 
 
 This module experimental. The code is not cleaned up. It was written in a frenzy of wondering whether I could without considering whether I should. If this inspires ideas for others to use it, I will return to it. Otherwise, unless I have a need, I plan to abandon it. 
@@ -446,9 +446,9 @@ In addition to being able to use numbers to refer to cells by the order in which
                                      (org-id-get-create))))
                            (1 . ((elgantt-with-point-at-orig-entry nil
                                      (org-set-property "ELGANTT-LINKED-TO" return-val)
-                                   (org-set-property "ELGANTT-COLOR" (concat (s-trim (helm-colors))
+                                   (org-set-property "ELGANTT-COLOR" (concat (s-trim (read-color "Select start color:"))
                                                                              " "
-                                                                             (s-trim (helm-colors)))))))))
+                                                                             (s-trim (read-color "Select end color:")))))))))
 
   ;; You’ll also need to use this to colorize 
   (setq elgantt-user-set-color-priority-counter 0) ;; There must be a counter to ensure that overlapping overlays are handled properly
@@ -494,9 +494,9 @@ Here is a second example I played with previously, which provided a more advance
 		     :parser ((:elgantt-dependents . ((when-let ((dependents (cdar (org-entry-properties (point)
 												     "ELGANTT-DEPENDENTS"))))
 						    (s-split " " dependents)))))
-		     :execution-functions ((2 . ((elg:with-point-at-orig-entry nil
+		     :execution-functions ((2 . ((elgantt-with-point-at-orig-entry nil
 									       (org-id-get-create))))
-					   (1 . ((elg:with-point-at-orig-entry nil
+					   (1 . ((elgantt-with-point-at-orig-entry nil
 									       (let ((current-heading-id (org-id-get-create)))
 										 (org-set-property "ELGANTT-DEPENDENTS"
 												   (format "%s"
@@ -505,7 +505,7 @@ Here is a second example I played with previously, which provided a more advance
 														elgantt-dependents
 													      (push return-val elgantt-dependents))
 													    1 -1)))))))
-					   (2 . ((elg:with-point-at-orig-entry nil
+					   (2 . ((elgantt-with-point-at-orig-entry nil
 									       (org-set-property "ELGANTT-ANCHOR" return-val)))))
 		     :selection-messages ((1 . "Select the anchor.")
 					  (rest . "Select the dependents."))
@@ -521,5 +521,7 @@ I’ll save you the trouble of finishing your thought:
 This is a hobby and a continued exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. I don’t have the patience to clean up the code like I should. There are byte-compile warnings. I do not care. I am hoping that publishing this gets it out of my life.
 *** Can you fold and unfold without reloading?
 Not without significant changes to the code, or breaking other existing features. 
+*** Why gradients?
+They are pretty. You can also customize where the midpoint of the gradient appears so it reflects remaining time. That's even prettier. If you don't like gradients, then just use the same start and end color. 
 
 
