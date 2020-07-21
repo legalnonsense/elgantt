@@ -388,6 +388,43 @@ Draw a gradient with =elgantt--draw-gradient.=
 
 Draw a progress bar with =elgantt--draw-progress-bar.=
 
+Here is an example of how to use =elgantt--draw-progress-bar=
+
+Suppose you have the following org file:
+#+begin_src org
+ TODO read The Illuminatus! Trilogy
+SCHEDULED: <2020-06-02 Tue> DEADLINE: <2020-07-21 Tue>
+:PROPERTIES:
+:TOTAL_PAGES: 667
+:PAGES_READ: 555
+:ID:       99a97ef7-b555-4f98-bdd3-7e44510ac7a4
+:END:
+#+end_src
+The following code:
+#+begin_src emacs-lisp :results silent
+(elgantt-create-display-rule pages-read-progress
+  :parser ((total-pages . ((string-to-number
+			    (org-entry-get (point) "TOTAL_PAGES"))))
+	   (pages-read . ((string-to-number
+			   (org-entry-get (point) "PAGES_READ")))))
+  :args (elgantt-deadline elgantt-scheduled)
+  :body ((when (and elgantt-deadline elgantt-scheduled
+		    total-pages pages-read)
+	   (let* ((start (progn (elgantt--goto-date elgantt-scheduled)
+				(point)))
+		  (end (progn (elgantt--goto-date elgantt-deadline)
+			      (point)))
+		  (percent (/ (float pages-read)
+			      (float total-pages))))
+	     (elgantt--draw-progress-bar "red" "blue"
+					 start
+					 end
+					 percent)))))
+#+end_src
+Will automatically display a progress bar starting at the scheduled date, to the deadline date, displaying a progress bar that represents the percent of pages read:
+[[file:screenshots/Screenshot_2020-07-21_09-37-17.png]]
+
+
 Draw a line from one cell to another with =elgantt--draw-line=. See also =elgantt--connect-cell=. 
 
 Juxtapose text on top of a cell with =elgantt--insert-juxtaposition= and clear them with =elgantt--clear-juxtapositions=.

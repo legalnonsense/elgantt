@@ -1562,20 +1562,31 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
 		 (/ (+ c1 c2) 2))
 	       color1 color2)))
 
-(defun elgantt--draw-progress-bar (start-color end-color start end divider)
+(defun elgantt--draw-progress-bar (start-color end-color start end divider-or-percent)
   "Draws an overlay from the points START to END starting with START-COLOR
-and ending with END-COLOR, with the transition occurring at the point DIVIDER."
+and ending with END-COLOR, with the transition occurring at DIVIDER-OR-PERCENT.
+
+DIVIDER-OR-PERCENT is either a percent (represented as a float) or a point (represented as
+an integer)."
   (let ((start-color (elgantt--color-name-to-hex start-color))
-	(end-color (elgantt--color-name-to-hex end-color)))
+	(end-color (elgantt--color-name-to-hex end-color))
+	(divider (pcase divider-or-percent
+		   ((pred floatp)
+		    (+ start
+		       (round (* (- end start) divider-or-percent))))
+		   ((pred integerp)
+		    divider-or-percent)
+		   (_ (error "Invalid type: DIVIDER-OR-PERCENT.")))))    
     (save-excursion
       (goto-char start)
       (cl-loop for x from start to end
 	       do (goto-char x)
 	       (remove-overlays (point) (1+ (point)))
-	       (elgantt--create-overlay (point) (1+ (point))
-					`(face ,(if (<= (point) divider)
-						    `(:background ,start-color)
-						  `(:background ,end-color))))
+	       (unless (elgantt--on-vertical-line-p)
+		 (elgantt--create-overlay (point) (1+ (point))
+					  `(face ,(if (<= (point) divider)
+						      `(:background ,start-color)
+						    `(:background ,end-color)))))
 	       (forward-char)))))
 
 (defun elgantt--create-gradient (start-color end-color steps &optional midpoint)
