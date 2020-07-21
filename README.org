@@ -382,14 +382,10 @@ This was previously accompanied by code that allowed the user to move the date o
 *** Helper functions
 The following functions are included to aid customizing the display. See docstrings for more information. 
 **** Drawing the display
-Create overlays with =elgantt--create-overlay=.
-
-Draw a gradient with =elgantt--draw-gradient.=
-
-Draw a progress bar with =elgantt--draw-progress-bar.=
-
-Here is an example of how to use =elgantt--draw-progress-bar=
-
+***** Create overlays with =elgantt--create-overlay=.
+***** Draw a gradient with =elgantt--draw-gradient.=
+***** Draw a progress bar with =elgantt--draw-progress-bar.=
+***** Here is an example of how to use =elgantt--draw-progress-bar=
 Suppose you have the following org file:
 #+begin_src org
 * TODO read The Illuminatus! Trilogy 
@@ -424,12 +420,9 @@ The following code:
 Will automatically display a progress bar starting at the scheduled date, to the deadline date, displaying a progress bar that represents the percent of pages read:
 [[file:screenshots/Screenshot_2020-07-21_09-37-17.png]]
 
-
-Draw a line from one cell to another with =elgantt--draw-line=. See also =elgantt--connect-cell=. 
-
-Juxtapose text on top of a cell with =elgantt--insert-juxtaposition= and clear them with =elgantt--clear-juxtapositions=.
-
-Change the character of a cell (while preserving text properties) with =elgantt--change-char=.
+***** Draw a line from one cell to another with =elgantt--draw-line=. See also =elgantt--connect-cell=. 
+***** Juxtapose text on top of a cell with =elgantt--insert-juxtaposition= and clear them with =elgantt--clear-juxtapositions=.
+***** Change the character of a cell (while preserving text properties) with =elgantt--change-char=.
 
 **** Navigating the buffer
 Move to a cell by org-id with =elgantt--goto-id=.
