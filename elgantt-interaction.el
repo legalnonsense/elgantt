@@ -24,7 +24,7 @@
 
 (defun elgantt-interaction::message-overlay (command &optional string)
   (pcase command
-    ((or `delete `clear) (progn (ov-clear :elgantt-interaction-message)
+    ((or `delete `clear) (progn (remove-overlays (point-min) (point-max) :elgantt-interaction-message t)
 				(setq elgantt-interaction::message-overlay nil)))
     ((or `set `create) (let* ((message (concat "INTERACTION MODE: " (symbol-name elgantt-interaction::current-action)
 					       "  " string "  "

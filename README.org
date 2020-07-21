@@ -419,7 +419,7 @@ This macro works the same way as =elgantt-create-display-rule= except that has k
 commands. I don't use this macro for anything, but you could use it to perform actions on the org-file from the calendar (e.g., marking a TODO as DONE). 
 
 **** =elgantt-interaction=
-To use this, you must =(require 'elgantt-interaction)=. NOTE: elgantt-interaction requires [[https://github.com/emacsorphanage/ov][ov]]. 
+To use this, you must =(require 'elgantt-interaction)=.
 
 
 This module experimental. The code is not cleaned up. It was written in a frenzy of wondering whether I could without considering whether I should. If this inspires ideas for others to use it, I will return to it. Otherwise, unless I have a need, I plan to abandon it. 
