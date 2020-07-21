@@ -398,48 +398,50 @@ SCHEDULED: <2020-06-02 Tue> DEADLINE: <2020-07-21 Tue>
 #+end_src
 The following code:
 #+begin_src emacs-lisp :results silent
-(elgantt-create-display-rule pages-read-progress
-  :parser ((total-pages . ((string-to-number
-			    (org-entry-get (point) "TOTAL_PAGES"))))
-	   (pages-read . ((string-to-number
-			   (org-entry-get (point) "PAGES_READ")))))
-  :args (elgantt-deadline elgantt-scheduled)
-  :body ((when (and elgantt-deadline elgantt-scheduled
-		    total-pages pages-read)
-	   (let* ((start (progn (elgantt--goto-date elgantt-scheduled)
-				(point)))
-		  (end (progn (elgantt--goto-date elgantt-deadline)
-			      (point)))
-		  (percent (/ (float pages-read)
-			      (float total-pages))))
-	     (elgantt--draw-progress-bar "red" "blue"
-					 start
-					 end
-					 percent)))))
+  (elgantt-create-display-rule pages-read-progress
+    :parser ((total-pages . ((string-to-number			    
+                              (org-entry-get (point) "TOTAL_PAGES"))))
+             (pages-read . ((string-to-number
+                             (org-entry-get (point) "PAGES_READ")))))
+    :args (elgantt-deadline elgantt-scheduled)
+    :body ((when (and elgantt-deadline elgantt-scheduled
+                      total-pages pages-read)
+             (let* ((start (progn (elgantt--goto-date elgantt-scheduled)
+                                  (point)))
+                    (end (progn (elgantt--goto-date elgantt-deadline)
+                                (point)))
+                    (percent (/ (float pages-read)
+                                (float total-pages))))
+               (elgantt--draw-progress-bar "red" "blue"
+                                           start
+                                           end
+                                           percent)))))
 #+end_src
 Will automatically display a progress bar starting at the scheduled date, to the deadline date, displaying a progress bar that represents the percent of pages read:
 [[file:screenshots/Screenshot_2020-07-21_09-37-17.png]]
-
+Note: the above code will generate an error if it is run on an org file that does not have the "TOTAL_PAGES" and "PAGES_READ" properties, because =org-entry-get= will return nil, which will cause =string-to-number= to fail. Instead, you could do something like:
+#+begin_src emacs-lisp :results silent
+  :parser ((total-pages . ((--when-let (org-entry-get (point) "TOTAL_PAGES")
+                             (string-to-number it))))
+           (pages-read . ((--when-let (org-entry-get (point) "PAGES_READ")
+                            (string-to-number it)))))
+#+end_src
+Or some other solution. 
 ***** Draw a line from one cell to another with =elgantt--draw-line=. See also =elgantt--connect-cell=. 
 ***** Juxtapose text on top of a cell with =elgantt--insert-juxtaposition= and clear them with =elgantt--clear-juxtapositions=.
 ***** Change the character of a cell (while preserving text properties) with =elgantt--change-char=.
 
 **** Navigating the buffer
-Move to a cell by org-id with =elgantt--goto-id=.
-
-Move to a date on the current line with =elgantt--goto-date=.
-
+***** Move to a cell by org-id with =elgantt--goto-id=.
+***** Move to a date on the current line with =elgantt--goto-date=.
 **** Selecting from multiple entries
 Some cells will have multiple entries. To prompt the user to pick which one should be used: =elgantt--select-entry=.
-
 **** Getting calendar data 
-To get the date at point: =elgantt-get-date-at-point=.
-
-To get the properties of a cell: =elgantt-get-prop-at-point=. 
-
+***** To get the date at point: =elgantt-get-date-at-point=.
+***** To get the properties of a cell: =elgantt-get-prop-at-point=. 
+This will always return a list, and if there are multiple entries in the cell at point it will list all values. Without any arguments, it will return all properties. 
 **** Editing the underlying org file
-Use the macro =elgantt-with-point-at-orig-entry= to execute code at the underlying org heading. 
-
+***** Use the macro =elgantt-with-point-at-orig-entry= to execute code at the underlying org heading. 
 **** Redrawing 
 You can't reload a single cell because doing so invites catastrophe. But you can update all cells for the date at point: =elgantt-update-this-cell=.
 
@@ -448,7 +450,6 @@ The display (i.e., overlays) of a single cell can be redrawn with =elgantt--upda
 If all else fails, reload everything with =elgantt-open=.
 
 A note about org-ql: Org-ql creates a cache of its results and uses that cache until the underlying org file is changed. If you change something about the way the calendar is displayed, odds are that there will be a problem with using the org-ql cache. For this reason, all reloading invalidates the org-ql cache by calling =elgantt--reset-org-ql-cache= which simply sets =org-ql-cache= to its initial value. This seems to solve reloading problems. 
-
 ** Creating custom views
 You can create custom views of the gantt chart/calendar by defining a function like this. Don't try to let-bind the variables and then call =elgantt-open= open inside the closure; things will break. You can use =setq= and do not need to use the customize interface.
 #+begin_src emacs-lisp :results silent
@@ -465,12 +466,14 @@ You can create custom views of the gantt chart/calendar by defining a function l
           elgantt-even-numbered-line-change 5)
     (elgantt-open))
 #+end_src
-** Dark/light themes
-Elgantt should automatically detect if you are using a dark or light theme and adjust the relevant faces accordingly. This might seem like a silly way to do it (if you look at it), but I often switch between dark and light themes and it will recalculate the proper face on reload. Maybe this is only necessary because of the way I handle themes. I don’t know. If it doesn’t work, well, good luck.
+** Faces and themes
+Elgantt should adjust its colors to work with your theme, regardless of whether it is dark or light. 
 ** FAQ
 *** Your code...
 I’ll save you the trouble of finishing your thought:
 
 [[file:screenshots/code_quality.png]]
+*** Can you fold and unfold without reloading?
+Not without significant changes to the code, or breaking other existing features. 
 *** This is a mess/this is confusing
  This was an exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. I pray this will be my last public Emacs package. 
