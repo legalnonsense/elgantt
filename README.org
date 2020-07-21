@@ -436,15 +436,11 @@ You can create custom views of the gantt chart/calendar by defining a function l
     (elgantt-open))
 #+end_src
 ** Dark/light themes
-Elgantt should automatically detect if you are using a dark or light theme and adjust the relevant faces accordingly. If it doesn’t, well, good luck.
+Elgantt should automatically detect if you are using a dark or light theme and adjust the relevant faces accordingly. This might seem like a silly way to do it (if you look at it), but I often switch between dark and light themes and it will recalculate the proper face on reload. Maybe this is only necessary because of the way I handle themes. I don’t know. If it doesn’t work, well, good luck.
 ** FAQ
 *** Your code...
 I’ll save you the trouble of finishing your thought:
 
 [[file:screenshots/code_quality.png]]
-
-Seriously though, a lot of this code is bad. Some of it is probably pretty decent. I am not interested in changing any of it unless something does not work, or unless someone else does it for me. 
 *** This is a mess/this is confusing
- This was an exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, that programming is not as much fun as I thought it was, and takes way more time than it should.
-
-While I use this package daily to review my schedule because my job demands a lot of long-term scheduling, I don’t need the vast majority of the features, and suspect you don’t either. I tried to cover most reasonable use cases.
+ This was an exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. I pray this will be my last public Emacs package. 
