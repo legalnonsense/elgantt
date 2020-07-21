@@ -234,7 +234,12 @@ If you want to use this kind of display, then you'll probably want to give the o
                                          ;; so we know what overlays to clear
                                          :turn-it-red t)))))))
 #+end_src
-If, during your experimentation, you want to disable a display rule, add =:disable t= and it will be removed from the function stack (or the post-command hook, if appropriate). 
+Using the test.org file (where only a few of the headlines have TODO states), you'll see this will turn the background of any entry that also has a TODO state when the point is on a cell with the same state:
+[[file:screenshots/output-2020-07-21-12:39:52.gif]]
+
+
+
+If, during your experimentation, you want to disable a display rule, add =:disable t= and it will be removed from the function stack (or the post-command hook, if appropriate). In the alternative, call =elgantt--clear-all-customizations=. 
 *** Adding new properties from org files
 Suppose you want to change the color of a cell based on a property that is not present by default. For example, you want to change the color if the cell has a certain priority, but that property is not included by default. In that case, use the =:parser= keyword to add a property. The expression is run at the first point of each org heading, and will be automatically added to the parsing function. The syntax is:
 #+begin_src emacs-lisp :results silent
