@@ -3,11 +3,12 @@
 :ID:       a02dbde8-38d3-4479-8c87-db79821a4296
 :CATEGORY: asdfasdf
 :END:
-** Design rocket :#Juan:
+** TODO Design rocket :#Juan:
 SCHEDULED: <2020-02-03 Mon> DEADLINE: <2020-05-06 Wed>
 :PROPERTIES:
 :ID:       7cda092c-d670-4545-892b-4eae2c68c4fa
-:ELGANTT-COLOR: LightGreen DarkGreen
+:ELGANTT-COLOR: Red Yellow
+:ELGANTT-LINKED-TO: 0b4dde5d-4363-47d2-9995-b82c36a40645
 :END:
 ** Get materials :#Justinia:                
 SCHEDULED: <2020-02-16 Sun> DEADLINE: <2020-03-17 Tue>
@@ -22,7 +23,7 @@ SCHEDULED: <2020-06-01 Mon> DEADLINE: <2020-06-16 Tue>
 :ID:       a6ecb972-16e3-46bb-9029-201ba1e8c1d3
 :ELGANTT-COLOR: Purple Violet
 :END:
-** Test rocket :#Jack:
+** TODO Test rocket :#Jack:
 :PROPERTIES:
 :ID:       099705d6-4a2b-49c6-9cae-a8845f5915a0
 :END:
@@ -72,7 +73,7 @@ SCHEDULED: <2020-01-24 Fri> DEADLINE: <2020-02-23 Sun>
 :ELGANTT-COLOR: LightGreen DarkGreen
 :ID:       76658fe8-deee-40b6-bc32-53d16c9a62e5
 :END:
-** Get materials :#Justinia:
+** TODO Get materials :#Justinia:
 SCHEDULED: <2020-02-24 Mon> DEADLINE: <2020-03-31 Tue>
 :PROPERTIES:
 :ID:       3ed67722-6f89-4c0b-a23e-8949b9cf1686
