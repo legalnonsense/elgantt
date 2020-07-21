@@ -408,6 +408,7 @@ You can create custom views of the gantt chart/calendar by defining a function l
           elgantt-even-numbered-line-change 5)
     (elgantt-open))
 #+end_src
+If you want to use custom display macros, then you should call =(elgantt--clear-all-customizations)= and then include your custom macros inside the function. 
 ** Faces and themes
 Elgantt should adjust its colors to work with your theme, regardless of whether it is dark or light. 
 ** Iteracting with the calendar 
