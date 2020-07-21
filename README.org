@@ -326,7 +326,7 @@ The following functions are included to aid customizing the display. See docstri
 ***** Create overlays with =elgantt--create-overlay=.
 ***** Draw a gradient with =elgantt--draw-gradient.=
 ***** Draw a progress bar with =elgantt--draw-progress-bar.=
-***** Here is an example of how to use =elgantt--draw-progress-bar=
+Here is an example of how to use =elgantt--draw-progress-bar=
 Suppose you have the following org file:
 #+begin_src org
 * TODO read The Illuminatus! Trilogy 
