@@ -1001,9 +1001,6 @@ Returns nil if not on a header line."
 		elgantt-leap-year-blank-line
 	      elgantt-normal-year-blank-line))))
 
-(defface elgantt-outline-level-1 '((t (:underline t)))
-  "Face applied to top level headers.")
-
 (defun elgantt--get-header-create (props)
   "Put point at the first char in the HEADER line, creating a new header
   line if one does not exist."
@@ -1481,6 +1478,7 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
       (put-text-property (point) (1+ (point)) property t))))
 
 (defun elgantt--remove-overarching-headers ()
+  "Delete the overarching headers from the calendar." 
   (let ((inhibit-read-only t))
     (save-excursion
       (goto-char (point-min))
@@ -1494,11 +1492,14 @@ in the buffer at point. If PROPERTY, add that text property. See `elgantt--clear
 	(elgantt--change-char " ")))))
 
 (defun elgantt--empty-line-p ()
+  "Is the current line empty (i.e., no headers and no dates)."
   (elgantt--with-point-at (point-at-bol)
     (and (> (line-number-at-pos) 2)
 	 (not (get-text-property (point) 'elgantt-header)))))
 
 (defun elgantt--draw-overarching-headers ()
+  "If the current line has no dates, draw a bracket starting at the earliest
+date and continuing until the latest date."
   (elgantt--scroll-to-beginning)
   (let ((inhibit-read-only t))
     (save-excursion 
