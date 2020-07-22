@@ -340,8 +340,9 @@ if this is set to nil.")
 	  "]")
   "List of display characters for use as a regexp for finding entries.")
 
-(defconst elgantt-vertical-line-char "|"
-  "Character used to draw lines between dates.")
+(eval-and-compile 
+  (defconst elgantt-vertical-line-char "|"
+    "Character used to draw lines between dates."))
 
 (defmacro elgantt--add-vertical-line-props (lines)
   "Place vertical line text properties."
@@ -777,6 +778,7 @@ Returns nil if not on a header line."
     (move-to-column col)))
 
 (defun elgantt--scroll-to-beginning ()
+  "Scroll to the start date of the calendar."
   (cl-loop for overlay in elgantt--hidden-overlays
 	   do (delete-overlay overlay)
 	   finally (setq elgantt--hidden-overlays nil)))
