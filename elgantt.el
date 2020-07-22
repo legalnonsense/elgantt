@@ -874,7 +874,9 @@ Returns nil if not on a header line."
   "Moves N chars and ensures that the point is not on a vertical line."
   (forward-char n)
   (when (elgantt--on-vertical-line-p)
-    (forward-char n)))
+    (if (> n 0)
+	(forward-char 1)
+      (forward-char -1))))
 
 ;; Programmatic movement functions 
 (defmacro elgantt--iterate-over-cells (&rest body)
@@ -886,17 +888,6 @@ Returns nil if not on a header line."
 	      do (progn (goto-char (car points))
 			(when (elgantt-get-prop-at-point)
 			  ,@body)))))
-
-;; (defmacro elgantt--parse-org-files-over-cells (&rest body)
-;;   "Executes BODY at each cell in the calendar, iterating in order
-;;   of buffer position."
-;;   `(save-excursion
-;;      (goto-char (point-min))
-;;      (cl-loop for points being the intervals of (current-buffer) property :elgantt
-;; 	      do (progn (goto-char (car points))
-;; 			(when (elgantt-get-prop-at-point)
-;; 			  ,@body)))))
-
 
 (defun elgantt--next-match (property value)
   "Returns the point of the next (chronologically) cell that has PROPERTY and VALUE.
@@ -1150,6 +1141,8 @@ Returns nil if not on a header line."
   (elgantt--shift-date -1))
 
 (defmacro elgantt--with-point-at (point &rest body)
+  "Move to POINT, execute BODY, and move back. 
+Replacement for (save-excursion (goto-char ...) ...)."
   (declare (indent defun))
   `(save-excursion (goto-char ,point)
 		   (progn ,@body)))
