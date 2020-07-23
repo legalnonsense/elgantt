@@ -99,15 +99,21 @@
 
 (defcustom elgantt-custom-org-ql-query nil
   "A custom org-ql query to limit results displayed in the chart.
-Query must be acceptable by `org-ql-select'.")
+This variable should be a list of two elements which comprise two parts
+of query compatible with `org-ql-select'. First, it should contain a file
+(or a list of files), second, an expression containing the query. For example:
+(setq elgantt-custom-org-ql-query '(\"~/.emacs.d/lisp/elgantt/test.org\"
+                                    '(todo)))
+would return only the results with a TODO state in the test.org file. See 
+https://github.com/alphapapa/org-ql#function-org-ql-select for more info.")
 
 (defcustom elgantt-scroll-to-current-month-at-startup t
   "Scroll the calendar to the current month at startup.")
 
 (defcustom elgantt-even-numbered-line-change 5
   "Percent to darken or lighten even numbered lines in the calendar. If using a dark 
-background default face, lighten by this percent. If using a light background 
-default face, darken by this percent.")
+  background default face, lighten by this percent. If using a light background 
+  default face, darken by this percent.")
 
 (defcustom elgantt-timestamps-to-display '(deadline
 					   timestamp
@@ -121,7 +127,7 @@ default face, darken by this percent.")
 
 (defcustom elgantt-deadline-character "▲"
   "Character used for deadlines in the calendar.
-Default: ▲")
+  Default: ▲")
 
 (defcustom elgantt-use-inherited-hashtags nil
   "If using 'hashtag for `elgantt-header-type' , use inherited tags.")
@@ -134,59 +140,59 @@ Default: ▲")
 
 (defcustom elgantt-active-timestamp-character "●"
   "Character used for active timestamps in the calendar.
-Default: ●")
+  Default: ●")
 (defcustom elgantt-inactive-timestamp-character "⊚"
   "Character used for inactive timestamps in the calendar. 
-Default: ⊚")
+  Default: ⊚")
 (defcustom elgantt-scheduled-character "⬟"
   "Character used for active timestamps in the calendar.
-Default: ⬟")
+  Default: ⬟")
 (defcustom elgantt-multiple-entry-character "☰"
   "Character used for cells which have multiple entries.
-Default: ☰")
+  Default: ☰")
 (defcustom elgantt-timestamp-range-start-character "▶"
   "Character shown at the beginning of a timerange.
-Default: ▶")
+  Default: ▶")
 (defcustom elgantt-timestamp-range-end-character "◀"
   "Character shown at the end of a timerange.
-Default: ◀")
+  Default: ◀")
 (defcustom elgantt-timestamp-range-ia-start-character "▷"
   "Character shown at the beginning of a timerange.
-Default: ▷")
+  Default: ▷")
 (defcustom elgantt-timestamp-range-ia-end-character "◁"
   "Character shown at the end of a timerange.
-Default: ◁")
+  Default: ◁")
 
 (defcustom elgantt-insert-blank-line-between-top-level-header t
   "Do you want to put a blank line between the top level headers?")
 
 (defcustom elgantt-draw-overarching-headers nil
   "Draw a line bracketing the start and end dates for the children of 
-and top-level headers, assuming there is no date already associated with the header.")
+  and top-level headers, assuming there is no date already associated with the header.")
 
 (defcustom elgantt-agenda-files (org-agenda-files)
   "A file, list of files, or function returning a list of files
-Default: `org-agenda-files'.")
+  Default: `org-agenda-files'.")
 
 (defcustom elgantt-skip-archives t
   "Skip archived entries if non-nil.
-Default: t")
+  Default: t")
 
 (defcustom elgantt-start-date (concat (format-time-string "%Y-") "01-01")
   "Beginning date for the calendar as a string YYYY-MM-DD. 
-Nothing before this date will be parsed or display. 
-Default: the current year.")
+  Nothing before this date will be parsed or display. 
+  Default: the current year.")
 
 (defcustom elgantt-header-column-offset 20
   "Width of the header column.
-Default: 20.")
+  Default: 20.")
 
 (defcustom elgantt-startup-folded nil
   "Whether subheadings are folded at startup.")
 
 (defcustom elgantt-header-type 'outline
   "Define how to gather the headers. Can be: category, hashtag, root, outline,
-or a function that returns the desired header. Default: 'outline.")
+  or a function that returns the desired header. Default: 'outline.")
 
 (defcustom elgantt-header-line-format
   '(:eval
@@ -206,13 +212,13 @@ or a function that returns the desired header. Default: 'outline.")
 
 (defcustom elgantt-exclusions nil
   "Exclude headings mathing these strings or regexps
-in this list from display in the calendar.
-Default: nil")
+  in this list from display in the calendar.
+  Default: nil")
 
 (defcustom elgantt-insert-header-even-if-no-timestamp nil
   "Insert a header even if there is no timestamp. 
-Parent headings will still be inserted if a child has a timestamp, even
-if this is set to nil.")
+  Parent headings will still be inserted if a child has a timestamp, even
+  if this is set to nil.")
 
 ;; The names refer to the corners of a square. 
 (defcustom elgantt-draw--top-left "╭"
@@ -363,7 +369,7 @@ if this is set to nil.")
 
 (defvar elgantt--display-rules nil
   "List of functions for drawing overlays in the buffer based on underlying
-text properties.")
+  text properties.")
 
 (defvar elgantt--date-range nil
   "Range of years present in the agenda files.")
@@ -379,8 +385,8 @@ text properties.")
 (defun elgantt--change-symbol-name (symbol &optional prefix suffix
 					   substring-start substring-end)
   "SYMBOL is any symbol name. PREFIX and SUFFIX are a string to be
-prepended or appended to the symbol name and returned as a new 
-symbol."
+  prepended or appended to the symbol name and returned as a new 
+  symbol."
   (intern (concat prefix
 		  (substring (symbol-name symbol)
 			     substring-start substring-end)
@@ -388,8 +394,8 @@ symbol."
 
 (defun elgantt--add-remove-prop-colon (prop &optional remove)
   "PROP is a symbol with or without a colon prefix. 
-Returns a symbol with a colon prefix. If REMOVE is t, 
-then returns a symbol without a colon prefix."
+  Returns a symbol with a colon prefix. If REMOVE is t, 
+  then returns a symbol without a colon prefix."
   (if remove
       (if (s-starts-with-p ":" (symbol-name prop))
 	  (intern (substring (symbol-name prop) 1))			
@@ -400,7 +406,7 @@ then returns a symbol without a colon prefix."
 
 (defun elgantt--plist-pair-p (plist key val &optional predicate)
   "Return t if PLIST has the KEY and VAL pair. Tests using `equal'.
-Optional PREDICATE provides a function which performs equality test."
+  Optional PREDICATE provides a function which performs equality test."
   (when-let ((stored-val (plist-get plist key)))
     (cond ((not predicate)
 	   (equal stored-val val))
@@ -409,9 +415,9 @@ Optional PREDICATE provides a function which performs equality test."
 
 (defun elgantt--zip (args)
   "Zips multiple lists together. Example:
-(elgantt--zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
-=> '((1 2 3 4) (5 6 7 8) (9 10 11 12)).
-All lists must be the same length."
+  (elgantt--zip '((1 5 9) (2 6 10) (3 7 11) (4 8 12)))
+  => '((1 2 3 4) (5 6 7 8) (9 10 11 12)).
+  All lists must be the same length."
   (if (catch 'match ; Check if lists are all the same length
 	(dotimes (x (1- (length args)))
 	  (when (/= (length (nth x args))
@@ -444,7 +450,7 @@ All lists must be the same length."
 
 (defun elgantt--date-compare-p (pred date1 date2)
   "Apply PRED to date1 and date2. 
-PRED is one of =, <, <=, >=, >, or /=."
+  PRED is one of =, <, <=, >=, >, or /=."
   (pcase pred
     (`/= (not (string= date1 date2)))
     (`> (string> date1 date2))
@@ -469,7 +475,7 @@ PRED is one of =, <, <=, >=, >, or /=."
 
 (defun elgantt--convert-date-to-column-number (date)
   "Accepts a date in the form of YYYY-MM-DD and returns
-the column of that date."
+  the column of that date."
   (let ((spaces 0))
     (cl-subseq elgantt--date-range
 	       0 (cl-position (string-to-number (substring date 0 4))
@@ -493,14 +499,14 @@ the column of that date."
 
 (defun elgantt--convert-date-to-column-in-current-year (date)
   "accepts a date YYYY-MM-DD and returns the position on the horizontal calendar (int)
-this works on leap years"
+  this works on leap years"
   (+ (elgantt--convert-date-to-day-number-in-year date)
      (- (string-to-number (substring date 5 7)) 1)))
 
 (defun elgantt--date-calc (date offset &optional unit)
   "DATE is a string \"YYYY-MM-DD\"
-OFFSET is a positive or negative integer representing
-the number of days. UNIT should be day, month, year."
+  OFFSET is a positive or negative integer representing
+  the number of days. UNIT should be day, month, year."
   (->> date
        (ts-parse)
        (ts-adjust (or unit 'day) offset)
@@ -508,8 +514,8 @@ the number of days. UNIT should be day, month, year."
 
 (defun elgantt--create-overlay (&optional begin end properties)
   "Create an overlay from BEGIN to END with PROPERTIES. If BEGIN is
-nil, then create the overlay at point. If END is nil, then create
-the overlay at BEGIN. Returns the new overlay."
+  nil, then create the overlay at point. If END is nil, then create
+  the overlay at BEGIN. Returns the new overlay."
   (let ((overlay (make-overlay (or begin (point))
 			       (or end (1+ (point)))))
 	(len (length properties))
@@ -523,7 +529,7 @@ the overlay at BEGIN. Returns the new overlay."
 
 (defun elgantt--parser ()
   "Runs at each org heading and returns a plist of 
-relevant properties to be inserted into the calendar buffer."
+  relevant properties to be inserted into the calendar buffer."
   (-let* (((&alist "CATEGORY" elgantt-category
 		   "ITEM" elgantt-headline
 		   "FILE" elgantt-file
@@ -692,9 +698,9 @@ relevant properties to be inserted into the calendar buffer."
 
 (defun elgantt--select-entry (&optional prop-or-all)
   "Prompt the user to select from multiple entries.
-If PROP is `all', then skip the prompt and return the
-list of all props at point. (i.e., the same thing as
-				   `elgantt-get-props-at-point')"
+  If PROP is `all', then skip the prompt and return the
+  list of all props at point. (i.e., the same thing as
+				     `elgantt-get-props-at-point')"
   (when-let ((prop-list (elgantt-get-prop-at-point)))
     (cond ((eq prop-or-all 'all)
 	   ;; If user wants all entries, return them
@@ -721,7 +727,7 @@ list of all props at point. (i.e., the same thing as
 
 (defun elgantt-get-header-at-point ()
   "Gets the header of the cell's current position.
-Returns nil if not on a header line."
+  Returns nil if not on a header line."
   (save-excursion
     (beginning-of-line)
     (get-text-property (point) 'elgantt-header)))
