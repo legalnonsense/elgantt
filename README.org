@@ -1,6 +1,9 @@
 * El Gantt – A Gantt chart/calendar for Orgmode
 
 El Gantt creates a Gantt calendar from your orgmode files. It provides a flexible customization system with the goal of being adaptable to ?multiple purposes. You can move dates, scroll forward and backward, jump to the underlying org file, and customize the display. 
+
+This package is under ongoing development. Ideas are welcome. Feature requests and bug reports are welcome. Help is welcome. 
+
 [[file:screenshots/output-2020-07-20-14:25:27.gif]]
 ** Installation
 Install the dependencies:
@@ -523,7 +526,10 @@ I’ll save you the trouble:
 
 [[file:screenshots/code_quality.png]]
 
-This is a hobby and a continued exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. I don’t have the patience to clean up the code like I should. There are byte-compile warnings. I do not care. I am hoping that publishing this gets it out of my life.
+This is a hobby and a continued exercise in learning elisp and programming, and I realized a lot of things along the way. Mostly, I realized that programming is not as much fun as I thought it was, and takes way more time than it should. I don’t have the patience to clean up the code like I should. There are byte-compile warnings. I do not care. 
+
+I originally wrote that I hoped publishing this would get it out of my life, but it seems there is interest so I will push this as far as my time and ability will allow. If you can help, please help. 
+
 *** Can you fold and unfold without reloading?
 Not without significant changes to the code, or breaking other existing features. You’ll just have to change the value of =elgantt-startup-folded= and reload.  
 *** Why so many gradients?
