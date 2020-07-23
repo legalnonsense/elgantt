@@ -721,61 +721,25 @@ Returns nil if not on a header line."
   (setq elgantt--parsing-functions nil)
   (setq elgantt--post-command-hooks nil))
 
-
-;; (defun elgantt-get-date-at-point ()
-;;       "Get the date at point in YYYY-MM-DD format. NOTE: this gets this date 
-;;   from the location in the calendar, and does not rely on any text properties."
-;;   (let ((col (- (current-column) elgantt-header-column-offset))
-;; 	(day (- (point)
-;; 		(save-excursion (re-search-backward "|" (point-at-bol))))
-;; 	(months (s-count-matches "|" (buffer-substring (point-at-bol) point)))
-	
-;; 	(cl-loop with year = (car elgantt--date-range)
-;; 		 with month = nil
-;; 		 with day = nil
-;; 		 if (> col 12)
-;; 		 do (setq col (- col 12))
-;; 		    (setq year (1+ year))
-	     
-	     
-
-
-
-  (defun elgantt-get-date-at-point (&optional column)
-    "Get the date at point in YYYY-MM-DD format. NOTE: this gets this date 
-  from the location in the calendar, and does not rely on the text properties. 
-  It works on empty cells, and does not rely on the :elgantt-date property." 
-    ;; HACK: It works, but...
-    (let ((deactivate-mark t)) 
-      (if (not (char-equal (char-after) ?|))
-	  (progn
-	    (when (not column)
-	      (setq column (current-column)))
-	    (let ((current-point (point))
-		  (date ""))
-	      (save-excursion
-		(if (re-search-backward "|" nil t)
-		    (progn 
-		      (setq date (number-to-string (- current-point (match-beginning 0))))
-		      (goto-char (point-min))
-		      (move-to-column column)
-		      (if (re-search-backward "|" nil t)
-			  (progn
-			    (re-search-forward "[[:alpha:]]+" nil t)
-			    (setq date (concat (match-string 0) " " date))
-			    (if (re-search-forward "[[:digit:]]+" nil t)
-				(progn
-				  (setq date (concat date " " (match-string 0)))
-				  (let ((day (org-day-of-week (nth 3 (parse-time-string date))
-							      (nth 4 (parse-time-string date))
-							      (nth 5 (parse-time-string date)))))
-				    (setq date (concat date)))
-				  (setq date (ts-format "%Y-%m-%d" (ts-parse date))))
-			      (setq date "")))
-			(setq date "")))
-		  (setq date "")))
-	      date))
-	"")))
+(defun elgantt-get-date-at-point ()
+  "Get the date at point in YYYY-MM-DD format. NOTE: this gets this date 
+  from the location in the calendar, and does not rely on any text properties."
+  (if-let* ((previous-vertical-bar (save-excursion
+				     (when (re-search-backward "|" (point-at-bol) t)
+				       (point))))
+	    (day (- (point)
+		    previous-vertical-bar))
+	    (month (s-count-matches "|" (buffer-substring (point-at-bol) (point))))
+	    (year (car elgantt--date-range)))
+      (progn 
+	(cl-loop until (<= month 12)
+		 do (setq months (- month 12))
+		 (setq year (1+ year)))
+	(concat
+	 (number-to-string year) "-"
+	 (s-pad-left 2 "0" (number-to-string month)) "-"
+	 (s-pad-left 2 "0" (number-to-string day))))
+    ""))
 
 (defun elgantt-get-prop-at-point (&optional prop)
   "Returns the :elgantt text property value. 
@@ -2206,7 +2170,7 @@ string accepted by `kbd'."
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
     (toggle-truncate-lines 1)
-    (setq header-line-format elgantt-header-line-format)
+    (setq header-line-format nil);; elgantt-header-line-format)
     (goto-char point)
     (when elgantt-scroll-to-current-month-at-startup
       (elgantt-scroll-to-current-month)))
