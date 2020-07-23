@@ -122,6 +122,9 @@ Default: ▲")
 (defcustom elgantt-use-inherited-hashtags nil
   "If using 'hashtag for `elgantt-header-type' , use inherited tags.")
 
+(defcustom elgantt-hide-number-line nil
+  "Hide the date number line at the top of the calendar.")
+
 (defcustom elgantt-level-prefix-char ?-
   "Use this prefix character to show header depth when the outline is unfolded.")
 
@@ -849,7 +852,7 @@ Returns nil if not on a header line."
   "Move up or down one line, and then move to the nearest
   entry. UP-OR-DOWN must be 'up or 'down."
   (if (eq up-or-down 'up)
-      (if (> (org-current-line) 3)
+      (if (> (org-current-line) (if elgantt-hide-number-line 2 3))
 	  (elgantt--forward-line -1)
 	(return-from elgantt--move-vertically nil))
     (if (< (org-current-line) (count-lines (point-min) (point-max)))
@@ -1222,11 +1225,12 @@ to the end of the calendar. (This should be calculated automatically,
       (end-of-line)
     (move-to-column elgantt-header-column-offset))
   (elgantt--draw-month-line year)
-  (forward-line)
   (if append
       (end-of-line)
     (move-to-column elgantt-header-column-offset))
-  (elgantt--draw-number-line year)
+  (unless elgantt-hide-number-line
+    (forward-line)
+    (elgantt--draw-number-line year))
   (cl-loop until (progn (end-of-line)
 			(eobp))
 	   do (progn (forward-line)
@@ -2087,7 +2091,8 @@ string accepted by `kbd'."
 (defun elgantt--move-up ()
   "Move the cursor up with `elgantt--move-vertically'."
   (interactive)
-  (unless (<= (line-number-at-pos) 3)
+  (unless (<= (line-number-at-pos)
+	      (if elgantt-hide-number-line 2 3))
     (elgantt--move-vertically 'up)))
 
 (defun elgantt--move-down ()
@@ -2175,9 +2180,10 @@ string accepted by `kbd'."
     (elgantt--set-even-numbered-line-face)
     (setq elgantt--date-range nil)
     (setq elgantt--hidden-overlays nil)
-    (insert (make-string elgantt-header-column-offset ? )
-	    "\n"
-	    (make-string elgantt-header-column-offset ? ))
+    (insert (make-string elgantt-header-column-offset ? ))
+    (unless elgantt-hide-number-line
+      (insert "\n"
+	      (make-string elgantt-header-column-offset ? )))
     (elgantt--iterate)
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
