@@ -1230,6 +1230,7 @@ to the end of the calendar. (This should be calculated automatically,
     (move-to-column elgantt-header-column-offset))
   (unless elgantt-hide-number-line
     (forward-line)
+    (end-of-line)
     (elgantt--draw-number-line year))
   (cl-loop until (progn (end-of-line)
 			(eobp))
@@ -2182,8 +2183,8 @@ string accepted by `kbd'."
     (setq elgantt--hidden-overlays nil)
     (insert (make-string elgantt-header-column-offset ? ))
     (unless elgantt-hide-number-line
-      (insert "\n"
-	      (make-string elgantt-header-column-offset ? )))
+      (insert "\n")
+      (insert (make-string elgantt-header-column-offset ? )))
     (elgantt--iterate)
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
