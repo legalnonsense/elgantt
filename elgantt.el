@@ -97,6 +97,10 @@
   :group 'org
   :group 'elgantt)
 
+(defcustom elgantt-custom-org-ql-query nil
+  "A custom org-ql query to limit results displayed in the chart.
+Query must be acceptable by `org-ql-select'.")
+
 (defcustom elgantt-scroll-to-current-month-at-startup t
   "Scroll the calendar to the current month at startup.")
 
@@ -656,24 +660,31 @@ relevant properties to be inserted into the calendar buffer."
 
 (defun elgantt--iterate ()
   "Iterate over all entries in `elgantt-agenda-files'."
-  (if elgantt-insert-header-even-if-no-timestamp
-      ;; Seems wasteful to write two separate queries, but
-      ;; I do not know how to format a single org-ql query
-      ;; to include or exclude timestamps depending on the value of 
-      ;; the horribly named `elgantt-insert-header-even-if-no-timestamp'
+  ;; Attempt to allow custom org-ql queries...
+  (if elgantt-custom-org-ql-query
+      (mapc #'elgantt--insert-entry
+	    (-non-nil
+	     (org-ql-select (car elgantt-custom-org-ql-query)
+	       (cadr elgantt-custom-org-ql-query)
+	       :action #'elgantt--parser)))
+    (if elgantt-insert-header-even-if-no-timestamp
+	;; Seems wasteful to write two separate queries, but
+	;; I do not know how to format a single org-ql query
+	;; to include or exclude timestamps depending on the value of 
+	;; the horribly named `elgantt-insert-header-even-if-no-timestamp'
+	(mapc #'elgantt--insert-entry
+	      (-non-nil
+	       (org-ql-select elgantt-agenda-files
+		 `(not (tags ,(when elgantt-skip-archives
+				org-archive-tag)))
+		 :action #'elgantt--parser)))
       (mapc #'elgantt--insert-entry
 	    (-non-nil
 	     (org-ql-select elgantt-agenda-files
-	       `(not (tags ,(when elgantt-skip-archives
-			      org-archive-tag)))
-	       :action #'elgantt--parser)))
-    (mapc #'elgantt--insert-entry
-	  (-non-nil
-	   (org-ql-select elgantt-agenda-files
-	     `(and (ts :from ,elgantt-start-date)
-		   (not (tags ,(when elgantt-skip-archives
-				 org-archive-tag))))
-	     :action #'elgantt--parser)))))
+	       `(and (ts :from ,elgantt-start-date)
+		     (not (tags ,(when elgantt-skip-archives
+				   org-archive-tag))))
+	       :action #'elgantt--parser))))))
 
 (defun elgantt--on-vertical-line-p ()
   "Is the cursor on a vertical line?"
