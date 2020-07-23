@@ -1,6 +1,6 @@
 * El Gantt – A Gantt chart/calendar for Orgmode
 
-El Gantt creates a Gantt calendar from your orgmode files. It provides a flexible customization system with the goal of being adaptable to multiple purposes. You can move dates, scroll forward and backward, jump to the underlying org file, and customize the display. 
+El Gantt creates a Gantt calendar from your orgmode files. It provides a flexible customization system with the goal of being adaptable to ?multiple purposes. You can move dates, scroll forward and backward, jump to the underlying org file, and customize the display. 
 [[file:screenshots/output-2020-07-20-14:25:27.gif]]
 ** Installation
 Install the dependencies:
@@ -63,6 +63,7 @@ I generally use =(setq elgantt-timestamps-to-display '(deadline timestamp schedu
 | elgantt-header-line-format                         | This is currently a mess and needs to be fixed. I will write something that makes it easy to customize what data is shown in the header. Until then, refer to the documentation for the header-line and good luck. |
 | elgantt-exclusions                                 | This is a list of strings. Do not display any headers that appear in this list.                                                                                                                                    |
 | elgantt-insert-header-even-if-no-timestamp         | Insert the header even if there is no timestamp associated with it.                                                                                                                                                |
+| elgantt-hide-number-line                           | Hides the number line that appears at the top of the calendar                                                                                                                                                      |
 **** Other custom variables
 | Variable                                       | Default                                                               |
 |------------------------------------------------+-----------------------------------------------------------------------|
