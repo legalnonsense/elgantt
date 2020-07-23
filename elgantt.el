@@ -105,7 +105,8 @@ of query compatible with `org-ql-select'. First, it should contain a file
 (setq elgantt-custom-org-ql-query '(\"~/.emacs.d/lisp/elgantt/test.org\"
                                     '(todo)))
 would return only the results with a TODO state in the test.org file. See 
-https://github.com/alphapapa/org-ql#function-org-ql-select for more info.")
+https://github.com/alphapapa/org-ql#function-org-ql-select for more info
+on how to structure queries.")
 
 (defcustom elgantt-scroll-to-current-month-at-startup t
   "Scroll the calendar to the current month at startup.")
