@@ -1365,6 +1365,7 @@ new color."
   (elgantt--remove-overarching-headers)
   (elgantt--clear-juxtapositions)
   (elgantt--clear-all-date-chars)
+  (setq elgantt--hidden-overlays nil)
   (save-excursion
     (cl-loop for func in (append (list #'elgantt--display-rule-display-char) elgantt--display-rules)
 	     do (progn (goto-char (point-min))
@@ -2161,7 +2162,6 @@ string accepted by `kbd'."
     (elgantt--reset-org-ql-cache)
     (elgantt--set-even-numbered-line-face)
     (elgantt--set-vertical-line-face)
-    ;;(elgantt--set-vertical-highlight-face)
     (setq elgantt--date-range nil)
     (setq elgantt--hidden-overlays nil)
     (insert (make-string elgantt-header-column-offset ? )
