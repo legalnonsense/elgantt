@@ -2263,7 +2263,8 @@ string accepted by `kbd'."
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
     (toggle-truncate-lines 1)
-    (setq header-line-format '(:eval (elgantt-header-line-function)))
+    (setq header-line-format nil)
+    ;;(setq header-line-format '(:eval (elgantt-header-line-function)))
     (goto-char point)
     (when elgantt-scroll-to-current-month-at-startup
       (elgantt-scroll-to-current-month)))
