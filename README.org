@@ -99,6 +99,33 @@ I generally use =(setq elgantt-timestamps-to-display '(deadline timestamp schedu
 | space       | Navigate to org heading at point               |
 | Return      | Show agenda for date at point                  |
 Note about cells with multiple entries: If a calendar cell has multiple entries, a special character will be displayed ("☰" by default). If you try to perform a function on one of these cells (e.g., navigating to the org file, shifting a date, etc.), you will be prompted to select the entry you want to perform the operation on. 
+** Header line format
+The variable =elgantt-custom-header-line= controls the format of the header line. It can use any of the properties that are in a cell. You can reference these properties with the =:prop= keyword, with or without the =:elgantt-= prefix. (For example, you can access the headline of a cell’s entry with =:elgantt-headline= or =headline=. There is also a unique property =date-at-point= which will display the date at point and that is not dependent on the properties stored in the given cell. If there are multiple entries in the cell, then the data will be separated with a pipe (i.e, =|=). You can align text in the headerline to the left, center, or right side of the header. If there is an overlap, the latter properties will take precedence over the former. If the property doesn’t return a string, it will be formatted into a string with =(format "%s")=. 
+
+The =:prop= keyword can also be a function that is run at the cell at point. 
+
+The header line is disabled by default while I finish sorting out the variable and function that handles it. You can enable it with =(setq header-line-format '(:eval (elgantt-header-line-function)))=. This will use the default value for =elgantt-custom-header-line=, which is:
+#+begin_src emacs-lisp :results silent
+(setq elgantt-custom-header-line '((:left ((:prop date-at-point
+						    :padding 25
+						    :face nil
+						    :after-pad 5)
+					     (:prop todo
+						    :padding 30)
+					     (:prop headline
+						    :padding 25)))))
+#+end_src
+Here is another example:
+#+begin_src emacs-lisp :results silent
+  (setq elgantt-custom-header-line '((:left ((:prop date-at-point ;; you could also use, for example, #'elgantt-get-date-at-point
+                                                    :padding 25
+                                             (:prop todo 
+                                                    :padding 30)))
+                                     (:center ((:prop headline)))
+                                     (:right ((:prop hashtag
+                                                     :padding 40)))))
+#+end_src
+This is a messy work-in-progress. 
 ** Examples 
 These exampes all use the =test.org= file: =(setq elgantt-agenda-files "~/.emacs.d/lisp/elgantt/test.org")= (or wherever your elgantt direcctory is located). 
 *** A note about colorizing the outline
@@ -534,6 +561,6 @@ I originally wrote that I hoped publishing this would get it out of my life, but
 Not without significant changes to the code, or breaking other existing features. You’ll just have to change the value of =elgantt-startup-folded= and reload.  
 *** Why so many gradients?
 They are pretty. You can also customize where the midpoint of the gradient appears so it reflects remaining time. If you don't like gradients, then just use the same start and end color. 
-
-
-
+** Change log
+*** [2020-07-31 Fri] 
+Added header-line-format =elgantt-custom-header-line= and =elgantt--header-line-formatter= and updated the readme. 
