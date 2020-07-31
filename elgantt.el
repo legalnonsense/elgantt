@@ -185,9 +185,7 @@ Default: 20.")
 or a function that returns the desired header. Default: 'outline.")
 
 (defcustom elgantt-custom-header-line '((:left ((:prop date-at-point
-						       :padding 25
-						       :face nil
-						       :after-pad 5)
+						       :padding 25)
 						(:prop todo
 						       :padding 30)
 						(:prop headline
@@ -263,6 +261,8 @@ or a function that returns the desired header. Default: 'outline.")
 				       (substring return-val
 						  (+ window-middle (length component)))))))))
     return-val))
+
+
 
 (defcustom elgantt-exclusions nil
   "Exclude headings mathing these strings or regexps

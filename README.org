@@ -106,24 +106,25 @@ The =:prop= keyword can also be a function that is run at the cell at point.
 
 The header line is disabled by default while I finish sorting out the variable and function that handles it. You can enable it with =(setq header-line-format '(:eval (elgantt-header-line-function)))=. This will use the default value for =elgantt-custom-header-line=, which is:
 #+begin_src emacs-lisp :results silent
-(setq elgantt-custom-header-line '((:left ((:prop date-at-point
-						    :padding 25
-						    :face nil
-						    :after-pad 5)
-					     (:prop todo
-						    :padding 30)
-					     (:prop headline
-						    :padding 25)))))
+  (setq elgantt-custom-header-line '((:left ((:prop date-at-point
+                                                    :padding 25)
+                                             (:prop todo
+                                                    :padding 30)
+                                             (:prop headline
+                                                    :padding 25)))))
 #+end_src
 Here is another example:
 #+begin_src emacs-lisp :results silent
-  (setq elgantt-custom-header-line '((:left ((:prop date-at-point ;; you could also use, for example, #'elgantt-get-date-at-point
-                                                    :padding 25
+  (setq elgantt-custom-header-line '((:left ((:prop date-at-point
+                                                    ;; you could also use, for example, 'elgantt-get-date-at-point
+                                                    ;; or (lambda () (elgantt-get-date-at-point))
+                                                    :padding 25)
                                              (:prop todo 
                                                     :padding 30)))
                                      (:center ((:prop headline)))
                                      (:right ((:prop hashtag
-                                                     :padding 40)))))
+                                                     :padding 40
+                                                     :text-props (face (:background "red")))))))
 #+end_src
 This is a messy work-in-progress. 
 ** Examples 
