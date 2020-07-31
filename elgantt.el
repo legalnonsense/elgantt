@@ -184,21 +184,78 @@ Default: 20.")
   "Define how to gather the headers. Can be: category, hashtag, root, outline,
 or a function that returns the desired header. Default: 'outline.")
 
-(defcustom elgantt-header-line-format
-  '(:eval
-    (let ((string (s-pad-right (window-total-width) " "
-			       (concat (when (elgantt-get-date-at-point)
-					 (s-pad-right 30 " " (elgantt-get-date-at-point)))
-				       (when (elgantt-get-header-at-point)
-					 (s-pad-right 30 " " (elgantt-get-header-at-point)))
-				       (when-let ((headlines (elgantt-get-prop-at-point :elgantt-headline)))
-					 (if (> (length headlines) 1)
-					     (cl-loop for headline in headlines
-						      concat (concat headline " / "))
-					   (concat (car headlines))))))))
-      (put-text-property 0 (length string) 'face 'elgantt-header-line-face string)
-      string))
-  "Display information about the cell at point in the header line. See `header-line-format'.")
+(defvar elgantt-custom-header-line '((:left ((:prop date-at-point
+						    :padding 25
+						    :face nil
+						    :after-pad 5)
+					     (:prop todo
+						    :padding 30)
+					     (:prop headline
+						    :padding 25))))
+  "Header line configuration variable used by `elgantt--header-line-formatter'.")
+
+(defun elgantt--header-line-formatter ()
+  "Formats header line according to the value of `elgantt-header-line-format'."
+  (let* ((window-width (window-total-width))
+	 (window-middle (/ window-width 2))
+	 (return-val (make-string window-width ? )))
+    (cl-loop for entries in elgantt-custom-header-line
+	     do
+	     (cl-loop with component = ""
+		      for entry in (cadr entries)
+		      do
+		      (setq component
+			    (concat
+			     component
+			     (-let* (((&plist :padding-char
+					      :prop
+					      :padding
+					      :text-props
+					      :after-pad)
+				      entry)
+				     (string
+				      (s-pad-right
+				       (or padding 0)
+				       (or padding-char " ")
+				       (if (or (eq prop 'date-at-point)
+					       (eq prop :elgantt-date-at-point))
+					   (elgantt-get-date-at-point)
+					 (cl-loop
+					  with text = ""
+					  with props = (elgantt-get-prop-at-point
+							(if (s-starts-with-p
+							     ":elgantt-"
+							     (symbol-name prop))
+							    prop
+							  (elgantt--change-symbol-name
+							   prop
+							   ":elgantt-")))
+					  for elem in props
+					  do (setq text (concat text elem " | "))
+					  finally return (concat (substring text 0 -3)
+								 (make-string (or after-pad 0) (string-to-char (or padding-char " ")))))))))
+			       (when text-props 
+				 (set-text-properties 0
+						      (length string)
+						      text-props
+						      string))
+			       string)))
+		      finally do
+		      (setq return-val 
+			    (pcase (car entries)
+			      (:left (concat component
+					     (substring
+					      return-val
+					      (length component))))
+			      (:right (concat 
+				       (substring return-val 0
+						  (- window-width (length component)))
+				       component))
+			      (:center (concat (substring return-val 0 window-middle)
+					       component
+					       (substring return-val
+							  (+ window-middle (length component)))))))))
+    return-val))
 
 (defcustom elgantt-exclusions nil
   "Exclude headings mathing these strings or regexps
@@ -2206,7 +2263,7 @@ string accepted by `kbd'."
     (elgantt--draw-even-odd-background)
     (elgantt--update-display-all-cells)
     (toggle-truncate-lines 1)
-    (setq header-line-format nil);; elgantt-header-line-format)
+    (setq header-line-format '(:eval (elgantt-header-line-function)))
     (goto-char point)
     (when elgantt-scroll-to-current-month-at-startup
       (elgantt-scroll-to-current-month)))

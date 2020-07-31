@@ -4,14 +4,14 @@
 :CATEGORY: asdfasdf
 :END:
 ** TODO Design rocket :#Juan:
-SCHEDULED: <2020-02-03 Mon> DEADLINE: <2020-05-06 Wed>
+SCHEDULED: <2020-02-03 Mon> DEADLINE: <2020-05-10 Sun>
 :PROPERTIES:
 :ID:       7cda092c-d670-4545-892b-4eae2c68c4fa
 :ELGANTT-COLOR: Red Yellow
 :ELGANTT-LINKED-TO: 0b4dde5d-4363-47d2-9995-b82c36a40645
 :END:
 ** Get materials :#Justinia:                
-SCHEDULED: <2020-02-16 Sun> DEADLINE: <2020-03-17 Tue>
+SCHEDULED: <2020-02-16 Sun> DEADLINE: <2020-03-21 Sat>
 :PROPERTIES:
 :ID:       0b4dde5d-4363-47d2-9995-b82c36a40645
 :ELGANTT-COLOR: Black LightBlue
@@ -27,7 +27,7 @@ SCHEDULED: <2020-06-01 Mon> DEADLINE: <2020-06-16 Tue>
 :PROPERTIES:
 :ID:       099705d6-4a2b-49c6-9cae-a8845f5915a0
 :END:
-<2020-07-14 Tue>
+<2020-07-17 Fri>
 :PROPERTIES:
 :ID:       65e013e5-ec03-4389-b45f-2f1e57f71602
 :END:
@@ -35,30 +35,30 @@ SCHEDULED: <2020-06-01 Mon> DEADLINE: <2020-06-16 Tue>
 :PROPERTIES:
 :ID:       00db3ad5-ddce-4c22-9a63-96693d45b691
 :END:
-<2020-08-20 Thu>
+<2020-08-23 Sun>
 * Space suit 
 :PROPERTIES:
 :ID:       60b318f5-8093-4015-9f51-7239c0ff10e2
 :END:
 ** Design space suit :#Jasmine:adsf:
-SCHEDULED: <2020-01-09 Thu> DEADLINE: <2020-03-12 Thu>
+SCHEDULED: <2020-01-09 Thu> DEADLINE: <2020-03-13 Fri>
 :PROPERTIES:
 :ID:       5b3e77de-fd29-4cde-b3ae-a86ecbd0141e
 :ELGANTT-COLOR: LightGreen DarkGreen
 :END:
 ** Get materials :#Justinia:
-SCHEDULED: <2020-02-14 Fri> DEADLINE: <2020-03-31 Tue>
+SCHEDULED: <2020-02-14 Fri> DEADLINE: <2020-04-07 Tue>
 :PROPERTIES:
 :ID:       c6b84a57-1d92-4062-9f14-773ed232bb5c
 :ELGANTT-COLOR: Black LightBlue
 :END:
-** Assemble materials :#Jason:
-SCHEDULED: <2020-04-01 Wed> DEADLINE: <2020-04-21 Tue>
+** TODO Assemble materials :#Jason:
+SCHEDULED: <2020-04-01 Wed> DEADLINE: <2020-05-23 Sat>
 :PROPERTIES:
 :ELGANTT-COLOR: Purple Violet
 :ID:       0888069b-96f4-4059-bb4e-5797a2554a84
 :END:
-** Test space suit :#Jack:
+** TODO Test space suit :#Jack:
 SCHEDULED: <2020-04-22 Wed> DEADLINE: <2020-05-23 Sat>
 :PROPERTIES:
 :ID:       09aa34ed-6dce-4e48-981f-3d0717c59fc1
@@ -74,7 +74,7 @@ SCHEDULED: <2020-01-24 Fri> DEADLINE: <2020-02-23 Sun>
 :ID:       76658fe8-deee-40b6-bc32-53d16c9a62e5
 :END:
 ** TODO Get materials :#Justinia:
-SCHEDULED: <2020-02-24 Mon> DEADLINE: <2020-03-31 Tue>
+SCHEDULED: <2020-02-24 Mon> DEADLINE: <2020-04-02 Thu>
 :PROPERTIES:
 :ID:       3ed67722-6f89-4c0b-a23e-8949b9cf1686
 :ELGANTT-COLOR: Black LightBlue
@@ -94,7 +94,7 @@ DEADLINE: <2020-06-24 Wed>
 :PROPERTIES:
 :ID:       794bc7c5-e537-4596-9201-59310523f211
 :END:
-<2020-07-01 Wed>
+<2020-07-06 Mon>
 * Vacations
 :PROPERTIES:
 :ID:       75f4b06b-e846-4c90-8291-16741bee93cb
