@@ -235,10 +235,11 @@ or a function that returns the desired header. Default: 'outline.")
 				       do (setq text (concat text (when elem (format "%s" elem)) " | "))
 				       finally
 				       return
-				       (concat (substring text 0 -3)
-					       (make-string (or after-pad 0)
-							    (string-to-char
-							     (or padding-char " "))))))))))
+				       (if (string= text "") text
+					 (concat (substring text 0 -3)
+						 (make-string (or after-pad 0)
+							      (string-to-char
+							       (or padding-char " ")))))))))))
 		       (when text-props 
 			 (set-text-properties 0
 					      (length string)
