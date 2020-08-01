@@ -99,34 +99,6 @@ I generally use =(setq elgantt-timestamps-to-display '(deadline timestamp schedu
 | space       | Navigate to org heading at point               |
 | Return      | Show agenda for date at point                  |
 Note about cells with multiple entries: If a calendar cell has multiple entries, a special character will be displayed ("☰" by default). If you try to perform a function on one of these cells (e.g., navigating to the org file, shifting a date, etc.), you will be prompted to select the entry you want to perform the operation on. 
-** Header line format
-The variable =elgantt-custom-header-line= controls the format of the header line. It can use any of the properties that are in a cell. You can reference these properties with the =:prop= keyword, with or without the =:elgantt-= prefix. (For example, you can access the headline of a cell’s entry with =:elgantt-headline= or =headline=. There is also a unique property =date-at-point= which will display the date at point and that is not dependent on the properties stored in the given cell. If there are multiple entries in the cell, then the data will be separated with a pipe (i.e, =|=). You can align text in the headerline to the left, center, or right side of the header. If there is an overlap, the latter properties will take precedence over the former. If the property doesn’t return a string, it will be formatted into a string with =(format "%s")=. 
-
-The =:prop= keyword can also be a function that is run at the cell at point. 
-
-The header line is disabled by default while I finish sorting out the variable and function that handles it. You can enable it with =(setq header-line-format '(:eval (elgantt-header-line-function)))=. This will use the default value for =elgantt-custom-header-line=, which is:
-#+begin_src emacs-lisp :results silent
-  (setq elgantt-custom-header-line '((:left ((:prop date-at-point
-                                                    :padding 25)
-                                             (:prop todo
-                                                    :padding 30)
-                                             (:prop headline
-                                                    :padding 25)))))
-#+end_src
-Here is another example:
-#+begin_src emacs-lisp :results silent
-  (setq elgantt-custom-header-line '((:left ((:prop date-at-point
-                                                    ;; you could also use, for example, 'elgantt-get-date-at-point
-                                                    ;; or (lambda () (elgantt-get-date-at-point))
-                                                    :padding 25)
-                                             (:prop todo 
-                                                    :padding 30)))
-                                     (:center ((:prop headline)))
-                                     (:right ((:prop hashtag
-                                                     :padding 40
-                                                     :text-props (face (:background "red")))))))
-#+end_src
-This is a messy work-in-progress. 
 ** Examples 
 These exampes all use the =test.org= file: =(setq elgantt-agenda-files "~/.emacs.d/lisp/elgantt/test.org")= (or wherever your elgantt direcctory is located). 
 *** A note about colorizing the outline
@@ -197,6 +169,39 @@ Here’s a silly example that will group headers by the first letter ofo the hea
 ;; You’ll also want to set `elgantt-insert-header-even-if-no-timestamp' to nil, otherwise you’ll see single letter headers that are assocated with headlines without dates
 #+end_src
 [[file:screenshots/Screenshot_2020-07-20_20-48-32.png]]
+** Header line format
+The variable =elgantt-custom-header-line= controls the format of the header line. It can use any of the properties that are in a cell. You can reference these properties with the =:prop= keyword, with or without the =:elgantt-= prefix. (For example, you can access the headline of a cell’s entry with =:elgantt-headline= or =headline=. There is also a unique property =date-at-point= which will display the date at point and that is not dependent on the properties stored in the given cell. If there are multiple entries in the cell, then the data will be separated with a pipe (i.e, =|=). You can align text in the headerline to the left, center, or right side of the header. If there is an overlap, the latter properties will take precedence over the former. If the property doesn’t return a string, it will be formatted into a string with =(format "%s")=. 
+
+The =:prop= keyword can also be a function that is run at the cell at point. 
+
+The header line is disabled by default while I finish sorting out the variable and function that handles it. You can enable it with =(setq header-line-format '(:eval (elgantt-header-line-function)))=. This will use the default value for =elgantt-custom-header-line=, which is:
+#+begin_src emacs-lisp :results silent
+  (setq elgantt-custom-header-line '((:left ((:prop date-at-point
+                                                    :padding 25)
+                                             (:prop headline
+                                                    :padding 25)))))
+#+end_src
+Here is another example:
+#+begin_src emacs-lisp :results silent
+  (setq elgantt-custom-header-line '((:left ((:prop date-at-point
+                                                    ;; you could also use, for example, 'elgantt-get-date-at-point
+                                                    ;; or (lambda () (elgantt-get-date-at-point))
+                                                    :padding 25)
+                                             (:prop todo 
+                                                    :padding 30)))
+                                     (:center ((:prop headline)))
+                                     (:right ((:prop hashtag
+                                                     :padding 40
+                                                     :text-props (face (:background "red")))))))
+#+end_src
+The header line is work-in-progress and this was my first attempt at a solution. Here is a list of all the properties:
+| Keyword                | Description                                                                                                                                  |
+|------------------------+----------------------------------------------------------------------------------------------------------------------------------------------|
+| :prop                  | Any property stored in a cell that is retrievable with =elgantt-get-prop-at-point=, or a function that is run at the cell at point             |
+| :padding               | Integer which indicates the padding before the next entry (defaults to no padding)                                                           |
+| :after-pad             | If the length of the string exceeds the value of :padding, still separate this entry from the following by this number of padding characters |
+| :padding-char          | The character used for padding. Can be any single character. Defaults to a space                                                             |
+| :text-props            | Any text properties associated with the text. For example, you can set a custom face with =(face '(:background "red"))=                        |
 ** Macro/configuration examples and explanations
 Elgantt aims to provide a flexible way to customize calendar displays. Whether it hits its target is not my concern. 
 *** The =elgantt-create-display-rule= macro
