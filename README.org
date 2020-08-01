@@ -21,6 +21,8 @@ Then:
 (add-to-list 'load-path (concat user-emacs-directory "lisp/elgantt/")) ;; Or wherever it is located
 (require 'elgantt)
 #+end_src
+** Disclaimer
+This package is in-progress. I don't know if that means it is in alpha testing, or beta, or whatever. Everything described below should work, and it is stable enough for my every day use. If this package is useful for you, please help me polish it so we can put in on MELPA. 
 ** First use
 Run =(elgantt-open)=. By default, Elgantt will use your org-agenda files. 
 
