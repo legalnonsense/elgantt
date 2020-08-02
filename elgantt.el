@@ -446,6 +446,18 @@ symbol."
 		  (substring (symbol-name symbol)
 			     substring-start substring-end)
 		  suffix)))
+(eval-and-compile
+  (defun elgantt--add-remove-prop-colon (prop &optional remove)
+    "PROP is a symbol with or without a colon prefix.
+Returns a symbol with a colon prefix. If REMOVE is t,
+then returns a symbol without a colon prefix."
+    (if remove
+        (if (s-starts-with-p ":" (symbol-name prop))
+            (intern (substring (symbol-name prop) 1))
+          prop)
+      (if (s-starts-with-p ":" (symbol-name prop))
+          prop
+        (intern (concat ":" (symbol-name prop)))))))
 
 (defun elgantt--add-remove-prop-colon (prop &optional remove)
   "PROP is a symbol with or without a colon prefix. 

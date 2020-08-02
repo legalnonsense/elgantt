@@ -11,6 +11,7 @@ Install the dependencies:
 - [[https://github.com/alphapapa/ts.el][ts.el]]
 - [[https://github.com/magnars/s.el][s.el]]
 - [[https://github.com/magnars/dash.el][dash.el]]
+These packages also rely on 
 Clone this repository into your =lisp= directory (if you are using Emacs 27, you made need to swap =~/.emacs.d= with =~/.config/emacs=):
 #+begin_src shell :results silent 
 cd ~/.emacs.d/lisp
