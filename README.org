@@ -451,7 +451,7 @@ You can create custom views of the gantt chart/calendar by defining a function l
 If you want to use custom display macros, then you should call =(elgantt--clear-all-customizations)= and then include your custom macros inside the function. 
 ** Faces and themes
 Elgantt should adjust its colors to work with your theme, regardless of whether it is dark or light. 
-** Iteracting with the calendar 
+** Interacting with the calendar 
 There are two ways to interact with the calender: the =elgantt-create-action= macro and the separate module, =elgantt-interaction=.
 **** =elgantt-create-action=
 This macro works the same way as =elgantt-create-display-rule= except that has keywords for binding
