@@ -79,7 +79,8 @@
 
 ;;;; Requirements
 
-(require 'cl-lib)
+(eval-when-compile (require 'cl-lib))
+;;(require 'cl-lib)
 (require 'color)
 (require 'org)
 (require 'org-clock)
@@ -458,18 +459,6 @@ then returns a symbol without a colon prefix."
       (if (s-starts-with-p ":" (symbol-name prop))
           prop
         (intern (concat ":" (symbol-name prop)))))))
-
-(defun elgantt--add-remove-prop-colon (prop &optional remove)
-  "PROP is a symbol with or without a colon prefix. 
-Returns a symbol with a colon prefix. If REMOVE is t, 
-then returns a symbol without a colon prefix."
-  (if remove
-      (if (s-starts-with-p ":" (symbol-name prop))
-	  (intern (substring (symbol-name prop) 1))			
-	prop)
-    (if (s-starts-with-p ":" (symbol-name prop))
-	prop			
-      (intern (concat ":" (symbol-name prop))))))
 
 (defun elgantt--plist-pair-p (plist key val &optional predicate)
   "Return t if PLIST has the KEY and VAL pair. Tests using `equal'.
@@ -1531,7 +1520,8 @@ This is 0.3 red + 0.59 green + 0.11 blue and always between 0 and 255."
      (elgantt--color-hex-to-rgb color))
     ;; If it's a string (trust the user that the color
     ;; name is in `list-colors-display')...
-    ((pred stringp)
+    ((and (pred stringp)
+	  (pred (lambda (expval) (member expval x-colors))))
      (elgantt--color-name-to-rgb color))
     ;; If it's already an RGB tuple...
     ((and `(,r ,g ,b)
