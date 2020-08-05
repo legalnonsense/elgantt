@@ -1520,8 +1520,7 @@ This is 0.3 red + 0.59 green + 0.11 blue and always between 0 and 255."
      (elgantt--color-hex-to-rgb color))
     ;; If it's a string (trust the user that the color
     ;; name is in `list-colors-display')...
-    ((and (pred stringp)
-	  (pred (lambda (expval) (member expval x-colors))))
+    ((pred stringp)
      (elgantt--color-name-to-rgb color))
     ;; If it's already an RGB tuple...
     ((and `(,r ,g ,b)
