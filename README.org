@@ -14,7 +14,7 @@ Install the dependencies:
 Clone this repository into your =lisp= directory:
 #+begin_src shell :results silent 
 cd ~/.emacs.d/lisp
-git clone httpqs://github.com/legalnonsense/elgantt.git
+git clone https://github.com/legalnonsense/elgantt.git
 #+end_src
 Then:
 #+begin_src emacs-lisp :results silent
