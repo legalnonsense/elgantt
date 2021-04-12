@@ -147,9 +147,11 @@ Default: ▶")
 (defcustom elgantt-timestamp-range-end-character "◀"
   "Character shown at the end of a timerange.
 Default: ◀")
+
 (defcustom elgantt-timestamp-range-ia-start-character "▷"
   "Character shown at the beginning of a timerange.
 Default: ▷")
+
 (defcustom elgantt-timestamp-range-ia-end-character "◁"
   "Character shown at the end of a timerange.
 Default: ◁")
@@ -940,10 +942,10 @@ Returns nil if not on a header line."
   (if (eq up-or-down 'up)
       (if (> (org-current-line) (if elgantt-hide-number-line 2 3))
 	  (elgantt--forward-line -1)
-	(return-from elgantt--move-vertically nil))
+	(cl-return-from elgantt--move-vertically nil))
     (if (< (org-current-line) (count-lines (point-min) (point-max)))
 	(elgantt--forward-line 1)
-      (return-from elgantt--move-vertically nil)))
+      (cl-return-from elgantt--move-vertically nil)))
   (let ((next (save-excursion (re-search-forward elgantt-cell-entry-re (point-at-eol) t)))
 	(previous (save-excursion (re-search-backward elgantt-cell-entry-re (point-at-bol) t))))
     (when (or next previous)
