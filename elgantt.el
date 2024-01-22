@@ -130,29 +130,29 @@ Default: ▲")
   "Use this prefix character to show header depth when the outline is unfolded.")
 
 (defcustom elgantt-active-timestamp-character (propertize "!" 'face
-							  '((t (:family "Courier New"))))
+							  '((t (:family "Iosevka"))))
   "Character used for active timestamps in the calendar.
 Default: ●")
 (defcustom elgantt-inactive-timestamp-character (propertize ":" 'face
-							    '((t (:family "Courier New"))))
+							    '((t (:family "Iosevka"))))
   "Character used for inactive timestamps in the calendar. 
 Default: ⊚")
 (defcustom elgantt-scheduled-character (propertize "*" 'face
-						   '((t (:family "Courier New"))))
+						   '((t (:family "Iosevka"))))
   "Character used for active timestamps in the calendar.
 Default: ⬟")
 
 (defcustom elgantt-multiple-entry-character (propertize "+" 'face
-							'((t (:family "Courier New"))))
+							'((t (:family "Iosevka"))))
   "Character used for cells which have multiple entries.
 Default: ☰")
 (defcustom elgantt-timestamp-range-start-character (propertize ">" 'face
-							       '((t (:family "Courier New"))))
+							       '((t (:family "Iosevka"))))
   "Character shown at the beginning of a timerange.
 Default: ▶")
 
 (defcustom elgantt-timestamp-range-end-character (propertize "<" 'face
-							     '((t (:family "Courier New"))))
+							     '((t (:family "Iosevka"))))
   "Character shown at the end of a timerange.
 Default: ◀")
 
@@ -310,13 +310,13 @@ if this is set to nil.")
   '((t (:height 1.0)))
   "Vertical line face")
 
-(defface elgantt-header-line-face '((t (:family "Courier New")))
+(defface elgantt-header-line-face '((t (:family "Iosevka")))
   "Header line face.")
 
-(defface elgantt-odd-numbered-line-face '((t (:family "Courier New")))
+(defface elgantt-odd-numbered-line-face '((t (:family "Iosevka")))
   "Face applied to odd numbered lines in the calendar.")
 
-(defface elgantt-even-numbered-line-face '((t (:family "Courier New")))
+(defface elgantt-even-numbered-line-face '((t (:family "Iosevka")))
   "Face applied to even numbered lines in the calendar. Do not set this face.")
 
 ;;;; Constants
@@ -1082,7 +1082,6 @@ Returns nil if not on a header line."
 (defun elgantt--draw-number-line (year)
   "Inserts the number line for the calendar."
   (let ((inhibit-read-only t))
-    (push year xxx)
     ;; (when (not year) (error "year is nil"))
     (insert (if (elgantt--leap-year-p year)
 		elgantt-leap-year-date-line
