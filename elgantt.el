@@ -2208,10 +2208,16 @@ string accepted by `kbd'."
 			   'face 'elgantt-vertical-line-face)))))
 
 ;;; Major mode
+(defun elgantt-goto-current-date ()
+  "goto current date"
+  (interactive)
+  (elgantt--goto-date (ts-format "%Y-%m-%d" (ts-now))))
+
 (defvar elgantt-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "r")   #'elgantt--reload)
     (define-key map (kbd "C-r") #'elgantt-open)
+    (define-key map (kbd ".") #'elgantt-goto-current-date)
     (define-key map (kbd "SPC") #'elgantt-navigate-to-org-file)
     (define-key map (kbd "p")   #'elgantt--move-up)
     (define-key map (kbd "c")   #'elgantt-scroll-to-current-month)
