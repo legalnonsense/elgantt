@@ -130,29 +130,29 @@ Default: ▲")
   "Use this prefix character to show header depth when the outline is unfolded.")
 
 (defcustom elgantt-active-timestamp-character (propertize "!" 'face
-							  '((t (:family "Iosevka"))))
+							  '((t (:family "Iosevka Nerd Font"))))
   "Character used for active timestamps in the calendar.
 Default: ●")
 (defcustom elgantt-inactive-timestamp-character (propertize ":" 'face
-							    '((t (:family "Iosevka"))))
+							    '((t (:family "Iosevka Nerd Font"))))
   "Character used for inactive timestamps in the calendar. 
 Default: ⊚")
 (defcustom elgantt-scheduled-character (propertize "*" 'face
-						   '((t (:family "Iosevka"))))
+						   '((t (:family "Iosevka Nerd Font"))))
   "Character used for active timestamps in the calendar.
 Default: ⬟")
 
 (defcustom elgantt-multiple-entry-character (propertize "+" 'face
-							'((t (:family "Iosevka"))))
+							'((t (:family "Iosevka Nerd Font"))))
   "Character used for cells which have multiple entries.
 Default: ☰")
 (defcustom elgantt-timestamp-range-start-character (propertize ">" 'face
-							       '((t (:family "Iosevka"))))
+							       '((t (:family "Iosevka Nerd Font"))))
   "Character shown at the beginning of a timerange.
 Default: ▶")
 
 (defcustom elgantt-timestamp-range-end-character (propertize "<" 'face
-							     '((t (:family "Iosevka"))))
+							     '((t (:family "Iosevka Nerd Font"))))
   "Character shown at the end of a timerange.
 Default: ◀")
 
@@ -308,13 +308,13 @@ if this is set to nil.")
   '((t (:height 1.0)))
   "Vertical line face")
 
-(defface elgantt-header-line-face '((t (:family "Iosevka")))
+(defface elgantt-header-line-face '((t (:family "Iosevka Nerd Font")))
   "Header line face.")
 
-(defface elgantt-odd-numbered-line-face '((t (:family "Iosevka")))
+(defface elgantt-odd-numbered-line-face '((t (:family "Iosevka Nerd Font")))
   "Face applied to odd numbered lines in the calendar.")
 
-(defface elgantt-even-numbered-line-face '((t (:family "Iosevka")))
+(defface elgantt-even-numbered-line-face '((t (:family "Iosevka Nerd Font")))
   "Face applied to even numbered lines in the calendar. Do not set this face.")
 
 ;;;; Constants
