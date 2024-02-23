@@ -175,7 +175,7 @@ and top-level headers, assuming there is no date already associated with the hea
   "A file, list of files, or function returning a list of files
 Default: `org-agenda-files'.")
 
-(defcustom elgantt-skip-archives t
+(defcustom elgantt-skip-archives nil
   "Skip archived entries if non-nil.
 Default: t")
 
@@ -273,8 +273,6 @@ or a function that returns the desired header. Default: 'outline.")
 				       (substring return-val
 						  (+ window-middle (length component)))))))))
     return-val))
-
-
 
 (defcustom elgantt-exclusions nil
   "Exclude headings mathing these strings or regexps
