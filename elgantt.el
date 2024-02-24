@@ -1320,12 +1320,11 @@ to the end of the calendar. (This should be calculated automatically,
       (end-of-line)
     (move-to-column elgantt-header-column-offset))
   (elgantt--draw-month-line year)
-  (if append
-      (end-of-line)
-    (move-to-column elgantt-header-column-offset))
   (unless elgantt-hide-number-line
     (forward-line)
-    (end-of-line)
+    (if append
+	(end-of-line)
+      (move-to-column elgantt-header-column-offset))
     (elgantt--draw-number-line year))
   (cl-loop until (progn (end-of-line)
 			(eobp))
